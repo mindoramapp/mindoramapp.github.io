@@ -1,0 +1,1 @@
+import{n as r,r as c}from"./router-yiHuiAYD.js";import{u as o}from"./auth-B0APvS0c.js";const u=e=>!!(e&&(e.role==="superadmin"||e.accessGranted));function p(){const e=o(t=>t.user),i=o(t=>t.initialized),a=o(t=>t.init),s=r();c.useEffect(()=>{a()},[a]);const n=u(e);return c.useEffect(()=>{i&&(e?n||s({to:"/activate"}):s({to:"/login"}))},[i,e,n,s]),i&&n?e:null}export{p as u};
