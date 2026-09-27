@@ -3,6 +3,15 @@
 import { toast } from "sonner";
 import { asPlanLimitError, limitOf, useEntitlements } from "@/features/subscriptions";
 
+/**
+ * True when the database doesn't have a function/table the app calls — i.e. a migration in
+ * supabase/migrations wasn't applied yet (PostgREST PGRST202/PGRST205, Postgres 42883/42P01).
+ */
+export const isMissingDatabaseObject = (error: unknown) => {
+  const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
+  return ["PGRST202", "PGRST205", "42883", "42P01"].includes(code);
+};
+
 export const reportActionError = (error: unknown, fallbackMessage: string) => {
   const planLimit = asPlanLimitError(error);
   if (planLimit) {

@@ -1,9 +1,10 @@
 // Custom mind map node - supports text, checklist, code, link
 import { memo, useEffect, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
-import { CheckSquare, Square, Code2, Link as LinkIcon, StickyNote, Type } from "lucide-react";
+import { CheckSquare, Square, Code2, Link as LinkIcon, Plus, StickyNote, Type } from "lucide-react";
 import type { MindNodeData, NodeKind } from "@/store/maps";
 import { isSafeNodeUrl } from "@/lib/security";
+import { consumePendingEdit, focusWhenReady, START_EDIT_EVENT } from "./nodeEditing";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -39,17 +40,22 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
   }, [data.label]);
 
   useEffect(() => {
-    if (editing) inputRef.current?.focus();
+    if (!editing) return;
+    // Select the text so typing replaces it (a new node starts as "Novo nó").
+    return focusWhenReady(() => inputRef.current);
   }, [editing]);
 
   useEffect(() => {
+    // A node created a moment ago may have been asked to edit before it mounted.
+    if (consumePendingEdit(id)) setEditing(true);
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as { id: string };
       if (detail.id !== id) return;
+      consumePendingEdit(id);
       setEditing(true);
     };
-    window.addEventListener("mm-node-start-edit", handler);
-    return () => window.removeEventListener("mm-node-start-edit", handler);
+    window.addEventListener(START_EDIT_EVENT, handler);
+    return () => window.removeEventListener(START_EDIT_EVENT, handler);
   }, [id]);
 
   const dispatch = (patch: Partial<MindNodeData>) => {
@@ -99,7 +105,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
           onDoubleClick={(e) => {
             if (editing) return;
             e.stopPropagation();
-            window.dispatchEvent(new CustomEvent("mm-node-open-note", { detail: { id } }));
+            setEditing(true);
           }}
           title={
             data.note
@@ -128,6 +134,32 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
               onDoubleClick={(e) => requestChildCreation(e, handle.side)}
             />
           ))}
+
+          {!editing && (
+            <button
+              type="button"
+              onClick={(e) => requestChildCreation(e, "right")}
+              // Don't let the button take focus: the new node's text field needs it.
+              onMouseDown={(e) => e.preventDefault()}
+              onDoubleClick={(e) => e.stopPropagation()}
+              aria-label="Criar balão filho"
+              title="Criar balão filho"
+              className={[
+                // nodrag/nopan: clicking the button must not start a node drag or a canvas pan.
+                "nodrag nopan absolute -right-9 top-1/2 z-10 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full",
+                "bg-primary text-primary-foreground shadow-md transition-opacity duration-150",
+                // Invisible bridge over the gap, so moving from the node to the button keeps the hover.
+                "before:absolute before:-left-4 before:top-1/2 before:h-8 before:w-4 before:-translate-y-1/2 before:content-['']",
+                "opacity-0 group-hover/node:opacity-100 focus-visible:opacity-100",
+                // Touch screens have no hover: show it on the selected node.
+                selected
+                  ? "pointer-coarse:h-9 pointer-coarse:w-9 pointer-coarse:opacity-100"
+                  : "pointer-coarse:pointer-events-none",
+              ].join(" ")}
+            >
+              <Plus size={14} strokeWidth={2.5} />
+            </button>
+          )}
 
           <div className="flex items-center gap-2">
             <span className={data.isRoot ? "opacity-90" : "text-muted-foreground"}>
@@ -161,6 +193,14 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
                   onKeyDown={(e) => {
                     e.stopPropagation();
                     if (e.key === "Enter") commit();
+                    if (e.key === "Tab") {
+                      // Keep the flow going: confirm and create the next child right away.
+                      e.preventDefault();
+                      commit();
+                      window.dispatchEvent(
+                        new CustomEvent("mm-node-add-child", { detail: { id, side: "right" } }),
+                      );
+                    }
                     if (e.key === "Escape") {
                       setValue(data.label);
                       setEditing(false);
@@ -195,11 +235,20 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
               )}
             </div>
             {data.note?.trim() && (
-              <StickyNote
-                size={13}
-                className={`shrink-0 ${data.isRoot ? "opacity-80" : "text-primary"}`}
-                aria-label="Tem anotações"
-              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.dispatchEvent(new CustomEvent("mm-node-open-note", { detail: { id } }));
+                }}
+                onMouseDown={(e) => e.preventDefault()}
+                onDoubleClick={(e) => e.stopPropagation()}
+                className="nodrag shrink-0 rounded p-0.5 hover:bg-black/5"
+                aria-label="Abrir anotações"
+                title="Abrir anotações"
+              >
+                <StickyNote size={13} className={data.isRoot ? "opacity-80" : "text-primary"} />
+              </button>
             )}
           </div>
         </div>

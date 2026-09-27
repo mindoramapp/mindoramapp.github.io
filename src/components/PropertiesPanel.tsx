@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { focusWhenReady } from "./nodeEditing";
 import type { MindNodeData, NodeKind } from "@/store/maps";
 import {
   Type,
@@ -46,14 +47,8 @@ export function PropertiesPanel({
     // Only a new double-click focuses the notes; merely selecting another node must not.
     if (!focusNoteSignal || !nodeId || focusNoteSignal === handledFocusSignal.current) return;
     handledFocusSignal.current = focusNoteSignal;
-    // Wait a frame so the panel has finished expanding/moving before taking focus.
-    const frame = requestAnimationFrame(() => {
-      const field = noteRef.current;
-      if (!field) return;
-      field.focus({ preventScroll: true });
-      field.setSelectionRange(field.value.length, field.value.length);
-    });
-    return () => cancelAnimationFrame(frame);
+    // The panel may still be mounting/expanding; keep trying for a few frames.
+    return focusWhenReady(() => noteRef.current, false);
   }, [focusNoteSignal, nodeId]);
 
   if (!node) {
@@ -62,7 +57,7 @@ export function PropertiesPanel({
         <MousePointerClick size={22} className="text-primary" />
         <p className="font-medium text-foreground">Selecione um nó para editar</p>
         <p className="text-xs">
-          Clique em um balão do mapa. Com duplo clique, você já abre as anotações dele.
+          Clique em um balão do mapa para editar suas propriedades e anotações.
         </p>
       </div>
     );

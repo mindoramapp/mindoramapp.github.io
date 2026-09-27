@@ -1,12 +1,21 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Activity, Ban, Clock3, CreditCard, Shield, Ticket, Users } from "lucide-react";
+import {
+  Activity,
+  Ban,
+  Clock3,
+  CreditCard,
+  DatabaseZap,
+  Shield,
+  Ticket,
+  Users,
+} from "lucide-react";
 import { Header } from "@/components/Header";
 import { AdminBilling } from "@/features/billing";
 import { InvitesPanel } from "@/features/admin/components/InvitesPanel";
 import { UsersPanel } from "@/features/admin/components/UsersPanel";
 import { fetchAdminUserStats, type AdminUserStats } from "@/lib/admin";
-import { reportActionError } from "@/lib/feedback";
+import { isMissingDatabaseObject, reportActionError } from "@/lib/feedback";
 import { useAuth, type UserProfile } from "@/store/auth";
 
 export const Route = createFileRoute("/admin")({
@@ -43,6 +52,7 @@ function AdminPage() {
   const { user, initialized, init } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<AdminUserStats | null>(null);
+  const [missingMigration, setMissingMigration] = useState(false);
   const [tab, setTab] = useState<Tab>(() => {
     try {
       const saved = window.localStorage.getItem(TAB_KEY);
@@ -69,8 +79,10 @@ function AdminPage() {
   const loadStats = useCallback(async () => {
     try {
       setStats(await fetchAdminUserStats());
+      setMissingMigration(false);
     } catch (error) {
-      reportActionError(error, "Não foi possível carregar os números do painel.");
+      if (isMissingDatabaseObject(error)) setMissingMigration(true);
+      else reportActionError(error, "Não foi possível carregar os números do painel.");
     }
   }, []);
 
@@ -108,6 +120,26 @@ function AdminPage() {
             <p className="text-muted-foreground">Assinaturas, usuários e convites da plataforma.</p>
           </div>
         </div>
+
+        {missingMigration && (
+          <div
+            role="alert"
+            className="flex gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm"
+          >
+            <DatabaseZap size={20} className="mt-0.5 shrink-0 text-amber-600" />
+            <div>
+              <p className="font-medium">O banco de dados está desatualizado</p>
+              <p className="mt-1 text-muted-foreground">
+                Os números do painel e o bloqueio de usuários dependem de uma migração que ainda não
+                foi aplicada. No Supabase, abra <strong>SQL Editor</strong>, cole o conteúdo de{" "}
+                <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                  supabase/migrations/20260928010000_admin_users.sql
+                </code>{" "}
+                e clique em <strong>Run</strong>. Depois recarregue esta página.
+              </p>
+            </div>
+          </div>
+        )}
 
         <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           <Stat icon={<Users size={13} />} label="Usuários" value={stats?.total ?? "—"} />

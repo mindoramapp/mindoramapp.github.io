@@ -43,6 +43,7 @@ import {
   savePanelLayout,
 } from "@/features/editor/panelLayout";
 import { PropertiesPanel } from "./PropertiesPanel";
+import { requestNodeEdit } from "./nodeEditing";
 import { useIsMobile, useIsTouch } from "@/hooks/use-mobile";
 import { useGraphHistory } from "@/hooks/useGraphHistory";
 import { layoutTree } from "@/lib/layout";
@@ -581,6 +582,8 @@ function EditorInner({
         },
       ]);
       setSelectedId(id);
+      // A fresh node opens ready for typing; nodes created with a label (e.g. a linked map) don't.
+      if (!nodeData?.label) requestNodeEdit(id);
     },
     [nodes, edges, orientation, map.mode, setNodes, setEdges, maxNodes],
   );
@@ -654,7 +657,7 @@ function EditorInner({
 
       if (action === "edit") {
         setSelectedId(id);
-        window.dispatchEvent(new CustomEvent("mm-node-start-edit", { detail: { id } }));
+        requestNodeEdit(id);
         return;
       }
 
@@ -759,7 +762,7 @@ function EditorInner({
 
       if (event.key === "F2") {
         event.preventDefault();
-        window.dispatchEvent(new CustomEvent("mm-node-start-edit", { detail: { id: selectedId } }));
+        requestNodeEdit(selectedId);
       } else if (event.key === "Enter") {
         event.preventDefault();
         addChild(selectedId, true);
@@ -1125,9 +1128,9 @@ function EditorInner({
               <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
                 Duplo-clique
               </kbd>{" "}
-              no balão abre as anotações ·{" "}
-              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">F2</kbd>{" "}
-              renomeia
+              no balão edita o texto ·{" "}
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">+</kbd>{" "}
+              ao passar o mouse cria um filho
             </p>
             <p>
               <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
