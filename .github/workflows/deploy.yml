@@ -21,7 +21,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: "npm"
 
       - name: Install dependencies
@@ -35,6 +35,15 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Check Supabase secrets
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "::warning title=Supabase não configurado::Defina os secrets VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY. O site será publicado, mas login e mapas ficarão indisponíveis."
+          fi
 
       - name: Build
         run: npm run build
