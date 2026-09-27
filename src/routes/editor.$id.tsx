@@ -33,11 +33,11 @@ function AppearanceButton() {
     <button
       onClick={() => useThemePanel.getState().toggle()}
       aria-pressed={open}
-      className={`px-3 py-1.5 rounded-lg text-sm flex items-center justify-center gap-1.5 pointer-coarse:min-h-11 pointer-coarse:min-w-11 ${open ? "bg-muted" : "hover:bg-muted"}`}
+      className={`h-8 px-3 rounded-full text-sm flex items-center justify-center gap-1.5 pointer-coarse:min-h-11 pointer-coarse:min-w-11 ${open ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}
       title="Aparência: temas, cores de balões e linhas"
       aria-label="Aparência"
     >
-      <Palette size={14} /> <span className="hidden xl:inline">Aparência</span>
+      <Palette size={14} /> <span className="hidden sm:inline">Aparência</span>
     </button>
   );
 }
@@ -200,7 +200,7 @@ function EditorPage() {
             <ArrowLeft size={14} /> <span className="hidden md:inline">Voltar</span>
           </button>
         )}
-        <span className="hidden xl:inline shrink-0 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
+        <span className="hidden 2xl:inline shrink-0 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
           {MODE_LABEL[map.mode] || "Brainstorm"}
         </span>
 
@@ -240,28 +240,7 @@ function EditorPage() {
           <Wand2 size={14} /> <span className="hidden xl:inline">Organizar</span>
         </button>
 
-        <div className="ml-auto lg:ml-0 flex shrink-0 items-center gap-0.5">
-          <button
-            onClick={() => setUndoSignal((signal) => signal + 1)}
-            disabled={!history.canUndo}
-            className="grid h-9 w-9 place-items-center rounded-lg hover:bg-muted pointer-coarse:h-11 pointer-coarse:w-11 disabled:opacity-40 disabled:pointer-events-none"
-            title="Desfazer (Ctrl+Z)"
-            aria-label="Desfazer"
-          >
-            <Undo2 size={16} />
-          </button>
-          <button
-            onClick={() => setRedoSignal((signal) => signal + 1)}
-            disabled={!history.canRedo}
-            className="grid h-9 w-9 place-items-center rounded-lg hover:bg-muted pointer-coarse:h-11 pointer-coarse:w-11 disabled:opacity-40 disabled:pointer-events-none"
-            title="Refazer (Ctrl+Shift+Z)"
-            aria-label="Refazer"
-          >
-            <Redo2 size={16} />
-          </button>
-        </div>
-
-        <div className="hidden lg:flex items-center gap-1">
+        <div className="ml-auto lg:ml-0 hidden lg:flex items-center gap-1">
           <ExportMenu />
           <button
             onClick={() => navigate({ to: "/review/$id", params: { id: map.id } })}
@@ -270,7 +249,6 @@ function EditorPage() {
           >
             <GraduationCap size={14} /> <span className="hidden xl:inline">Revisar</span>
           </button>
-          <AppearanceButton />
           <PanelsMenu />
           <button
             onClick={() => window.dispatchEvent(new Event("mm-center"))}
@@ -283,7 +261,7 @@ function EditorPage() {
         </div>
 
         {/* Phones and portrait tablets: the rest lives in one touch-friendly menu. */}
-        <div className="lg:hidden">
+        <div className="ml-auto lg:hidden">
           <EditorMoreMenu
             view={view}
             onViewChange={setView}
@@ -295,6 +273,33 @@ function EditorPage() {
         </div>
       </Header>
       <div className="flex-1 relative">
+        {/* Quick actions float just under the top bar, so the bar itself stays uncluttered. */}
+        <div
+          role="toolbar"
+          aria-label="Ações rápidas"
+          className="absolute left-1/2 top-2 z-30 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-border bg-card/95 p-1 text-card-foreground shadow-[var(--shadow-soft)] backdrop-blur"
+        >
+          <button
+            onClick={() => setUndoSignal((signal) => signal + 1)}
+            disabled={!history.canUndo}
+            className="grid h-8 w-8 place-items-center rounded-full hover:bg-muted pointer-coarse:h-11 pointer-coarse:w-11 disabled:opacity-40 disabled:pointer-events-none"
+            title="Desfazer (Ctrl+Z)"
+            aria-label="Desfazer"
+          >
+            <Undo2 size={16} />
+          </button>
+          <button
+            onClick={() => setRedoSignal((signal) => signal + 1)}
+            disabled={!history.canRedo}
+            className="grid h-8 w-8 place-items-center rounded-full hover:bg-muted pointer-coarse:h-11 pointer-coarse:w-11 disabled:opacity-40 disabled:pointer-events-none"
+            title="Refazer (Ctrl+Y)"
+            aria-label="Refazer"
+          >
+            <Redo2 size={16} />
+          </button>
+          <span className="mx-1 h-5 w-px bg-border" aria-hidden />
+          <AppearanceButton />
+        </div>
         <MindMapEditor
           map={map}
           mode={view}

@@ -161,33 +161,34 @@ function findAvailableChildPosition(
   preferred: { x: number; y: number },
   nodes: Node<MindNodeData>[],
   ignoreNodeIds: Set<string>,
-  orientation: "horizontal" | "vertical",
   spawnSide: "left" | "right" | "top" | "bottom",
 ) {
   if (!overlapsAnyNode(preferred, nodes, ignoreNodeIds)) return preferred;
 
-  const perpendicularStep = orientation === "horizontal" ? 90 : 180;
-  const forwardStep = orientation === "horizontal" ? 70 : 90;
+  // The side the child grows toward decides the axis: left/right children stack vertically,
+  // top/bottom children spread horizontally.
+  const sideways = spawnSide === "left" || spawnSide === "right";
+  const perpendicularStep = sideways ? 90 : 180;
+  const forwardStep = sideways ? 70 : 90;
   const horizontalDirection = spawnSide === "left" ? -1 : 1;
   const verticalDirection = spawnSide === "top" ? -1 : 1;
 
   for (let ring = 1; ring <= 10; ring += 1) {
-    const offsets =
-      orientation === "horizontal"
-        ? [
-            { x: 0, y: ring * perpendicularStep },
-            { x: 0, y: -ring * perpendicularStep },
-            { x: horizontalDirection * ring * forwardStep, y: ring * perpendicularStep },
-            { x: horizontalDirection * ring * forwardStep, y: -ring * perpendicularStep },
-            { x: horizontalDirection * ring * forwardStep * 2, y: 0 },
-          ]
-        : [
-            { x: ring * perpendicularStep, y: 0 },
-            { x: -ring * perpendicularStep, y: 0 },
-            { x: ring * perpendicularStep, y: verticalDirection * ring * forwardStep },
-            { x: -ring * perpendicularStep, y: verticalDirection * ring * forwardStep },
-            { x: 0, y: verticalDirection * ring * forwardStep * 2 },
-          ];
+    const offsets = sideways
+      ? [
+          { x: 0, y: ring * perpendicularStep },
+          { x: 0, y: -ring * perpendicularStep },
+          { x: horizontalDirection * ring * forwardStep, y: ring * perpendicularStep },
+          { x: horizontalDirection * ring * forwardStep, y: -ring * perpendicularStep },
+          { x: horizontalDirection * ring * forwardStep * 2, y: 0 },
+        ]
+      : [
+          { x: ring * perpendicularStep, y: 0 },
+          { x: -ring * perpendicularStep, y: 0 },
+          { x: ring * perpendicularStep, y: verticalDirection * ring * forwardStep },
+          { x: -ring * perpendicularStep, y: verticalDirection * ring * forwardStep },
+          { x: 0, y: verticalDirection * ring * forwardStep * 2 },
+        ];
 
     for (const offset of offsets) {
       const candidate = {
@@ -665,26 +666,42 @@ function EditorInner({
         : parentId;
       const base = nodes.find((node) => node.id === targetParent) || parent;
       const resolvedSpawnSide = spawnSide || (orientation === "vertical" ? "bottom" : "right");
-      const childCount = edges.filter(
-        (edge) => edge.source === targetParent && edge.data?.kind !== "graph",
-      ).length;
-      const angle = childCount * 0.6 - 0.6;
-      const horizontalDirection = resolvedSpawnSide === "left" ? -1 : 1;
-      const verticalDirection = resolvedSpawnSide === "top" ? -1 : 1;
-      const dx = orientation === "vertical" ? Math.cos(angle) * 40 : horizontalDirection * 240;
-      const dy =
-        orientation === "vertical"
-          ? verticalDirection * 140
-          : Math.sin(angle) * 40 + childCount * 30 - 30;
-      const preferredPosition = {
-        x: base.position.x + dx + (orientation === "vertical" ? Math.cos(angle) * 220 : 0),
-        y: base.position.y + dy,
-      };
+      // A new child goes after the last sibling on the same side of the parent: below it for
+      // left/right children, beside it for top/bottom ones.
+      const sideways = resolvedSpawnSide === "left" || resolvedSpawnSide === "right";
+      const siblingIds = new Set(
+        edges
+          .filter(
+            (edge) =>
+              edge.source === targetParent &&
+              edge.data?.kind !== "graph" &&
+              (edge.data?.treeSide ?? (orientation === "vertical" ? "bottom" : "right")) ===
+                resolvedSpawnSide,
+          )
+          .map((edge) => edge.target),
+      );
+      const siblings = nodes.filter((node) => siblingIds.has(node.id));
+      const preferredPosition = sideways
+        ? {
+            x: siblings.length
+              ? siblings[siblings.length - 1].position.x
+              : base.position.x + (resolvedSpawnSide === "left" ? -240 : 240),
+            y: siblings.length
+              ? Math.max(...siblings.map((node) => node.position.y)) + 70
+              : base.position.y,
+          }
+        : {
+            x: siblings.length
+              ? Math.max(...siblings.map((node) => node.position.x)) + 200
+              : base.position.x,
+            y: siblings.length
+              ? siblings[siblings.length - 1].position.y
+              : base.position.y + (resolvedSpawnSide === "top" ? -140 : 140),
+          };
       const resolvedPosition = findAvailableChildPosition(
         preferredPosition,
         nodes,
         new Set<string>([targetParent]),
-        orientation,
         resolvedSpawnSide,
       );
       const handleIds = getTreeHandleIds(resolvedSpawnSide);
@@ -1208,7 +1225,7 @@ function EditorInner({
       </ReactFlow>
 
       {connectMode && (
-        <div className="pointer-events-none absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-[var(--shadow-soft)]">
+        <div className="pointer-events-none absolute left-1/2 top-16 z-10 -translate-x-1/2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-[var(--shadow-soft)]">
           {pendingSource ? "Clique no nó de destino..." : "Modo conexão: selecione o nó de origem"}
         </div>
       )}

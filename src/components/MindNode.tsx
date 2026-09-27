@@ -48,8 +48,46 @@ const ROOT_STYLE: React.CSSProperties = {
 
 type HandleSide = (typeof HANDLE_DEFINITIONS)[number]["side"];
 
+// One "+" per side, outside the border so it doesn't cover the connection handles.
+const PLUS_BUTTONS: {
+  side: HandleSide;
+  label: string;
+  className: string;
+  touchClassName: string;
+}[] = [
+  {
+    side: "right",
+    label: "à direita",
+    className:
+      "-right-9 top-1/2 -translate-y-1/2 before:-left-4 before:top-1/2 before:h-8 before:w-4 before:-translate-y-1/2",
+    touchClassName: "pointer-coarse:-right-12",
+  },
+  {
+    side: "left",
+    label: "à esquerda",
+    className:
+      "-left-9 top-1/2 -translate-y-1/2 before:-right-4 before:top-1/2 before:h-8 before:w-4 before:-translate-y-1/2",
+    touchClassName: "pointer-coarse:-left-12",
+  },
+  {
+    side: "top",
+    label: "acima",
+    className:
+      "-top-9 left-1/2 -translate-x-1/2 before:-bottom-4 before:left-1/2 before:h-4 before:w-8 before:-translate-x-1/2",
+    touchClassName: "pointer-coarse:-top-14",
+  },
+  {
+    side: "bottom",
+    label: "abaixo",
+    className:
+      "-bottom-9 left-1/2 -translate-x-1/2 before:-top-4 before:left-1/2 before:h-4 before:w-8 before:-translate-x-1/2",
+    touchClassName: "pointer-coarse:-bottom-14",
+  },
+];
+
 function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
   const [editing, setEditing] = useState(false);
+  const snappedTap = useRef(false);
   const [value, setValue] = useState(data.label);
   const inputRef = useRef<HTMLInputElement>(null);
   const kind = data.kind || "text";
@@ -153,31 +191,52 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
             />
           ))}
 
-          {!editing && (
-            <button
-              type="button"
-              onClick={(e) => requestChildCreation(e, "right")}
-              // Don't let the button take focus: the new node's text field needs it.
-              onMouseDown={(e) => e.preventDefault()}
-              onDoubleClick={(e) => e.stopPropagation()}
-              aria-label="Criar balão filho"
-              title="Criar balão filho"
-              className={[
-                // nodrag/nopan: clicking the button must not start a node drag or a canvas pan.
-                "nodrag nopan absolute -right-9 top-1/2 z-10 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full",
-                "bg-primary text-primary-foreground shadow-md transition-opacity duration-150",
-                // Invisible bridge over the gap, so moving from the node to the button keeps the hover.
-                "before:absolute before:-left-4 before:top-1/2 before:h-8 before:w-4 before:-translate-y-1/2 before:content-['']",
-                "opacity-0 group-hover/node:opacity-100 focus-visible:opacity-100",
-                // Touch screens have no hover: show it on the selected node.
-                selected
-                  ? "pointer-coarse:-right-12 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100"
-                  : "pointer-coarse:pointer-events-none",
-              ].join(" ")}
-            >
-              <Plus size={14} strokeWidth={2.5} />
-            </button>
-          )}
+          {!editing &&
+            PLUS_BUTTONS.map((button) => (
+              <button
+                key={button.side}
+                type="button"
+                // Browsers snap imprecise taps to the nearest button; a tap that really landed on
+                // the node (outside this button) must not create a child.
+                onPointerDown={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  snappedTap.current =
+                    e.pointerType !== "mouse" &&
+                    (e.clientX < r.left ||
+                      e.clientX > r.right ||
+                      e.clientY < r.top ||
+                      e.clientY > r.bottom);
+                }}
+                onClick={(e) => {
+                  if (snappedTap.current) {
+                    snappedTap.current = false;
+                    e.stopPropagation();
+                    return;
+                  }
+                  requestChildCreation(e, button.side);
+                }}
+                // Don't let the button take focus: the new node's text field needs it.
+                onMouseDown={(e) => e.preventDefault()}
+                onDoubleClick={(e) => e.stopPropagation()}
+                aria-label={`Criar balão filho ${button.label}`}
+                title={`Criar balão filho ${button.label}`}
+                className={[
+                  // nodrag/nopan: clicking the button must not start a node drag or a canvas pan.
+                  "nodrag nopan absolute z-10 grid h-6 w-6 place-items-center rounded-full",
+                  "bg-primary text-primary-foreground shadow-md transition-opacity duration-150",
+                  // Invisible bridge over the gap, so moving from the node to the button keeps the hover.
+                  "before:absolute before:content-[''] pointer-coarse:before:hidden",
+                  button.className,
+                  "opacity-0 group-hover/node:opacity-100 focus-visible:opacity-100",
+                  // Touch screens have no hover: show them on the selected node.
+                  selected
+                    ? `pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100 ${button.touchClassName}`
+                    : "pointer-coarse:pointer-events-none",
+                ].join(" ")}
+              >
+                <Plus size={14} strokeWidth={2.5} />
+              </button>
+            ))}
 
           <div className="flex items-center gap-2">
             <span className={data.isRoot ? "opacity-90" : "opacity-60"}>{KIND_ICON[kind]}</span>
