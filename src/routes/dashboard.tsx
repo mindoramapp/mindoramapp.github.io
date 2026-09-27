@@ -23,6 +23,7 @@ import { Header } from "@/components/Header";
 import { parseImportedMap } from "@/lib/export";
 import { runAction } from "@/lib/feedback";
 import { PlanUsageBadge, useEntitlements } from "@/features/subscriptions";
+import { RenewalBanner } from "@/features/billing";
 import {
   Dialog,
   DialogContent,
@@ -497,6 +498,9 @@ function DashboardPage() {
           </aside>
 
           <section className="min-w-0 rounded-3xl border border-border bg-card/90 p-5 shadow-[var(--shadow-soft)]">
+            <div className="mb-5 empty:hidden">
+              <RenewalBanner />
+            </div>
             <div className="mb-6 flex flex-col gap-4 2xl:flex-row 2xl:items-end 2xl:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

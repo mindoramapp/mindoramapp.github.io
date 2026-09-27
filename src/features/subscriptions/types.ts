@@ -1,7 +1,8 @@
 // Shapes of the plan data served by the database (`plans` table and `get_my_entitlements()`).
 // The database is the source of truth; nothing here hardcodes prices or limits.
 
-export type PlanId = "free" | "bronze" | "silver" | "gold";
+// "bronze" | "silver" | "gold" were the first draft of the offer; kept for old references.
+export type PlanId = "free" | "plus" | "pro" | "bronze" | "silver" | "gold";
 export type ExportFormat = "png" | "pdf" | "svg";
 export type SharePermission = "view" | "comment" | "edit";
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "canceled" | "expired";

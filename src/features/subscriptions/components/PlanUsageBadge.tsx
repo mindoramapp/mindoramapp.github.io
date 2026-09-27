@@ -1,4 +1,5 @@
 // Compact "Plano X · n de m mapas" indicator with a usage bar.
+import { Link } from "@tanstack/react-router";
 import { usageOf } from "../entitlements";
 import { useEntitlements } from "../useEntitlements";
 
@@ -10,9 +11,10 @@ export function PlanUsageBadge() {
   const label = maps.limit === null ? `${maps.used} mapas` : `${maps.used} de ${maps.limit} mapas`;
 
   return (
-    <div
-      className="flex shrink-0 flex-col gap-1.5 whitespace-nowrap rounded-xl border border-border px-3 py-2"
-      title={maps.reached ? "Você atingiu o limite de mapas do seu plano" : undefined}
+    <Link
+      to="/plans"
+      className="flex shrink-0 flex-col gap-1.5 whitespace-nowrap rounded-xl border border-border px-3 py-2 transition-colors hover:border-primary/40"
+      title={maps.reached ? "Você atingiu o limite — veja os planos" : "Ver planos"}
     >
       <div className="flex items-center justify-between gap-3 text-xs">
         <span className="font-medium text-foreground">Plano {entitlements.plan.name}</span>
@@ -35,6 +37,6 @@ export function PlanUsageBadge() {
           />
         </div>
       )}
-    </div>
+    </Link>
   );
 }

@@ -1,0 +1,57 @@
+const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const date = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+const dateTime = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+export const formatMoney = (cents: number) => money.format(cents / 100);
+export const formatDate = (iso: string | null | undefined) =>
+  iso ? date.format(new Date(iso)) : "—";
+export const formatDateTime = (iso: string | null | undefined) =>
+  iso ? dateTime.format(new Date(iso)) : "—";
+
+/** Whole days until `iso` (negative when in the past), rounded up like the database does. */
+export const daysUntil = (iso: string, now = new Date()) =>
+  Math.ceil((new Date(iso).getTime() - now.getTime()) / 86_400_000);
+
+/** The period is ending: warn this many days before. */
+export const RENEWAL_WARNING_DAYS = 10;
+
+export type RenewalState =
+  | { kind: "none" }
+  | { kind: "ending"; daysLeft: number; endsAt: string; planId: string }
+  | { kind: "ended"; endedAt: string; planId: string };
+
+/** What to tell a user about their paid period, given their subscription. */
+export function renewalState(
+  subscription: { plan_id: string; status: string; current_period_end: string | null } | null,
+  now = new Date(),
+): RenewalState {
+  if (!subscription?.current_period_end || subscription.plan_id === "free") return { kind: "none" };
+  const daysLeft = daysUntil(subscription.current_period_end, now);
+  if (daysLeft > RENEWAL_WARNING_DAYS) return { kind: "none" };
+  if (daysLeft > 0) {
+    return {
+      kind: "ending",
+      daysLeft,
+      endsAt: subscription.current_period_end,
+      planId: subscription.plan_id,
+    };
+  }
+  // Recently ended (last 15 days): remind that data is kept and renewing restores the plan.
+  if (daysLeft > -15) {
+    return {
+      kind: "ended",
+      endedAt: subscription.current_period_end,
+      planId: subscription.plan_id,
+    };
+  }
+  return { kind: "none" };
+}

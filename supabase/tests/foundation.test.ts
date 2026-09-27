@@ -115,10 +115,11 @@ describe("authorization", () => {
 
   it("publishes plans to anonymous visitors", async () => {
     await t.db.exec("set role anon;");
-    const plans = (await t.db.query<{ id: string }>("select id from plans order by sort_order"))
-      .rows;
+    const plans = (
+      await t.db.query<{ id: string }>("select id from plans where is_active order by sort_order")
+    ).rows;
     await t.db.exec("reset role;");
-    expect(plans.map((plan) => plan.id)).toEqual(["free", "bronze", "silver", "gold"]);
+    expect(plans.map((plan) => plan.id)).toEqual(["free", "plus", "pro"]);
   });
 });
 

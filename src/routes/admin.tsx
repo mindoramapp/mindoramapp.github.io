@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Shield, Users, Clock3, Ticket, Mail } from "lucide-react";
 import { Header } from "@/components/Header";
+import { AdminBilling } from "@/features/billing";
 import {
   buildAccessCodeEmail,
   createAccessCode,
@@ -156,7 +157,7 @@ function AdminPage() {
   return (
     <div className="min-h-dvh flex flex-col">
       <Header />
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-8 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center gap-3">
           <span className="w-12 h-12 rounded-2xl bg-primary/10 text-primary grid place-items-center">
             <Shield size={22} />
@@ -179,6 +180,8 @@ function AdminPage() {
             Debug: {debug}
           </div>
         )}
+
+        <AdminBilling />
 
         <section className="grid gap-3 md:grid-cols-3">
           <div className="rounded-2xl border border-border bg-card p-5">

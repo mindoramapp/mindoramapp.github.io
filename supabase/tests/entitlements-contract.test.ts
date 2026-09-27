@@ -34,7 +34,7 @@ let plans: Plan[];
 beforeAll(async () => {
   t = await createTestDb();
   plans = await t.admin<Plan>(
-    "select id, name, price_cents, currency, sort_order, limits from plans order by sort_order",
+    "select id, name, price_cents, currency, sort_order, limits from plans where is_active order by sort_order",
   );
 }, 60_000);
 
@@ -48,22 +48,22 @@ describe("plans seeded by the migrations", () => {
   it("match the commercial offer", () => {
     expect(plans.map((p) => [p.id, formatPrice(p).replace(/\u00a0/g, " ")])).toEqual([
       ["free", "Grátis"],
-      ["bronze", "R$ 5,00"],
-      ["silver", "R$ 10,00"],
-      ["gold", "R$ 20,00"],
+      ["plus", "R$ 14,90"],
+      ["pro", "R$ 24,90"],
     ]);
   });
 
   it("point upgrade prompts to the cheapest plan offering each feature", () => {
-    expect(cheapestPlanWith(plans, "export_pdf")?.id).toBe("silver");
-    expect(cheapestPlanWith(plans, "export_svg")?.id).toBe("gold");
-    expect(cheapestPlanWith(plans, "no_watermark")?.id).toBe("bronze");
-    expect(cheapestPlanWith(plans, "share_view")?.id).toBe("bronze");
-    expect(cheapestPlanWith(plans, "share_edit")?.id).toBe("gold");
-    expect(cheapestPlanWith(plans, "ai")?.id).toBe("silver");
-    expect(cheapestPlanAbove(plans, "max_maps", 4)?.id).toBe("bronze");
-    expect(cheapestPlanAbove(plans, "max_maps", 51)?.id).toBe("gold");
-    expect(cheapestPlanAbove(plans, "max_nodes_per_map", 200)?.id).toBe("silver");
+    expect(cheapestPlanWith(plans, "export_pdf")?.id).toBe("plus");
+    expect(cheapestPlanWith(plans, "export_svg")?.id).toBe("pro");
+    expect(cheapestPlanWith(plans, "no_watermark")?.id).toBe("plus");
+    expect(cheapestPlanWith(plans, "share_view")?.id).toBe("plus");
+    expect(cheapestPlanWith(plans, "share_edit")?.id).toBe("pro");
+    expect(cheapestPlanWith(plans, "ai")?.id).toBe("pro");
+    expect(cheapestPlanAbove(plans, "max_maps", 4)?.id).toBe("plus");
+    expect(cheapestPlanAbove(plans, "max_maps", 16)?.id).toBe("pro");
+    expect(cheapestPlanAbove(plans, "max_maps", 101)).toBeUndefined();
+    expect(cheapestPlanAbove(plans, "max_nodes_per_map", 200)?.id).toBe("pro");
   });
 });
 

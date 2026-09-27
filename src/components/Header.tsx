@@ -5,7 +5,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/store/auth";
 import { useUsageTracker } from "@/hooks/useUsageTracker";
 import { useTheme } from "@/hooks/useTheme";
-import { LogOut, Brain, Download, Home, Moon, Shield, Sun } from "lucide-react";
+import { LogOut, Brain, Crown, Download, Home, Moon, Shield, Sun } from "lucide-react";
 import { useInstallPrompt } from "@/features/pwa/installPrompt";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -43,6 +43,16 @@ export function Header({ children }: { children?: React.ReactNode }) {
 
       {/* Wide screens: individual buttons. */}
       <div className="hidden items-center gap-1 sm:flex">
+        {user && (
+          <Link
+            to="/plans"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium hover:bg-muted pointer-coarse:h-11"
+            title="Planos"
+          >
+            <Crown size={16} className="text-primary" />
+            <span className="hidden lg:inline">Planos</span>
+          </Link>
+        )}
         <Link to="/" className={ICON_BUTTON} aria-label="Página inicial" title="Página inicial">
           <Home size={18} />
         </Link>
@@ -135,6 +145,11 @@ function AccountMenu({
           <Link to="/" role="menuitem" className={MENU_ITEM} onClick={() => setOpen(false)}>
             <Home size={16} /> Página inicial
           </Link>
+          {onSignOut && (
+            <Link to="/plans" role="menuitem" className={MENU_ITEM} onClick={() => setOpen(false)}>
+              <Crown size={16} /> Planos
+            </Link>
+          )}
           <button type="button" role="menuitem" className={MENU_ITEM} onClick={toggle}>
             {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             {theme === "dark" ? "Tema claro" : "Tema escuro"}

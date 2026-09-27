@@ -72,12 +72,31 @@ Os testes em `supabase/tests/` rodam as migrações reais num Postgres em memór
 limites de plano e o save versionado. Eles fazem parte do `npm test` e não precisam de Docker
 nem de acesso ao seu projeto.
 
+## Planos e pagamento por Pix
+
+Planos: **Free** (3 mapas, 50 nós, 1 pasta), **Plus** (R$ 14,90/mês: 15 mapas, 150 nós,
+5 pastas) e **Pro** (R$ 24,90/mês: 100 mapas, 500 nós, 30 pastas). Preços e limites ficam na
+tabela `plans` e podem ser alterados sem deploy.
+
+O pagamento é **Pix direto para a chave do administrador**, sem gateway e sem cartão:
+
+1. Em **Planos**, a pessoa escolhe o plano e recebe o QR Code / Pix copia e cola com o valor
+   exato e um código de pedido (`MND-XXXXXX`). O valor vem do banco, nunca do navegador.
+2. Depois de pagar, toca em **"Já paguei"** (pode informar o nome de quem pagou).
+3. No **painel admin → Assinaturas e pagamentos**, o administrador confere o Pix no banco e
+   clica em **Confirmar**: o plano vale 30 dias. Renovar antes do fim soma os dias.
+4. A partir de **10 dias do vencimento** o app avisa a pessoa para renovar; no vencimento ela
+   volta ao Free, sem perder mapas.
+
+A chave Pix, o nome e a cidade do recebedor são cadastrados no próprio painel admin. Como o
+banco não avisa o sistema quando um Pix chega, a confirmação é manual; um gateway (Mercado
+Pago, Asaas…) pode automatizar esse passo no futuro sem mudar o resto.
+
 ## Acesso, planos e permissões
 
 - **Convite:** a conta só usa o produto depois de ativada com um código gerado no painel
   admin. A regra fica em `has_app_access()` e é exigida por todas as políticas RLS de conteúdo.
-- **Planos:** a tabela `plans` é a fonte única de preços e limites (FREE, Bronze R$ 5,
-  Prata R$ 10, Ouro R$ 20). Mudar um limite ou preço é um `UPDATE` nessa tabela, sem deploy.
+- **Planos:** a tabela `plans` é a fonte única de preços e limites (Free, Plus e Pro). Mudar um limite ou preço é um `UPDATE` nessa tabela, sem deploy.
 - **Aplicação no banco:** triggers recusam criar mapas, pastas ou nós acima do limite do
   plano efetivo, com o erro `PLAN_LIMIT:<limite>`. Um downgrade nunca apaga dados: o que já
   existe continua acessível, e só o crescimento é bloqueado.
