@@ -258,7 +258,11 @@ export const parseImportedMap = (raw: string): ImportedMap => {
   } catch {
     throw new Error("O arquivo não é um JSON válido.");
   }
+  return parseMapObject(parsed);
+};
 
+/** Validates an already-parsed map export (also used for each map inside a folder export). */
+export const parseMapObject = (parsed: unknown): ImportedMap => {
   if (!isRecord(parsed) || parsed.format !== JSON_FORMAT) {
     throw new Error("O arquivo não foi exportado pelo Mindora.");
   }

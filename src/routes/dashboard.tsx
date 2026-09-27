@@ -20,8 +20,15 @@ import {
   Trash2,
 } from "lucide-react";
 import { Header } from "@/components/Header";
-import { parseImportedMap } from "@/lib/export";
-import { runAction } from "@/lib/feedback";
+import { downloadFile, parseImportedMap } from "@/lib/export";
+import { FolderTree, type DragItem } from "@/features/folders/components/FolderTree";
+import {
+  buildFolderExport,
+  canMoveFolder,
+  isFolderExport,
+  parseFolderImport,
+} from "@/features/folders/folderTree";
+import { reportActionError, runAction } from "@/lib/feedback";
 import { PlanUsageBadge, useEntitlements } from "@/features/subscriptions";
 import { RenewalBanner } from "@/features/billing";
 import {
@@ -75,7 +82,9 @@ function DashboardPage() {
   const [search, setSearch] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
-  const [draggedMapId, setDraggedMapId] = useState<string | null>(null);
+  const [dragged, setDragged] = useState<DragItem>(null);
+  const [mapDropTarget, setMapDropTarget] = useState<string | null>(null);
+  const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
 
   useEffect(() => {
     void init();
@@ -217,9 +226,22 @@ function DashboardPage() {
 
   const importMapFile = async (file: File) => {
     if (!user) return;
+    let raw: string;
+    let parsed: unknown;
+    try {
+      raw = await file.text();
+      parsed = JSON.parse(raw);
+    } catch {
+      toast.error("O arquivo não é um JSON válido.");
+      return;
+    }
+    if (isFolderExport(parsed)) {
+      await importFolderTree(raw);
+      return;
+    }
     let imported: ReturnType<typeof parseImportedMap>;
     try {
-      imported = parseImportedMap(await file.text());
+      imported = parseImportedMap(raw);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível ler o arquivo.");
       return;
@@ -239,6 +261,105 @@ function DashboardPage() {
       navigate({ to: "/editor/$id", params: { id: map.id } });
     }, "Não foi possível importar o mapa agora.");
   };
+
+  /** Recreates an exported folder (subfolders + maps) inside the current folder. */
+  const importFolderTree = async (raw: string) => {
+    if (!user) return;
+    let tree: ReturnType<typeof parseFolderImport>;
+    try {
+      tree = parseFolderImport(raw);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível ler a pasta.");
+      return;
+    }
+    const owner = { id: user.id, email: user.email };
+    const idOf = new Map<string, string>();
+    let foldersDone = 0;
+    let mapsDone = 0;
+    try {
+      for (const entry of tree.folders) {
+        const parentId = entry.parentKey ? (idOf.get(entry.parentKey) ?? null) : selectedFolderId;
+        const folder = createFolder(owner, entry.name, parentId);
+        await upsertFolder(folder);
+        idOf.set(entry.key, folder.id);
+        foldersDone += 1;
+      }
+      for (const { folderKey, map: imported } of tree.maps) {
+        await upsertMap({
+          ...createBlankMap(owner, imported.title, imported.mode, {
+            folderId: idOf.get(folderKey) ?? null,
+            viewport: imported.viewport,
+          }),
+          nodes: imported.nodes,
+          edges: imported.edges,
+        });
+        mapsDone += 1;
+      }
+      toast.success(
+        `Pasta “${tree.name}” importada: ${foldersDone} pasta(s) e ${mapsDone} mapa(s).`,
+      );
+    } catch (error) {
+      reportActionError(error, "A importação parou no meio.");
+      if (foldersDone || mapsDone) {
+        toast.message(`Importado até aqui: ${foldersDone} pasta(s) e ${mapsDone} mapa(s).`);
+      }
+    } finally {
+      await refreshData();
+      void refreshEntitlements();
+    }
+  };
+
+  const exportFolder = (folder: MindFolder) => {
+    const data = buildFolderExport(folder.id, folders, maps);
+    const slug =
+      folder.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase() || "pasta";
+    downloadFile(
+      new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }),
+      `pasta-${slug}.json`,
+    );
+    toast.success(
+      `Pasta exportada com ${data.maps.length} mapa(s). Importe em qualquer conta pelo botão Importar.`,
+    );
+  };
+
+  const moveFolder = (folderId: string, parentId: string | null) =>
+    runAction(async () => {
+      const folder = folders.find((entry) => entry.id === folderId);
+      if (!folder || folder.parentId === parentId || !canMoveFolder(folderId, parentId, folders))
+        return;
+      await upsertFolder({ ...folder, parentId, updatedAt: Date.now() });
+      if (parentId) setExpandedFolders((current) => ({ ...current, [parentId]: true }));
+      await refreshData();
+      toast.success(parentId ? "Pasta movida." : "Pasta movida para o topo.");
+    }, "Não foi possível mover a pasta agora.");
+
+  const renameFolder = (folder: MindFolder, name: string) =>
+    runAction(async () => {
+      const updated = { ...folder, name, updatedAt: Date.now() };
+      setFolders((current) => current.map((entry) => (entry.id === folder.id ? updated : entry)));
+      await upsertFolder(updated);
+    }, "Não foi possível renomear a pasta agora.");
+
+  /** New folder (named inline right away); optionally moving maps into it. */
+  const createFolderInline = (parentId: string | null, mapsToMove: MindMap[] = []) =>
+    runAction(async () => {
+      if (!user) return;
+      const folder = createFolder({ id: user.id, email: user.email }, "Nova pasta", parentId);
+      await upsertFolder(folder);
+      for (const map of mapsToMove)
+        await upsertMap({ ...map, folderId: folder.id, updatedAt: Date.now() });
+      if (parentId) setExpandedFolders((current) => ({ ...current, [parentId]: true }));
+      setOrganizationOpen(true);
+      await refreshData();
+      void refreshEntitlements();
+      setRenamingFolderId(folder.id);
+      if (mapsToMove.length) toast.success("Pasta criada com os dois mapas. Dê um nome a ela.");
+    }, "Não foi possível criar a pasta agora.");
 
   const createFromTemplate = async (templateId: TemplateId) => {
     if (!user) return;
@@ -328,79 +449,6 @@ function DashboardPage() {
       );
     }, "Não foi possível mover o mapa agora.");
 
-  const renderFolderTree = (parentId: string | null = null, depth = 0): React.ReactNode =>
-    (folderChildren.get(parentId) || []).map((folder) => {
-      const isExpanded = expandedFolders[folder.id] ?? true;
-      const isSelected = selectedFolderId === folder.id;
-      const children = folderChildren.get(folder.id) || [];
-      const isDroppableTarget = draggedMapId !== null;
-
-      return (
-        <div key={folder.id}>
-          <div
-            className={`group flex items-center gap-2 rounded-xl px-2 py-2 text-sm transition-colors ${
-              isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted"
-            } ${isDroppableTarget ? "data-[drop=true]:ring-2 data-[drop=true]:ring-primary/40" : ""}`}
-            style={{ paddingLeft: `${depth * 14 + 8}px` }}
-            data-drop={isDroppableTarget || undefined}
-            onDragOver={(event) => {
-              if (!draggedMapId) return;
-              event.preventDefault();
-            }}
-            onDrop={(event) => {
-              event.preventDefault();
-              if (!draggedMapId) return;
-              const droppedMap = maps.find((entry) => entry.id === draggedMapId);
-              setDraggedMapId(null);
-              if (!droppedMap) return;
-              void moveMapHandler(droppedMap, folder.id);
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => toggleFolder(folder.id)}
-              className="text-muted-foreground"
-            >
-              {children.length > 0 ? (
-                isExpanded ? (
-                  <ChevronDown size={14} />
-                ) : (
-                  <ChevronRight size={14} />
-                )
-              ) : (
-                <span className="block w-[14px]" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedFolderId(folder.id)}
-              className="flex flex-1 items-center gap-2 text-left"
-            >
-              {isExpanded ? <FolderOpen size={16} /> : <Folder size={16} />}
-              <span className="truncate">{folder.name}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => openRenameFolderModal(folder)}
-              className="opacity-0 transition-opacity group-hover:opacity-100 text-muted-foreground hover:text-foreground"
-              title="Renomear pasta"
-            >
-              <Pencil size={14} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmDeleteFolder(folder)}
-              className="opacity-0 transition-opacity group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-              title="Excluir pasta"
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
-          {isExpanded && children.length > 0 ? renderFolderTree(folder.id, depth + 1) : null}
-        </div>
-      );
-    });
-
   if (!initialized) return null;
   if (!user) return null;
   if (user.role !== "superadmin" && !user.accessGranted) return null;
@@ -440,35 +488,26 @@ function DashboardPage() {
             </div>
 
             <div className={organizationOpen ? "mt-4 lg:mt-0" : "hidden lg:block"}>
-              <button
-                type="button"
-                onClick={() => setSelectedFolderId(null)}
-                className={`mb-2 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors pointer-coarse:min-h-11 ${
-                  selectedFolderId === null ? "bg-primary/10 text-primary" : "hover:bg-muted"
-                }`}
-              >
-                <Folder size={16} /> Todos os mapas
-              </button>
-
-              <div
-                className="mb-3 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
-                onDragOver={(event) => {
-                  if (!draggedMapId) return;
-                  event.preventDefault();
+              <FolderTree
+                folders={folders}
+                selectedId={selectedFolderId}
+                onSelect={setSelectedFolderId}
+                expanded={expandedFolders}
+                onToggle={toggleFolder}
+                dragged={dragged}
+                onDragChange={setDragged}
+                onMoveMap={(mapId, folderId) => {
+                  const map = maps.find((entry) => entry.id === mapId);
+                  if (map && map.folderId !== folderId) void moveMapHandler(map, folderId);
                 }}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  if (!draggedMapId) return;
-                  const droppedMap = maps.find((entry) => entry.id === draggedMapId);
-                  setDraggedMapId(null);
-                  if (!droppedMap) return;
-                  void moveMapHandler(droppedMap, null);
-                }}
-              >
-                Arraste mapas aqui para mover para a raiz
-              </div>
-
-              <div className="space-y-1">{renderFolderTree()}</div>
+                onMoveFolder={(folderId, parentId) => void moveFolder(folderId, parentId)}
+                renamingId={renamingFolderId}
+                onRenamingChange={setRenamingFolderId}
+                onRename={(folder, name) => void renameFolder(folder, name)}
+                onCreateSubfolder={(parentId) => void createFolderInline(parentId)}
+                onExport={exportFolder}
+                onDelete={setConfirmDeleteFolder}
+              />
 
               <div className="mt-6 border-t border-border pt-4">
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -695,9 +734,40 @@ function DashboardPage() {
                   <div
                     key={map.id}
                     draggable
-                    onDragStart={() => setDraggedMapId(map.id)}
-                    onDragEnd={() => setDraggedMapId(null)}
-                    className="group rounded-2xl border border-border bg-background/70 p-5 transition hover:border-primary/60 hover:shadow-[var(--shadow-soft)]"
+                    onDragStart={(event) => {
+                      event.dataTransfer.effectAllowed = "move";
+                      event.dataTransfer.setData("text/plain", map.title);
+                      setDragged({ type: "map", id: map.id });
+                    }}
+                    onDragEnd={() => {
+                      setDragged(null);
+                      setMapDropTarget(null);
+                    }}
+                    onDragOver={(event) => {
+                      if (dragged?.type !== "map" || dragged.id === map.id) return;
+                      event.preventDefault();
+                      setMapDropTarget(map.id);
+                    }}
+                    onDragLeave={() =>
+                      setMapDropTarget((current) => (current === map.id ? null : current))
+                    }
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      setMapDropTarget(null);
+                      const source =
+                        dragged?.type === "map"
+                          ? maps.find((entry) => entry.id === dragged.id)
+                          : null;
+                      setDragged(null);
+                      if (!source || source.id === map.id) return;
+                      // Like app icons on a phone: dropping a map on another groups both in a new folder.
+                      void createFolderInline(map.folderId ?? null, [map, source]);
+                    }}
+                    className={`group rounded-2xl border bg-background/70 p-5 transition hover:border-primary/60 hover:shadow-[var(--shadow-soft)] ${
+                      mapDropTarget === map.id
+                        ? "border-primary ring-4 ring-primary/20 scale-[1.02]"
+                        : "border-border"
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <button
