@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+  # Pull requests (e.g. from Dependabot) run every check but never publish.
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -56,9 +58,11 @@ jobs:
           VITE_AUTH_REDIRECT_URL: ${{ secrets.VITE_AUTH_REDIRECT_URL }}
 
       - name: Copy index.html → 404.html (SPA fallback)
+        if: github.event_name != 'pull_request'
         run: cp dist/client/index.html dist/client/404.html
 
       - name: Deploy to gh-pages
+        if: github.event_name != 'pull_request'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
