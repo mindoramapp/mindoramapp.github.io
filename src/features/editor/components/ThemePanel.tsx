@@ -169,7 +169,8 @@ export function ThemePanel({
       // reach the editor's shortcuts — except Delete, which removes the selected line.
       onKeyDown={(event) => {
         const typing = (event.target as HTMLElement).tagName === "INPUT";
-        if (typing || (event.key !== "Delete" && event.key !== "Backspace")) event.stopPropagation();
+        if (typing || (event.key !== "Delete" && event.key !== "Backspace"))
+          event.stopPropagation();
       }}
       className={
         mobile
