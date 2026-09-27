@@ -237,9 +237,35 @@ function QuickAccessCard() {
   );
 }
 
+/** Where a signed-in visitor continues: their maps, or the invite screen if not activated yet. */
+function useAppDestination() {
+  const user = useAuth((state) => state.user);
+  if (!user) return null;
+  return user.role === "superadmin" || user.accessGranted ? "/dashboard" : "/activate";
+}
+
+function SignedInCard({ destination }: { destination: "/dashboard" | "/activate" }) {
+  const name = useAuth((state) => state.user?.name);
+  return (
+    <div className="rounded-3xl border border-border/70 bg-card/80 p-6 shadow-[var(--shadow-soft)] backdrop-blur">
+      <p className="text-sm text-muted-foreground">
+        Você já está conectado{name ? ` como ${name}` : ""}.
+      </p>
+      <Link
+        to={destination}
+        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[image:var(--gradient-hero)] px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-95"
+      >
+        {destination === "/dashboard" ? "Abrir meus mapas" : "Liberar meu acesso"}
+        <ArrowRight size={16} />
+      </Link>
+    </div>
+  );
+}
+
 export function LandingPage() {
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const appDestination = useAppDestination();
 
   const navItems = useMemo(
     () => [
@@ -291,19 +317,31 @@ export function LandingPage() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle className="hidden sm:inline-flex" />
-            <Link
-              to="/login"
-              className="hidden rounded-full px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted sm:inline-flex"
-            >
-              Login
-            </Link>
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-2 rounded-full bg-[image:var(--gradient-hero)] px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-opacity hover:opacity-95"
-            >
-              Cadastro
-              <ChevronRight size={16} />
-            </Link>
+            {appDestination ? (
+              <Link
+                to={appDestination}
+                className="inline-flex items-center gap-2 rounded-full bg-[image:var(--gradient-hero)] px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-opacity hover:opacity-95"
+              >
+                Ir para o painel
+                <ChevronRight size={16} />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="hidden rounded-full px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted sm:inline-flex"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center gap-2 rounded-full bg-[image:var(--gradient-hero)] px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-opacity hover:opacity-95"
+                >
+                  Cadastro
+                  <ChevronRight size={16} />
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -356,10 +394,10 @@ export function LandingPage() {
                 className="mt-8 flex flex-col gap-3 sm:flex-row"
               >
                 <Link
-                  to="/register"
+                  to={appDestination ?? "/register"}
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-[image:var(--gradient-hero)] px-6 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-0.5 hover:opacity-95"
                 >
-                  Começar agora
+                  {appDestination ? "Abrir meus mapas" : "Começar agora"}
                   <ArrowRight size={16} />
                 </Link>
                 <button
@@ -396,7 +434,7 @@ export function LandingPage() {
               transition={{ delay: 0.16, duration: 0.8 }}
               className="relative flex items-center"
             >
-              <QuickAccessCard />
+              {appDestination ? <SignedInCard destination={appDestination} /> : <QuickAccessCard />}
             </motion.div>
           </div>
 
@@ -736,10 +774,10 @@ export function LandingPage() {
 
                 <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
                   <Link
-                    to="/register"
+                    to={appDestination ?? "/register"}
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-[image:var(--gradient-hero)] px-6 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-opacity hover:opacity-95"
                   >
-                    Criar conta
+                    {appDestination ? "Abrir meus mapas" : "Criar conta"}
                     <ArrowRight size={16} />
                   </Link>
                   <button

@@ -195,149 +195,117 @@ const hydrateFromSession = async (
   };
 };
 
-export const useAuth = create<AuthState>((set, get) => ({
-  initialized: false,
-  configured: Boolean(supabase),
-  configError: supabase ? null : getConfigError(),
-  debugMessage: null,
-  user: null,
-  profile: null,
-  init: async () => {
-    if (get().initialized) return;
+// Fields that identify who the user is and what they can do. Session re-emissions (tab focus,
+// token refresh) and usage counters must not produce a new `user` object, or every screen that
+// depends on it would reload.
+const sameUser = (a: User | null, b: User | null) =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    a.id === b.id &&
+    a.email === b.email &&
+    a.name === b.name &&
+    a.role === b.role &&
+    a.accessGranted === b.accessGranted);
 
-    if (!supabase) {
-      set({
-        initialized: true,
-        configured: false,
-        configError: getConfigError(),
-        debugMessage: "Supabase client ausente no ambiente atual.",
-        user: null,
-        profile: null,
+export const useAuth = create<AuthState>((rawSet, get) => {
+  const set: typeof rawSet = (partial) =>
+    rawSet((state) => {
+      const next = typeof partial === "function" ? partial(state) : partial;
+      if ("user" in next && next.user !== undefined && sameUser(state.user, next.user)) {
+        return { ...next, user: state.user };
+      }
+      return next;
+    });
+
+  return {
+    initialized: false,
+    configured: Boolean(supabase),
+    configError: supabase ? null : getConfigError(),
+    debugMessage: null,
+    user: null,
+    profile: null,
+    init: async () => {
+      if (get().initialized) return;
+
+      if (!supabase) {
+        set({
+          initialized: true,
+          configured: false,
+          configError: getConfigError(),
+          debugMessage: "Supabase client ausente no ambiente atual.",
+          user: null,
+          profile: null,
+        });
+        return;
+      }
+
+      const applySession = async (session: Session | null) => {
+        const { profile, user } = await hydrateFromSession(session, {
+          allowFallbackProfile: true,
+          profileRetries: 1,
+        });
+        set({
+          initialized: true,
+          configured: true,
+          configError: null,
+          debugMessage: null,
+          profile,
+          user,
+        });
+      };
+
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error) {
+        set({
+          initialized: true,
+          configured: true,
+          configError: "Nao foi possivel verificar sua sessao agora.",
+          debugMessage: `getSession: ${error.message}`,
+          user: null,
+          profile: null,
+        });
+      } else {
+        await applySession(session);
+      }
+
+      if (!authSubscription) {
+        const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+          void applySession(nextSession);
+        });
+        authSubscription = data.subscription;
+      }
+    },
+    login: async (email, password) => {
+      if (!supabase) {
+        return { ok: false, error: getConfigError(), debug: "Supabase client ausente." };
+      }
+
+      const normalizedEmail = normalizeEmail(email);
+      const loginResult = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
       });
-      return;
-    }
 
-    const applySession = async (session: Session | null) => {
-      const { profile, user } = await hydrateFromSession(session, {
+      if (loginResult.error) {
+        return {
+          ok: false,
+          error: normalizeAuthError(loginResult.error.message),
+          debug: `signInWithPassword: ${loginResult.error.message}`,
+        };
+      }
+
+      const { profile, user } = await hydrateFromSession(loginResult.data.session, {
         allowFallbackProfile: true,
         profileRetries: 1,
       });
       set({
-        initialized: true,
-        configured: true,
-        configError: null,
-        debugMessage: null,
-        profile,
         user,
-      });
-    };
-
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession();
-
-    if (error) {
-      set({
-        initialized: true,
-        configured: true,
-        configError: "Nao foi possivel verificar sua sessao agora.",
-        debugMessage: `getSession: ${error.message}`,
-        user: null,
-        profile: null,
-      });
-    } else {
-      await applySession(session);
-    }
-
-    if (!authSubscription) {
-      const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-        void applySession(nextSession);
-      });
-      authSubscription = data.subscription;
-    }
-  },
-  login: async (email, password) => {
-    if (!supabase) {
-      return { ok: false, error: getConfigError(), debug: "Supabase client ausente." };
-    }
-
-    const normalizedEmail = normalizeEmail(email);
-    const loginResult = await supabase.auth.signInWithPassword({
-      email: normalizedEmail,
-      password,
-    });
-
-    if (loginResult.error) {
-      return {
-        ok: false,
-        error: normalizeAuthError(loginResult.error.message),
-        debug: `signInWithPassword: ${loginResult.error.message}`,
-      };
-    }
-
-    const { profile, user } = await hydrateFromSession(loginResult.data.session, {
-      allowFallbackProfile: true,
-      profileRetries: 1,
-    });
-    set({
-      user,
-      profile,
-      initialized: true,
-      configured: true,
-      configError: null,
-      debugMessage: null,
-    });
-
-    void get().refreshProfile();
-
-    return { ok: true };
-  },
-  register: async (name, email, password) => {
-    if (!supabase) {
-      return { ok: false, error: getConfigError(), debug: "Supabase client ausente." };
-    }
-
-    const trimmedName = name.trim();
-    const normalizedEmail = normalizeEmail(email);
-    const passwordPolicyError = validatePasswordPolicy(password);
-
-    if (!trimmedName) {
-      return { ok: false, error: "Nome obrigatorio." };
-    }
-
-    if (passwordPolicyError) {
-      return { ok: false, error: passwordPolicyError };
-    }
-
-    const { data, error } = await supabase.auth.signUp({
-      email: normalizedEmail,
-      password,
-      options: {
-        emailRedirectTo: getAuthRedirectUrl(),
-        data: {
-          name: trimmedName,
-        },
-      },
-    });
-
-    if (error) {
-      return {
-        ok: false,
-        error: normalizeAuthError(error.message),
-        debug: `signUp: ${error.message}`,
-      };
-    }
-
-    const session = data.session;
-    if (session) {
-      const hydrated = await hydrateFromSession(session, {
-        allowFallbackProfile: true,
-        profileRetries: 1,
-      });
-      set({
-        user: hydrated.user,
-        profile: hydrated.profile,
+        profile,
         initialized: true,
         configured: true,
         configError: null,
@@ -345,107 +313,166 @@ export const useAuth = create<AuthState>((set, get) => ({
       });
 
       void get().refreshProfile();
-    }
 
-    return {
-      ok: true,
-      message: session ? "Conta criada com sucesso." : "Conta criada com sucesso.",
-    };
-  },
-  resendConfirmation: async (email) => {
-    if (!supabase) {
-      return { ok: false, error: getConfigError(), debug: "Supabase client ausente." };
-    }
+      return { ok: true };
+    },
+    register: async (name, email, password) => {
+      if (!supabase) {
+        return { ok: false, error: getConfigError(), debug: "Supabase client ausente." };
+      }
 
-    const normalizedEmail = normalizeEmail(email);
-    if (!normalizedEmail) {
-      return { ok: false, error: "Informe seu email para reenviar a confirmacao." };
-    }
+      const trimmedName = name.trim();
+      const normalizedEmail = normalizeEmail(email);
+      const passwordPolicyError = validatePasswordPolicy(password);
 
-    const { error } = await supabase.auth.resend({
-      type: "signup",
-      email: normalizedEmail,
-      options: {
-        emailRedirectTo: getAuthRedirectUrl(),
-      },
-    });
+      if (!trimmedName) {
+        return { ok: false, error: "Nome obrigatorio." };
+      }
 
-    if (error) {
+      if (passwordPolicyError) {
+        return { ok: false, error: passwordPolicyError };
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          emailRedirectTo: getAuthRedirectUrl(),
+          data: {
+            name: trimmedName,
+          },
+        },
+      });
+
+      if (error) {
+        return {
+          ok: false,
+          error: normalizeAuthError(error.message),
+          debug: `signUp: ${error.message}`,
+        };
+      }
+
+      const session = data.session;
+      if (session) {
+        const hydrated = await hydrateFromSession(session, {
+          allowFallbackProfile: true,
+          profileRetries: 1,
+        });
+        set({
+          user: hydrated.user,
+          profile: hydrated.profile,
+          initialized: true,
+          configured: true,
+          configError: null,
+          debugMessage: null,
+        });
+
+        void get().refreshProfile();
+      }
+
       return {
-        ok: false,
-        error: normalizeAuthError(error.message),
-        debug: `resend: ${error.message}`,
+        ok: true,
+        message: session ? "Conta criada com sucesso." : "Conta criada com sucesso.",
       };
-    }
+    },
+    resendConfirmation: async (email) => {
+      if (!supabase) {
+        return { ok: false, error: getConfigError(), debug: "Supabase client ausente." };
+      }
 
-    return {
-      ok: true,
-      message: "Enviamos um novo link de confirmacao para seu email.",
-    };
-  },
-  activateWithCode: async (code) => {
-    if (!supabase) {
-      return { ok: false, error: getConfigError(), debug: "Supabase client ausente." };
-    }
+      const normalizedEmail = normalizeEmail(email);
+      if (!normalizedEmail) {
+        return { ok: false, error: "Informe seu email para reenviar a confirmacao." };
+      }
 
-    const { data, error } = await supabase.rpc("activate_access_code", {
-      p_code: code,
-    });
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: normalizedEmail,
+        options: {
+          emailRedirectTo: getAuthRedirectUrl(),
+        },
+      });
 
-    if (error) {
+      if (error) {
+        return {
+          ok: false,
+          error: normalizeAuthError(error.message),
+          debug: `resend: ${error.message}`,
+        };
+      }
+
       return {
-        ok: false,
-        error: "Nao foi possivel validar o codigo agora.",
-        debug: `activate_access_code: ${error.message}`,
+        ok: true,
+        message: "Enviamos um novo link de confirmacao para seu email.",
       };
-    }
+    },
+    activateWithCode: async (code) => {
+      if (!supabase) {
+        return { ok: false, error: getConfigError(), debug: "Supabase client ausente." };
+      }
 
-    const result = Array.isArray(data) ? (data[0] as ActivateCodeResponse | undefined) : undefined;
-    if (!result?.ok) {
-      return { ok: false, error: result?.message || "Codigo invalido ou expirado." };
-    }
+      const { data, error } = await supabase.rpc("activate_access_code", {
+        p_code: code,
+      });
 
-    await get().refreshProfile();
+      if (error) {
+        return {
+          ok: false,
+          error: "Nao foi possivel validar o codigo agora.",
+          debug: `activate_access_code: ${error.message}`,
+        };
+      }
 
-    return { ok: true, message: result.message };
-  },
-  refreshProfile: async () => {
-    if (!supabase) return;
+      const result = Array.isArray(data)
+        ? (data[0] as ActivateCodeResponse | undefined)
+        : undefined;
+      if (!result?.ok) {
+        return { ok: false, error: result?.message || "Codigo invalido ou expirado." };
+      }
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      await get().refreshProfile();
 
-    const { profile, user } = await hydrateFromSession(session, { profileRetries: 2 });
-    set({
-      profile,
-      user,
-      initialized: true,
-      configured: true,
-      configError: null,
-      debugMessage: null,
-    });
-  },
-  recordUsage: async (seconds) => {
-    if (!supabase || seconds < 1) return;
-    await supabase.rpc("record_usage_seconds", { p_seconds: Math.min(seconds, 900) });
-    await get().refreshProfile();
-  },
-  logout: async () => {
-    useEntitlements.getState().reset();
-    if (!supabase) {
-      set({ user: null, profile: null, initialized: true });
-      return;
-    }
+      return { ok: true, message: result.message };
+    },
+    refreshProfile: async () => {
+      if (!supabase) return;
 
-    await supabase.auth.signOut();
-    set({
-      user: null,
-      profile: null,
-      initialized: true,
-      configured: true,
-      configError: null,
-      debugMessage: null,
-    });
-  },
-}));
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const { profile, user } = await hydrateFromSession(session, { profileRetries: 2 });
+      set({
+        profile,
+        user,
+        initialized: true,
+        configured: true,
+        configError: null,
+        debugMessage: null,
+      });
+    },
+    recordUsage: async (seconds) => {
+      // Fire-and-forget: nothing on screen shows the usage counter, so there is no need to reload
+      // the profile (which used to re-render every page every 30 seconds).
+      if (!supabase || seconds < 1) return;
+      await supabase.rpc("record_usage_seconds", { p_seconds: Math.min(seconds, 900) });
+    },
+    logout: async () => {
+      useEntitlements.getState().reset();
+      if (!supabase) {
+        set({ user: null, profile: null, initialized: true });
+        return;
+      }
+
+      await supabase.auth.signOut();
+      set({
+        user: null,
+        profile: null,
+        initialized: true,
+        configured: true,
+        configError: null,
+        debugMessage: null,
+      });
+    },
+  };
+});

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { useAuth } from "@/store/auth";
@@ -17,18 +17,13 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+// Signed-in visitors can see the landing page too; its CTAs switch to "Ir para o painel".
 function Index() {
-  const { user, initialized, init } = useAuth();
-  const navigate = useNavigate();
+  const init = useAuth((state) => state.init);
 
   useEffect(() => {
-    init();
+    void init();
   }, [init]);
-
-  useEffect(() => {
-    if (!initialized || !user) return;
-    navigate({ to: user.role === "superadmin" || user.accessGranted ? "/dashboard" : "/activate" });
-  }, [initialized, user, navigate]);
 
   return <LandingPage />;
 }

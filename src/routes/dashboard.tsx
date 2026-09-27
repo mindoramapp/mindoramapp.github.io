@@ -91,11 +91,15 @@ function DashboardPage() {
     }
   }, [initialized, user, navigate]);
 
+  const userId = user?.id;
+  const userEmail = user?.email;
+  const hasAccess = Boolean(user && (user.role === "superadmin" || user.accessGranted));
+
   useEffect(() => {
     let cancelled = false;
 
     const run = async () => {
-      if (!user || (user.role !== "superadmin" && !user.accessGranted)) {
+      if (!userId || !userEmail || !hasAccess) {
         setLoadingMaps(false);
         return;
       }
@@ -104,8 +108,8 @@ function DashboardPage() {
 
       try {
         const [loadedMaps, loadedFolders] = await Promise.all([
-          loadMaps({ id: user.id, email: user.email }),
-          loadFolders({ id: user.id, email: user.email }),
+          loadMaps({ id: userId, email: userEmail }),
+          loadFolders({ id: userId, email: userEmail }),
         ]);
         void refreshEntitlements();
         if (!cancelled) {
@@ -133,7 +137,7 @@ function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [user, refreshEntitlements]);
+  }, [userId, userEmail, hasAccess, refreshEntitlements]);
 
   const folderChildren = useMemo(() => {
     const map = new Map<string | null, MindFolder[]>();
@@ -402,9 +406,9 @@ function DashboardPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 overflow-hidden">
-        <div className="mx-auto grid h-[calc(100vh-3.5rem)] max-w-7xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside className="rounded-3xl border border-border bg-card/90 p-4 shadow-[var(--shadow-soft)] backdrop-blur">
+      <main className="flex-1">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <aside className="rounded-3xl border border-border bg-card/90 p-4 shadow-[var(--shadow-soft)] backdrop-blur lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-semibold">Organização</h2>
