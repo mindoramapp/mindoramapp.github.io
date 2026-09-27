@@ -113,6 +113,11 @@ export const toMarkdown = (map: MindMap, nodes: Node<MindNodeData>[], edges: Edg
     const node = byId.get(id);
     if (!node) return;
     lines.push(`${"  ".repeat(depth)}- ${markdownLine(node.data)}`);
+    const note = node.data.note?.trim();
+    if (note) {
+      for (const line of note.split(/\r?\n/))
+        lines.push(`${"  ".repeat(depth + 1)}> ${escapeMarkdown(line)}`);
+    }
     for (const child of [...(children.get(id) ?? [])].sort(byPosition)) walk(child, depth + 1);
   };
 
@@ -196,6 +201,7 @@ export const exportMap = async (
 const MAX_IMPORT_CHARS = 5_000_000;
 const MAX_IMPORT_NODES = 5_000;
 const MAX_LABEL_LENGTH = 1_000;
+const MAX_NOTE_LENGTH = 5_000;
 const MAX_TITLE_LENGTH = 200;
 const MAX_ID_LENGTH = 100;
 const NODE_KINDS = ["text", "checklist", "code", "link"] as const;
@@ -216,6 +222,8 @@ const importNodeData = (data: Record<string, unknown>): MindNodeData => {
   if (data.isRoot === true) clean.isRoot = true;
   if (typeof data.checked === "boolean") clean.checked = data.checked;
   if (typeof data.url === "string") clean.url = sanitizeNodeUrl(data.url.slice(0, 2_000));
+  if (typeof data.note === "string" && data.note.trim())
+    clean.note = data.note.slice(0, MAX_NOTE_LENGTH);
   // Linked maps belong to the exporting account; the reference is never carried over.
   return clean;
 };

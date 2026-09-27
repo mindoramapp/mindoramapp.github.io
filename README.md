@@ -25,6 +25,11 @@ viram gaveta inferior (em pé) ou lateral (deitado), e o mapa é enquadrado ao a
 convite oferece a instalação (diálogo nativo no Chrome/Edge/Android, passo a passo no iPhone);
 "Agora não" é lembrado por 3 semanas, e o botão "Instalar app" fica no topo da landing.
 
+**Anotações:** duplo clique em um balão abre "Propriedades" com o campo de anotações (texto
+livre de até 5.000 caracteres). Balões com anotação mostram um ícone e uma prévia ao passar o
+mouse; as anotações aparecem no Modo Revisão e na exportação Markdown. Para renomear: F2,
+campo "Rótulo" ou clique direito → "Renomear".
+
 **Painéis do editor:** arrastáveis abertos ou recolhidos, grudam nas bordas e cantos, podem ser
 fechados e reabertos pelo menu "Painéis" da barra; posição e visibilidade são lembradas.
 

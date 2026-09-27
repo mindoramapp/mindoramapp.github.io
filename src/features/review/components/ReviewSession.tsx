@@ -2,7 +2,7 @@
 // and records how well they remembered. Keyboard: Espaço/Enter revela, 1/2/3 avaliam.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, CheckCircle2, Eye, GraduationCap, RotateCcw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Eye, GraduationCap, RotateCcw, StickyNote } from "lucide-react";
 import { reportActionError } from "@/lib/feedback";
 import type { MindMap } from "@/store/maps";
 import { saveReviewState } from "../api";
@@ -255,7 +255,16 @@ export function ReviewSession({ map, userId, initialStates }: Props) {
               </li>
             ))}
           </ul>
-        ) : (
+        ) : null}
+        {revealed && current.note && (
+          <div className="mt-4 rounded-xl border border-border bg-background px-4 py-3">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <StickyNote size={12} /> Suas anotações
+            </p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{current.note}</p>
+          </div>
+        )}
+        {revealed ? null : (
           <button
             type="button"
             onClick={() => setRevealed(true)}

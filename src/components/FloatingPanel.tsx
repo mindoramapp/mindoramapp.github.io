@@ -66,8 +66,10 @@ function snapToEdges(element: HTMLElement, position: PanelPosition): PanelPositi
 }
 
 /**
- * Pointer-based dragging that works with mouse, pen and touch. Returns handlers for the drag
- * handle and whether the last gesture was a drag (so a click after dragging is ignored).
+ * Pointer-based dragging that works with mouse, pen and touch. While dragging, the element is
+ * moved directly (once per animation frame) without touching React state: re-rendering the
+ * editor on every pointer move made the panel stall and then jump on slower machines. The final
+ * position is committed once, on release.
  */
 function usePanelDrag(
   elementRef: React.RefObject<HTMLElement | null>,
@@ -75,8 +77,18 @@ function usePanelDrag(
   onPositionChange: (position: PanelPosition) => void,
 ) {
   const start = useRef<{ pointerX: number; pointerY: number; x: number; y: number } | null>(null);
+  const latest = useRef<PanelPosition | null>(null);
+  const frame = useRef<number | null>(null);
   const moved = useRef(false);
   const [dragging, setDragging] = useState(false);
+
+  const paint = () => {
+    frame.current = null;
+    const element = elementRef.current;
+    if (!element || !latest.current) return;
+    element.style.left = `${latest.current.x}px`;
+    element.style.top = `${latest.current.y}px`;
+  };
 
   const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
     const element = elementRef.current;
@@ -96,20 +108,32 @@ function usePanelDrag(
     if (!start.current || !element) return;
     const dx = event.clientX - start.current.pointerX;
     const dy = event.clientY - start.current.pointerY;
-    if (!moved.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-    moved.current = true;
-    setDragging(true);
-    onPositionChange(
-      clampToContainer(element, { x: start.current.x + dx, y: start.current.y + dy }),
-    );
+    if (!moved.current) {
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      moved.current = true;
+      setDragging(true);
+    }
+    latest.current = clampToContainer(element, {
+      x: start.current.x + dx,
+      y: start.current.y + dy,
+    });
+    frame.current ??= requestAnimationFrame(paint);
   };
 
   const onPointerUp = (event: React.PointerEvent<HTMLElement>) => {
     const element = elementRef.current;
+    if (frame.current !== null) {
+      cancelAnimationFrame(frame.current);
+      paint();
+    }
     if (start.current && moved.current && element) {
-      onPositionChange(snapToEdges(element, { x: element.offsetLeft, y: element.offsetTop }));
+      const final = snapToEdges(element, { x: element.offsetLeft, y: element.offsetTop });
+      element.style.left = `${final.x}px`;
+      element.style.top = `${final.y}px`;
+      onPositionChange(final);
     }
     start.current = null;
+    latest.current = null;
     setDragging(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -152,7 +176,7 @@ export function FloatingPanel({
 
   // Keep the panel inside the canvas when it changes size (expand/minimize) or the window resizes.
   useEffect(() => {
-    if (mobile || !open) return;
+    if (mobile || !open || dragging) return;
     const reclamp = () => {
       const element = elementRef.current;
       if (!element) return;
@@ -164,7 +188,7 @@ export function FloatingPanel({
     reclamp();
     window.addEventListener("resize", reclamp);
     return () => window.removeEventListener("resize", reclamp);
-  }, [mobile, open, minimized, position, onPositionChange]);
+  }, [mobile, open, minimized, dragging, position, onPositionChange]);
 
   if (!open) return null;
 

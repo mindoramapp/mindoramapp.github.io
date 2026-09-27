@@ -11,6 +11,8 @@ export interface ReviewCard {
   path: string[];
   /** Sub-topics the learner should remember, in the order they appear on the canvas. */
   answers: string[];
+  /** The learner's own notes on this topic, shown with the answer. */
+  note?: string;
 }
 
 const labelOf = (node: Node<MindNodeData>) => node.data.label?.trim() || "Sem título";
@@ -57,6 +59,7 @@ export function buildCards(nodes: Node<MindNodeData>[], edges: Edge[]): ReviewCa
         prompt: labelOf(node),
         path,
         answers: kids.map((kid) => labelOf(byId.get(kid)!)),
+        note: node.data.note?.trim() || undefined,
       });
     }
     for (const kid of kids) queue.push({ id: kid, path: [...path, labelOf(node)] });

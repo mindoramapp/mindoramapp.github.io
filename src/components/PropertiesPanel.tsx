@@ -1,9 +1,21 @@
+import { useEffect, useRef } from "react";
 import type { MindNodeData, NodeKind } from "@/store/maps";
-import { Type, CheckSquare, Code2, Link as LinkIcon, Trash2, Sparkles } from "lucide-react";
+import {
+  Type,
+  CheckSquare,
+  Code2,
+  Link as LinkIcon,
+  MousePointerClick,
+  StickyNote,
+  Trash2,
+  Sparkles,
+} from "lucide-react";
 import { sanitizeNodeUrl } from "@/lib/security";
 
 interface Props {
   node: { id: string; data: MindNodeData } | null;
+  /** Bumped by the editor (double-click on a node) to focus the notes field once rendered. */
+  focusNoteSignal?: number;
   onPatch: (id: string, patch: Partial<MindNodeData>) => void;
   onDelete: (id: string) => void;
   onKeywordConnect: (id: string, scope: "one" | "all") => void;
@@ -16,8 +28,45 @@ const KINDS: { id: NodeKind; label: string; icon: React.ReactNode }[] = [
   { id: "link", label: "Link", icon: <LinkIcon size={14} /> },
 ];
 
-export function PropertiesPanel({ node, onPatch, onDelete, onKeywordConnect }: Props) {
-  if (!node) return null;
+export const NOTE_FIELD_ID = "mm-node-note";
+export const NOTE_MAX_LENGTH = 5000;
+
+export function PropertiesPanel({
+  node,
+  focusNoteSignal = 0,
+  onPatch,
+  onDelete,
+  onKeywordConnect,
+}: Props) {
+  const noteRef = useRef<HTMLTextAreaElement>(null);
+  const nodeId = node?.id;
+
+  const handledFocusSignal = useRef(0);
+  useEffect(() => {
+    // Only a new double-click focuses the notes; merely selecting another node must not.
+    if (!focusNoteSignal || !nodeId || focusNoteSignal === handledFocusSignal.current) return;
+    handledFocusSignal.current = focusNoteSignal;
+    // Wait a frame so the panel has finished expanding/moving before taking focus.
+    const frame = requestAnimationFrame(() => {
+      const field = noteRef.current;
+      if (!field) return;
+      field.focus({ preventScroll: true });
+      field.setSelectionRange(field.value.length, field.value.length);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusNoteSignal, nodeId]);
+
+  if (!node) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-muted-foreground">
+        <MousePointerClick size={22} className="text-primary" />
+        <p className="font-medium text-foreground">Selecione um nó para editar</p>
+        <p className="text-xs">
+          Clique em um balão do mapa. Com duplo clique, você já abre as anotações dele.
+        </p>
+      </div>
+    );
+  }
   const { id, data } = node;
   const kind = data.kind || "text";
   const rawUrl = data.url || "";
@@ -32,6 +81,33 @@ export function PropertiesPanel({ node, onPatch, onDelete, onKeywordConnect }: P
           value={data.label}
           onChange={(event) => onPatch(id, { label: event.target.value })}
           className="mt-1 w-full rounded-xl border border-border bg-input px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor={NOTE_FIELD_ID}
+          className="flex items-center justify-between text-xs text-muted-foreground"
+        >
+          <span className="flex items-center gap-1.5">
+            <StickyNote size={12} /> Anotações
+          </span>
+          {data.note && (
+            <span>
+              {data.note.length}/{NOTE_MAX_LENGTH}
+            </span>
+          )}
+        </label>
+        <textarea
+          ref={noteRef}
+          id={NOTE_FIELD_ID}
+          value={data.note ?? ""}
+          maxLength={NOTE_MAX_LENGTH}
+          onChange={(event) => onPatch(id, { note: event.target.value })}
+          onKeyDown={(event) => event.stopPropagation()}
+          placeholder="Escreva o que quiser lembrar sobre este tópico: explicação, exemplos, fórmulas…"
+          rows={4}
+          className="mt-1 w-full resize-y rounded-xl border border-border bg-input px-3 py-2 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 

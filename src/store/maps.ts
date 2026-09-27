@@ -17,6 +17,8 @@ export interface MindNodeData {
   checked?: boolean;
   url?: string;
   linkedMapId?: string;
+  /** Free text the learner keeps about this topic (notes, explanations, reminders). */
+  note?: string;
 }
 
 export interface MapOwner {

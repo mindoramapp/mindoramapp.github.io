@@ -57,6 +57,15 @@ describe("buildCards", () => {
     expect(cards.map((card) => card.nodeId)).toEqual(["root", "contexto", "causas"]);
   });
 
+  it("carries the learner's note with the card", () => {
+    const withNote = nodes.map((n) =>
+      n.id === "causas" ? { ...n, data: { ...n.data, note: " Impostos altos " } } : n,
+    );
+    expect(buildCards(withNote, edges).find((c) => c.nodeId === "causas")?.note).toBe(
+      "Impostos altos",
+    );
+  });
+
   it("returns no cards for a map with only the central idea", () => {
     expect(buildCards([node("root", "Minha ideia", 0, true)], [])).toEqual([]);
   });

@@ -104,3 +104,25 @@ describe("parseImportedMap", () => {
     expect(imported.edges).toHaveLength(0);
   });
 });
+
+describe("anotações dos nós", () => {
+  const map = createBlankMap(owner, "Estudo");
+  const nodes = [
+    node("root", 0, {
+      label: "Estudo",
+      isRoot: true,
+      note: "Linha 1\n<b>negrito</b> [x](javascript:1)",
+    }),
+  ];
+
+  it("sobrevivem à exportação e importação em JSON", () => {
+    const imported = parseImportedMap(toJson(map, nodes, []));
+    expect(imported.nodes[0].data.note).toBe(nodes[0].data.note);
+  });
+
+  it("aparecem no Markdown abaixo do tópico, sem HTML ou links ativos", () => {
+    const md = toMarkdown(map, nodes, []);
+    expect(md).toContain("  > Linha 1");
+    expect(md).not.toMatch(/<b>|\]\(javascript:/);
+  });
+});

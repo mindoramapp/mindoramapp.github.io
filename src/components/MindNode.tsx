@@ -1,7 +1,7 @@
 // Custom mind map node - supports text, checklist, code, link
 import { memo, useEffect, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
-import { CheckSquare, Square, Code2, Link as LinkIcon, Type } from "lucide-react";
+import { CheckSquare, Square, Code2, Link as LinkIcon, StickyNote, Type } from "lucide-react";
 import type { MindNodeData, NodeKind } from "@/store/maps";
 import { isSafeNodeUrl } from "@/lib/security";
 import {
@@ -67,7 +67,14 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
   };
 
   const requestAction = (
-    action: "add-child" | "add-sibling" | "edit" | "connect" | "create-linked-map" | "delete",
+    action:
+      | "add-child"
+      | "add-sibling"
+      | "edit"
+      | "notes"
+      | "connect"
+      | "create-linked-map"
+      | "delete",
   ) => {
     window.dispatchEvent(new CustomEvent("mm-node-action", { detail: { id, action } }));
   };
@@ -89,6 +96,16 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
             selected ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : "",
           ].join(" ")}
           style={{ minWidth: 140, maxWidth: 260 }}
+          onDoubleClick={(e) => {
+            if (editing) return;
+            e.stopPropagation();
+            window.dispatchEvent(new CustomEvent("mm-node-open-note", { detail: { id } }));
+          }}
+          title={
+            data.note
+              ? `Anotações: ${data.note.slice(0, 140)}${data.note.length > 140 ? "…" : ""}`
+              : undefined
+          }
         >
           {HANDLE_DEFINITIONS.map((handle) => (
             <Handle
@@ -153,10 +170,6 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
                 />
               ) : kind === "code" ? (
                 <code
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    setEditing(true);
-                  }}
                   className={`text-xs font-mono break-all ${data.isRoot ? "" : "text-foreground"}`}
                 >
                   {data.label}
@@ -167,42 +180,34 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
                   target={isExternalLink ? "_blank" : undefined}
                   rel={isExternalLink ? "noreferrer" : undefined}
                   onClick={(e) => e.stopPropagation()}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    setEditing(true);
-                  }}
                   className="text-sm underline truncate block"
                 >
                   {data.label}
                 </a>
               ) : kind === "link" ? (
-                <span
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    setEditing(true);
-                  }}
-                  className="text-sm break-words text-muted-foreground"
-                >
-                  Link inválido
-                </span>
+                <span className="text-sm break-words text-muted-foreground">Link inválido</span>
               ) : (
                 <span
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    setEditing(true);
-                  }}
                   className={`text-sm break-words ${kind === "checklist" && data.checked ? "line-through opacity-60" : ""}`}
                 >
                   {data.label}
                 </span>
               )}
             </div>
+            {data.note?.trim() && (
+              <StickyNote
+                size={13}
+                className={`shrink-0 ${data.isRoot ? "opacity-80" : "text-primary"}`}
+                aria-label="Tem anotações"
+              />
+            )}
           </div>
         </div>
       </ContextMenuTrigger>
 
       <ContextMenuContent className="w-52">
-        <ContextMenuItem onClick={() => requestAction("edit")}>Editar texto</ContextMenuItem>
+        <ContextMenuItem onClick={() => requestAction("edit")}>Renomear (F2)</ContextMenuItem>
+        <ContextMenuItem onClick={() => requestAction("notes")}>Anotações</ContextMenuItem>
         <ContextMenuItem onClick={() => requestAction("add-child")}>Criar filho</ContextMenuItem>
         <ContextMenuItem onClick={() => requestAction("add-sibling")}>Criar irmão</ContextMenuItem>
         <ContextMenuItem onClick={() => requestAction("connect")}>Iniciar conexão</ContextMenuItem>

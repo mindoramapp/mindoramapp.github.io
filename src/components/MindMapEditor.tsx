@@ -62,6 +62,16 @@ const nodeTypes = { mind: MindNode };
 
 const VISIBLE_ONLY_THRESHOLD = 150;
 
+/**
+ * ReactFlow doesn't move focus when a node or the canvas is clicked, so a field in the
+ * Properties panel kept focus and swallowed keyboard shortcuts (F2, Tab, Del…). Clicking the map
+ * means "done typing".
+ */
+function leaveTextField() {
+  const active = document.activeElement as HTMLElement | null;
+  if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) active.blur();
+}
+
 type Visibility = boolean | ((current: boolean) => boolean);
 // Panel visibility lives in a shared store (the toolbar's "Painéis" menu toggles it too).
 const setShowInspector = (value: Visibility) => useEditorPanels.getState().set("inspector", value);
@@ -243,6 +253,12 @@ function EditorInner({
     [],
   );
   const { fitView } = useReactFlow();
+  const handledOrganizeSignal = useRef(0);
+  // Latest graph for event-driven actions that must not re-run whenever the graph changes.
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+  nodesRef.current = nodes;
+  edgesRef.current = edges;
   const lastSavedViewport = useRef<ViewportState>(map.viewport);
 
   useEffect(() => {
@@ -356,15 +372,23 @@ function EditorInner({
   }, [orientation]);
 
   useEffect(() => {
-    if (organizeSignal === 0) return;
-    setNodes((currentNodes) => layoutTree(currentNodes, edges, orientation));
+    // Runs once per click. It used to depend on `edges` too, so after the first "Organizar"
+    // every later edit silently re-organized the whole map.
+    if (organizeSignal === 0 || organizeSignal === handledOrganizeSignal.current) return;
+    handledOrganizeSignal.current = organizeSignal;
+    const laidOut = layoutTree(nodesRef.current, edgesRef.current, orientation);
+    setNodes(laidOut.nodes);
+    setEdges(laidOut.edges);
     window.setTimeout(() => fitView({ padding: 0.2, duration: 350 }), 50);
-  }, [organizeSignal, edges, orientation, setNodes, fitView]);
+  }, [organizeSignal, orientation, setNodes, setEdges, fitView]);
 
   useEffect(() => {
     if (mode !== "tree") return;
-    setNodes((currentNodes) => layoutTree(currentNodes, edges, orientation));
-  }, [mode, orientation, edges, setNodes]);
+    const laidOut = layoutTree(nodesRef.current, edges, orientation);
+    setNodes(laidOut.nodes);
+    // Only when a handle actually changed; otherwise this effect would re-trigger itself.
+    if (laidOut.edges.some((edge, index) => edge !== edges[index])) setEdges(laidOut.edges);
+  }, [mode, orientation, edges, setNodes, setEdges]);
 
   useEffect(() => {
     const centerHandler = () => fitView({ padding: 0.2, duration: 350 });
@@ -401,6 +425,28 @@ function EditorInner({
     window.addEventListener("mm-node-update", handler);
     return () => window.removeEventListener("mm-node-update", handler);
   }, [setNodes]);
+
+  const [focusNoteSignal, setFocusNoteSignal] = useState(0);
+  const openNotes = useCallback(
+    (id: string) => {
+      setSelectedId(id);
+      setConnectMode(false);
+      setShowInspector(true);
+      setInspectorMinimized(false);
+      if (isMobile) {
+        setMiniMapMinimized(true);
+        setHelpMinimized(true);
+      }
+      setFocusNoteSignal((signal) => signal + 1);
+    },
+    [isMobile, setConnectMode],
+  );
+
+  useEffect(() => {
+    const handler = (event: Event) => openNotes((event as CustomEvent<{ id: string }>).detail.id);
+    window.addEventListener("mm-node-open-note", handler);
+    return () => window.removeEventListener("mm-node-open-note", handler);
+  }, [openNotes]);
 
   const connectedSet = useMemo(() => {
     if (!selectedId) return null;
@@ -540,7 +586,8 @@ function EditorInner({
   );
 
   const onNodeClick: NodeMouseHandler = useCallback(
-    (_, node) => {
+    (event, node) => {
+      if (!(event.target as HTMLElement).closest("input, textarea")) leaveTextField();
       if (connectMode) {
         if (!pendingSource) {
           setPendingSource(node.id);
@@ -590,8 +637,20 @@ function EditorInner({
     const handler = (event: Event) => {
       const { id, action } = (event as CustomEvent).detail as {
         id: string;
-        action: "add-child" | "add-sibling" | "edit" | "connect" | "create-linked-map" | "delete";
+        action:
+          | "add-child"
+          | "add-sibling"
+          | "edit"
+          | "notes"
+          | "connect"
+          | "create-linked-map"
+          | "delete";
       };
+
+      if (action === "notes") {
+        openNotes(id);
+        return;
+      }
 
       if (action === "edit") {
         setSelectedId(id);
@@ -660,6 +719,7 @@ function EditorInner({
     window.addEventListener("mm-node-action", handler);
     return () => window.removeEventListener("mm-node-action", handler);
   }, [
+    openNotes,
     addChild,
     edges,
     map.folderId,
@@ -697,7 +757,10 @@ function EditorInner({
 
       if (!selectedId) return;
 
-      if (event.key === "Enter") {
+      if (event.key === "F2") {
+        event.preventDefault();
+        window.dispatchEvent(new CustomEvent("mm-node-start-edit", { detail: { id: selectedId } }));
+      } else if (event.key === "Enter") {
         event.preventDefault();
         addChild(selectedId, true);
       } else if (event.key === "Tab") {
@@ -938,6 +1001,7 @@ function EditorInner({
         onNodeMouseEnter={(_, node) => setHoverId(node.id)}
         onNodeMouseLeave={() => setHoverId(null)}
         onPaneClick={() => {
+          leaveTextField();
           setSelectedId(null);
           setPendingSource(null);
         }}
@@ -987,7 +1051,7 @@ function EditorInner({
         </div>
       )}
 
-      {selectedNode && !connectMode && showInspector && (
+      {showInspector && (isMobile ? Boolean(selectedNode) : true) && (
         <FloatingPanel
           id="inspector"
           title="Propriedades"
@@ -1003,7 +1067,8 @@ function EditorInner({
           onPositionChange={moveInspector}
         >
           <PropertiesPanel
-            node={selectedNode}
+            node={selectedNode ?? null}
+            focusNoteSignal={focusNoteSignal}
             onPatch={patchNode}
             onDelete={deleteNode}
             onKeywordConnect={keywordConnect}
@@ -1060,7 +1125,9 @@ function EditorInner({
               <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
                 Duplo-clique
               </kbd>{" "}
-              no nó cria filho
+              no balão abre as anotações ·{" "}
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">F2</kbd>{" "}
+              renomeia
             </p>
             <p>
               <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
