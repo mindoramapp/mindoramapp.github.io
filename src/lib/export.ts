@@ -3,6 +3,7 @@ import { getRectOfNodes, getTransformForBounds, type Edge, type Node } from "rea
 import type { MapMode, MindMap, MindNodeData, ViewportState } from "@/store/maps";
 import { sanitizeNodeUrl } from "@/lib/security";
 import {
+  isEdgeShape,
   isPresetId,
   sanitizeEdgeAppearance,
   sanitizeNodeAppearance,
@@ -230,6 +231,7 @@ const importNodeData = (data: Record<string, unknown>): MindNodeData => {
   const appearance = sanitizeNodeAppearance(data.appearance);
   if (appearance) clean.appearance = appearance;
   if (clean.isRoot && isPresetId(data.mapTheme)) clean.mapTheme = data.mapTheme;
+  if (clean.isRoot && isEdgeShape(data.edgeShape)) clean.edgeShape = data.edgeShape;
   if (typeof data.note === "string" && data.note.trim())
     clean.note = data.note.slice(0, MAX_NOTE_LENGTH);
   // Linked maps belong to the exporting account; the reference is never carried over.

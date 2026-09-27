@@ -119,6 +119,17 @@ describe("layoutTree", () => {
     again.edges.forEach((e, i) => expect(e).toBe(result.edges[i]));
   });
 
+  it("makes room for wide nodes so the next column never gets crowded", () => {
+    const wide = { ...node("w"), width: 420 } as Node;
+    const r = layoutTree(
+      [node("p"), wide, node("c"), { ...node("left"), width: 300 } as Node],
+      [edge("p", "w", "right"), edge("w", "c", "right"), edge("p", "left", "left")],
+    );
+    const pos = (id: string) => r.nodes.find((n) => n.id === id)!.position;
+    expect(pos("c").x - (pos("w").x + 420)).toBeGreaterThanOrEqual(100);
+    expect(pos("p").x - (pos("left").x + 300)).toBeGreaterThanOrEqual(100);
+  });
+
   it("survives cycles in malformed data", () => {
     const cyclic = [...edges, edge("n5", "calculo", "right")];
     expect(() => layoutTree(nodes, cyclic)).not.toThrow();

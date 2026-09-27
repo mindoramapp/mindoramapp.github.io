@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Edge, Node } from "reactflow";
 import {
+  bracketJoint,
+  bracketPath,
   branchIndexes,
   edgeStyle,
   nodeVariables,
@@ -127,5 +129,38 @@ describe("sanitizing imported appearance", () => {
       color: "#000000",
       line: "wavy",
     });
+  });
+});
+
+describe("bracketPath", () => {
+  const nums = (d: string) => d.match(/-?\d+(\.\d+)?/g)!.map(Number);
+
+  it("goes straight out, along the cross axis, then straight into the child", () => {
+    const d = bracketPath(0, 0, 200, 80, true);
+    expect(d.startsWith("M 0.0 0.0")).toBe(true);
+    expect(d.endsWith("L 200.0 80.0")).toBe(true);
+    // The cross segment runs where the bracket opens, 28px before the child.
+    expect(d).toContain("L 172.0 68.0");
+  });
+
+  it("is a straight line when parent and child are (almost) aligned", () => {
+    expect(bracketPath(0, 0, 200, 0, true)).toBe("M 0.0 0.0 L 200.0 0.0");
+    expect(bracketPath(0, 0, 200, 10, true)).toBe("M 0.0 0.0 C 100.0 0.0 100.0 10.0 200.0 10.0");
+  });
+
+  it("shares the opening point between children in the same column", () => {
+    expect(bracketJoint(0, 200)).toBe(bracketJoint(40, 200));
+  });
+
+  it("mirrors for children on the left and works in vertical maps", () => {
+    expect(nums(bracketPath(0, 0, -200, -80, true))).toContain(-172);
+    const vertical = bracketPath(0, 0, 90, 150, false);
+    expect(vertical).toContain("L 78.0 122.0");
+    expect(vertical.endsWith("L 90.0 150.0")).toBe(true);
+  });
+
+  it("never overshoots on short links", () => {
+    for (const v of nums(bracketPath(0, 0, 20, 4, true)))
+      expect(Math.abs(v)).toBeLessThanOrEqual(20);
   });
 });

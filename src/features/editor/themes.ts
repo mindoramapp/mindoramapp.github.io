@@ -7,6 +7,10 @@ export type ThemePresetId = "default" | "dark" | "pastel" | "neon" | "minimal";
 export type NodeBorder = "solid" | "dashed" | "rounded" | "none";
 export type EdgeWidth = "thin" | "medium" | "thick";
 export type EdgeLine = "solid" | "dashed" | "wavy";
+/** Shape of the parent→child lines of the whole map. */
+export type EdgeShape = "bracket" | "curve";
+export const isEdgeShape = (value: unknown): value is EdgeShape =>
+  value === "bracket" || value === "curve";
 
 export interface NodeAppearance {
   bg?: string;
@@ -263,6 +267,52 @@ export function wavyPath(sx: number, sy: number, tx: number, ty: number, horizon
     d += ` L ${(x + (nx / norm) * offset).toFixed(1)} ${(y + (ny / norm) * offset).toFixed(1)}`;
   }
   return d;
+}
+
+/** How far before the child a bracket opens; siblings in one column share that spot. */
+export const BRACKET_STUB = 28;
+/** Below this cross-axis offset the line is a gentle S instead of a tiny bracket step. */
+const BRACKET_MIN_CROSS = 14;
+
+/**
+ * Where the bracket opens along the main axis, for a line from `s` to `t`: close to the child,
+ * so every child in the same column shares it and together they read as one curly brace.
+ */
+export function bracketJoint(s: number, t: number) {
+  const dir = t >= s ? 1 : -1;
+  const stub = Math.min(BRACKET_STUB, Math.abs(t - s) / 2);
+  return t - dir * stub;
+}
+
+/**
+ * Bracket ("chave") path from a parent to a child: straight out of the parent, then along the
+ * cross axis with rounded corners, then straight into the child. `horizontal` says whether the
+ * line leaves the parent to the left/right.
+ */
+export function bracketPath(sx: number, sy: number, tx: number, ty: number, horizontal: boolean) {
+  const [s1, s2, t1, t2] = horizontal ? [sx, sy, tx, ty] : [sy, sx, ty, tx];
+  const pt = (main: number, crossAxis: number) =>
+    (horizontal ? [main, crossAxis] : [crossAxis, main]).map((v) => v.toFixed(1)).join(" ");
+  const cross = t2 - s2;
+  if (Math.abs(cross) < 1) return `M ${pt(s1, s2)} L ${pt(t1, t2)}`;
+  if (Math.abs(cross) < BRACKET_MIN_CROSS) {
+    // Too small for a bracket (e.g. nodes of different heights): a gentle S, never a slant.
+    const mid = (s1 + t1) / 2;
+    return `M ${pt(s1, s2)} C ${pt(mid, s2)} ${pt(mid, t2)} ${pt(t1, t2)}`;
+  }
+
+  const dir = t1 >= s1 ? 1 : -1;
+  const joint = bracketJoint(s1, t1);
+  const turn = cross >= 0 ? 1 : -1;
+  const r = Math.min(12, Math.abs(cross) / 2, Math.abs(t1 - joint), Math.abs(joint - s1));
+  return [
+    `M ${pt(s1, s2)}`,
+    `L ${pt(joint - dir * r, s2)}`,
+    `Q ${pt(joint, s2)} ${pt(joint, s2 + turn * r)}`,
+    `L ${pt(joint, t2 - turn * r)}`,
+    `Q ${pt(joint, t2)} ${pt(joint + dir * r, t2)}`,
+    `L ${pt(t1, t2)}`,
+  ].join(" ");
 }
 
 // ─── Sanitizing (import) ─────────────────────────────────────────────────────────────────────

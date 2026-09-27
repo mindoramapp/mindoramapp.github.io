@@ -13,12 +13,15 @@ import {
   type EdgeWidth,
   type NodeAppearance,
   type NodeBorder,
+  type EdgeShape,
   type ThemePresetId,
 } from "../themes";
 
 interface Props {
   presetId: ThemePresetId;
   onPreset: (id: ThemePresetId) => void;
+  edgeShape: EdgeShape;
+  onEdgeShape: (shape: EdgeShape) => void;
   node: { id: string; data: MindNodeData } | null;
   onNodeAppearance: (id: string, patch: NodeAppearance | null) => void;
   edge: Edge | null;
@@ -26,6 +29,15 @@ interface Props {
   onDeleteEdge: (id: string) => void;
   mobile: boolean;
 }
+
+const SHAPES: { id: EdgeShape; label: string; preview: string }[] = [
+  {
+    id: "bracket",
+    label: "Chave",
+    preview: "M2 12 H13 Q16 12 16 9 V6 Q16 3 19 3 H38 M16 12 V18 Q16 21 19 21 H38",
+  },
+  { id: "curve", label: "Curva suave", preview: "M2 12 C20 12 18 3 38 3 M2 12 C20 12 18 21 38 21" },
+];
 
 const PREVIEW: Record<
   ThemePresetId,
@@ -143,6 +155,8 @@ function ColorRow({
 export function ThemePanel({
   presetId,
   onPreset,
+  edgeShape,
+  onEdgeShape,
   node,
   onNodeAppearance,
   edge,
@@ -259,6 +273,46 @@ export function ThemePanel({
               </button>
             );
           })}
+          <div className="col-span-2 mt-2">
+            <p className="mb-1.5 text-xs font-medium">Formato das linhas</p>
+            <div
+              className="grid grid-cols-2 gap-2"
+              role="radiogroup"
+              aria-label="Formato das linhas"
+            >
+              {SHAPES.map((shape) => (
+                <button
+                  key={shape.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={edgeShape === shape.id}
+                  onClick={() => onEdgeShape(shape.id)}
+                  className={`flex min-h-11 items-center gap-2 rounded-xl border px-2.5 text-xs font-medium ${edgeShape === shape.id ? "border-primary bg-primary/5 ring-2 ring-primary/40" : "border-border hover:bg-muted"}`}
+                >
+                  <svg viewBox="0 0 40 24" className="h-6 w-10 shrink-0" aria-hidden>
+                    <path
+                      d={shape.preview}
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      fill="none"
+                      strokeLinecap="round"
+                    />
+                    {shape.id === "bracket" && (
+                      <circle
+                        cx="8"
+                        cy="12"
+                        r="2.4"
+                        fill="var(--card)"
+                        stroke="currentColor"
+                        strokeWidth="1.4"
+                      />
+                    )}
+                  </svg>
+                  {shape.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <p className="col-span-2 mt-1 text-[11px] text-muted-foreground">
             Pastel e Neon dão uma cor para cada ramo. Balões e linhas que você personalizar mantêm a
             sua escolha.

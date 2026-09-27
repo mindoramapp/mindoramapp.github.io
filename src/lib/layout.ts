@@ -130,7 +130,8 @@ export function layoutTree<N extends Node>(
 
   roots.forEach((root) => computeNodeSize(root.id));
 
-  const positions = new Map<string, { x: number; y: number }>();
+  const crossOf = new Map<string, number>();
+  const depthOf = new Map<string, number>();
   const placed = new Set<string>();
 
   const placeBranch = (childIds: string[], branchCenter: number, depth: number) => {
@@ -152,11 +153,8 @@ export function layoutTree<N extends Node>(
     const middle = middleSize.get(nodeId) || crossSize;
     const crossCenter = crossStart + before + middle / 2;
 
-    if (orientation === "vertical") {
-      positions.set(nodeId, { x: crossCenter - NODE_W / 2, y: depth * mainStep });
-    } else {
-      positions.set(nodeId, { x: depth * mainStep, y: crossCenter - NODE_H / 2 });
-    }
+    crossOf.set(nodeId, crossCenter);
+    depthOf.set(nodeId, depth);
 
     // Cross-axis children share the parent's column; the first one created sits closest to it.
     let cursor = crossStart + before;
@@ -180,6 +178,41 @@ export function layoutTree<N extends Node>(
   roots.forEach((root) => {
     placeNode(root.id, cursor, 0);
     cursor += subtreeSize.get(root.id) || crossSize;
+  });
+
+  // Columns follow the real size of their widest node, so a long label never crowds the next
+  // column (sizes come from ReactFlow once nodes are measured; defaults before that).
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const mainSizeOf = (id: string) => {
+    const node = nodeById.get(id);
+    return (
+      (orientation === "vertical" ? node?.height : node?.width) ??
+      (orientation === "vertical" ? NODE_H : NODE_W)
+    );
+  };
+  const columnSize = new Map<number, number>();
+  depthOf.forEach((depth, id) =>
+    columnSize.set(depth, Math.max(columnSize.get(depth) ?? 0, mainSizeOf(id))),
+  );
+  const gap = mainStep - (orientation === "vertical" ? NODE_H : NODE_W);
+  const columnStart = new Map<number, number>([[0, 0]]);
+  const depths = [...columnSize.keys()];
+  for (let d = 1; d <= Math.max(0, ...depths); d++)
+    columnStart.set(d, columnStart.get(d - 1)! + (columnSize.get(d - 1) ?? 0) + gap);
+  for (let d = -1; d >= Math.min(0, ...depths); d--)
+    columnStart.set(d, columnStart.get(d + 1)! - (columnSize.get(d) ?? 0) - gap);
+
+  const positions = new Map<string, { x: number; y: number }>();
+  depthOf.forEach((depth, id) => {
+    const main = columnStart.get(depth) ?? depth * mainStep;
+    const cross = crossOf.get(id)!;
+    positions.set(
+      id,
+      // Centered on the band by real size, so parent and child line up and the line runs straight.
+      orientation === "vertical"
+        ? { x: cross - (nodeById.get(id)?.width ?? NODE_W) / 2, y: main }
+        : { x: main, y: cross - (nodeById.get(id)?.height ?? NODE_H) / 2 },
+    );
   });
 
   return {

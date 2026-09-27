@@ -49,6 +49,7 @@ import { useIsMobile, useIsTouch } from "@/hooks/use-mobile";
 import { useGraphHistory } from "@/hooks/useGraphHistory";
 import { useEdgeAutoPan } from "@/features/editor/useEdgeAutoPan";
 import { ThemePanel } from "@/features/editor/components/ThemePanel";
+import { BracketEdge } from "@/features/editor/components/BracketEdge";
 import { WavyEdge } from "@/features/editor/components/WavyEdge";
 import { useThemePanel } from "@/features/editor/themeStore";
 import {
@@ -60,6 +61,7 @@ import {
   sanitizeNodeAppearance,
   type EdgeAppearance,
   type NodeAppearance,
+  type EdgeShape,
   type ThemePresetId,
 } from "@/features/editor/themes";
 import { layoutTree } from "@/lib/layout";
@@ -79,7 +81,7 @@ const nodeTypes = { mind: MindNode };
 
 const VISIBLE_ONLY_THRESHOLD = 150;
 const AUTOSAVE_DELAY = 500;
-const EDGE_TYPES = { wavy: WavyEdge };
+const EDGE_TYPES = { wavy: WavyEdge, bracket: BracketEdge };
 
 /**
  * ReactFlow doesn't move focus when a node or the canvas is clicked, so a field in the
@@ -465,13 +467,20 @@ function EditorInner({
     window.setTimeout(() => fitView({ padding: 0.2, duration: 350 }), 50);
   }, [organizeSignal, orientation, setNodes, setEdges, fitView]);
 
+  // Node sizes (known once ReactFlow measures them) shape the tree columns, so re-lay out when
+  // one changes, e.g. after the first render or when a label gets longer.
+  const nodeSizesKey = useMemo(
+    () => nodes.map((node) => `${node.width ?? 0}x${node.height ?? 0}`).join(","),
+    [nodes],
+  );
+
   useEffect(() => {
     if (mode !== "tree") return;
     const laidOut = layoutTree(nodesRef.current, edges, orientation);
     setNodes(laidOut.nodes);
     // Only when a handle actually changed; otherwise this effect would re-trigger itself.
     if (laidOut.edges.some((edge, index) => edge !== edges[index])) setEdges(laidOut.edges);
-  }, [mode, orientation, edges, setNodes, setEdges]);
+  }, [mode, orientation, edges, nodeSizesKey, setNodes, setEdges]);
 
   useEffect(() => {
     const centerHandler = () => fitView({ padding: 0.2, duration: 350 });
@@ -543,6 +552,7 @@ function EditorInner({
 
   const rootNode = nodes.find((node) => node.data.isRoot);
   const presetId: ThemePresetId = rootNode?.data.mapTheme ?? "default";
+  const edgeShape: EdgeShape = rootNode?.data.edgeShape ?? "bracket";
   const preset = presetById(presetId);
   const branches = useMemo(() => branchIndexes(nodes, edges), [nodes, edges]);
 
@@ -575,7 +585,13 @@ function EditorInner({
         const themed = edgeStyle(preset, appearance, kind, branches.get(edge.target));
         return {
           ...edge,
-          type: appearance?.line === "wavy" ? "wavy" : edge.type,
+          // Cross-links keep the soft curve so they stand apart from the tree's brackets.
+          type:
+            appearance?.line === "wavy"
+              ? "wavy"
+              : kind === "tree" && edgeShape === "bracket"
+                ? "bracket"
+                : edge.type,
           className: kind === "graph" ? "graph-edge" : "tree-edge",
           animated: kind === "graph" && Boolean(involved) && !liteMode,
           style: {
@@ -589,7 +605,7 @@ function EditorInner({
           },
         };
       }),
-    [edges, selectedId, selectedEdgeId, liteMode, preset, branches],
+    [edges, selectedId, selectedEdgeId, liteMode, preset, branches, edgeShape],
   );
 
   const selectedEdge = edges.find((edge) => edge.id === selectedEdgeId) ?? null;
@@ -599,6 +615,16 @@ function EditorInner({
       setNodes((current) =>
         current.map((node) =>
           node.data.isRoot ? { ...node, data: { ...node.data, mapTheme: id } } : node,
+        ),
+      ),
+    [setNodes],
+  );
+
+  const setEdgeShape = useCallback(
+    (shape: EdgeShape) =>
+      setNodes((current) =>
+        current.map((node) =>
+          node.data.isRoot ? { ...node, data: { ...node.data, edgeShape: shape } } : node,
         ),
       ),
     [setNodes],
@@ -1251,7 +1277,11 @@ function EditorInner({
     <div
       ref={canvasRef}
       className={`relative h-full w-full ${connectMode ? "cursor-crosshair" : ""} ${connecting ? "mm-connecting" : ""}`}
-      style={preset.canvas ? { background: preset.canvas } : undefined}
+      style={
+        preset.canvas
+          ? ({ background: preset.canvas, "--mm-canvas": preset.canvas } as React.CSSProperties)
+          : undefined
+      }
     >
       <ReactFlow
         nodes={styledNodes}
@@ -1513,6 +1543,8 @@ function EditorInner({
         <ThemePanel
           presetId={presetId}
           onPreset={setMapTheme}
+          edgeShape={edgeShape}
+          onEdgeShape={setEdgeShape}
           node={selectedNode ?? null}
           onNodeAppearance={patchNodeAppearance}
           edge={selectedEdge}
