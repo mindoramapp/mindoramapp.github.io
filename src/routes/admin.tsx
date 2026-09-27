@@ -174,7 +174,7 @@ function AdminPage() {
             {error}
           </div>
         )}
-        {debug && (
+        {import.meta.env.DEV && debug && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-700 break-words">
             Debug: {debug}
           </div>

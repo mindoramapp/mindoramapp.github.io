@@ -153,7 +153,7 @@ function RegisterPage() {
           </p>
           {success && <p className="text-sm text-emerald-600">{success}</p>}
           {error && <p className="text-sm text-destructive">{error}</p>}
-          {debug && (
+          {import.meta.env.DEV && debug && (
             <p className="text-xs text-amber-600 break-words rounded-md bg-amber-500/10 px-2 py-1">
               Debug: {debug}
             </p>

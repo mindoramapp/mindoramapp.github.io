@@ -94,7 +94,7 @@ const mapUser = (session: Session | null, profile: UserProfile | null): User | n
 
 const getConfigError = () => "Autenticacao ainda nao configurada para este ambiente.";
 
-const normalizeAuthError = (message?: string) => {
+export const normalizeAuthError = (message?: string) => {
   const normalizedMessage = message?.trim().toLowerCase() || "";
 
   if (!normalizedMessage) {
@@ -111,6 +111,14 @@ const normalizeAuthError = (message?: string) => {
 
   if (normalizedMessage.includes("signup is disabled")) {
     return "Cadastro indisponivel no momento.";
+  }
+
+  if (normalizedMessage.includes("email address") && normalizedMessage.includes("invalid")) {
+    return "Este e-mail não é válido ou não pode receber mensagens. Use um endereço que você acessa.";
+  }
+
+  if (normalizedMessage.includes("rate limit")) {
+    return "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.";
   }
 
   if (normalizedMessage.includes("email not confirmed")) {
