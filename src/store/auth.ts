@@ -3,6 +3,7 @@ import type { Session, Subscription, User as SupabaseUser } from "@supabase/supa
 import { create } from "zustand";
 import { validatePasswordPolicy } from "@/lib/security";
 import { getAuthRedirectUrl, supabase } from "@/lib/supabase";
+import { useEntitlements } from "@/features/subscriptions/useEntitlements";
 
 // NOTE: superadmin role is determined solely by the server-side DB (user_profiles.role).
 // Never hardcode privileged emails in client code.
@@ -423,6 +424,7 @@ export const useAuth = create<AuthState>((set, get) => ({
     await get().refreshProfile();
   },
   logout: async () => {
+    useEntitlements.getState().reset();
     if (!supabase) {
       set({ user: null, profile: null, initialized: true });
       return;

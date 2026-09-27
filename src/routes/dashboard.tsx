@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { parseImportedMap } from "@/lib/export";
+import { runAction } from "@/lib/feedback";
+import { PlanUsageBadge, useEntitlements } from "@/features/subscriptions";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +59,7 @@ function DashboardPage() {
   const [maps, setMaps] = useState<MindMap[]>([]);
   const [folders, setFolders] = useState<MindFolder[]>([]);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const refreshEntitlements = useEntitlements((state) => state.refresh);
   const [loadingMaps, setLoadingMaps] = useState(true);
   const [showMapModal, setShowMapModal] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -104,6 +107,7 @@ function DashboardPage() {
           loadMaps({ id: user.id, email: user.email }),
           loadFolders({ id: user.id, email: user.email }),
         ]);
+        void refreshEntitlements();
         if (!cancelled) {
           setMaps(loadedMaps.sort((a, b) => b.updatedAt - a.updatedAt));
           setFolders(loadedFolders);
@@ -129,7 +133,7 @@ function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, refreshEntitlements]);
 
   const folderChildren = useMemo(() => {
     const map = new Map<string | null, MindFolder[]>();
@@ -193,19 +197,28 @@ function DashboardPage() {
     event.preventDefault();
     if (!user) return;
 
-    const map = createBlankMap({ id: user.id, email: user.email }, title || "Sem título", mode, {
-      folderId: selectedFolderId,
-    });
-    await upsertMap(map);
-    setShowMapModal(false);
-    toast.success("Mapa criado com sucesso.");
-    navigate({ to: "/editor/$id", params: { id: map.id } });
+    await runAction(async () => {
+      const map = createBlankMap({ id: user.id, email: user.email }, title || "Sem título", mode, {
+        folderId: selectedFolderId,
+      });
+      await upsertMap(map);
+      void refreshEntitlements();
+      setShowMapModal(false);
+      toast.success("Mapa criado com sucesso.");
+      navigate({ to: "/editor/$id", params: { id: map.id } });
+    }, "Não foi possível criar o mapa agora.");
   };
 
   const importMapFile = async (file: File) => {
     if (!user) return;
+    let imported: ReturnType<typeof parseImportedMap>;
     try {
-      const imported = parseImportedMap(await file.text());
+      imported = parseImportedMap(await file.text());
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível ler o arquivo.");
+      return;
+    }
+    await runAction(async () => {
       const map = {
         ...createBlankMap({ id: user.id, email: user.email }, imported.title, imported.mode, {
           folderId: selectedFolderId,
@@ -215,28 +228,39 @@ function DashboardPage() {
         edges: imported.edges,
       };
       await upsertMap(map);
+      void refreshEntitlements();
       toast.success("Mapa importado com sucesso.");
       navigate({ to: "/editor/$id", params: { id: map.id } });
-    } catch (error) {
-      console.error("Falha ao importar mapa", error);
-      toast.error(error instanceof Error ? error.message : "Não foi possível importar o mapa.");
-    }
+    }, "Não foi possível importar o mapa agora.");
   };
 
   const createFromTemplate = async (templateId: TemplateId) => {
     if (!user) return;
-    const map = createMapFromTemplate({ id: user.id, email: user.email }, templateId, {
-      folderId: selectedFolderId,
-    });
-    await upsertMap(map);
-    toast.success("Mapa criado a partir do template!");
-    navigate({ to: "/editor/$id", params: { id: map.id } });
+    await runAction(async () => {
+      const map = createMapFromTemplate({ id: user.id, email: user.email }, templateId, {
+        folderId: selectedFolderId,
+      });
+      await upsertMap(map);
+      void refreshEntitlements();
+      toast.success("Mapa criado a partir do template!");
+      navigate({ to: "/editor/$id", params: { id: map.id } });
+    }, "Não foi possível criar o mapa agora.");
   };
 
   const submitFolderModal = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!user) return;
 
+    await runAction(async () => {
+      await saveFolderModal();
+      setFolderName("");
+      setFolderBeingEdited(null);
+      setShowFolderModal(false);
+    }, "Não foi possível salvar a pasta agora.");
+  };
+
+  const saveFolderModal = async () => {
+    if (!user) return;
     if (folderModalMode === "create") {
       const folder = createFolder(
         { id: user.id, email: user.email },
@@ -244,6 +268,7 @@ function DashboardPage() {
         selectedFolderId,
       );
       await upsertFolder(folder);
+      void refreshEntitlements();
       setFolders((current) =>
         [...current, folder].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
       );
@@ -259,10 +284,6 @@ function DashboardPage() {
       await refreshData();
       toast.success("Pasta renomeada.");
     }
-
-    setFolderName("");
-    setFolderBeingEdited(null);
-    setShowFolderModal(false);
   };
 
   const toggleFolder = (folderId: string) => {
@@ -283,19 +304,23 @@ function DashboardPage() {
     setShowFolderModal(true);
   };
 
-  const toggleFavorite = async (map: MindMap) => {
-    await upsertMap({ ...map, isFavorite: !map.isFavorite, updatedAt: Date.now() });
-    await refreshData();
-    toast.success(
-      map.isFavorite ? "Mapa removido dos favoritos." : "Mapa adicionado aos favoritos.",
-    );
-  };
+  const toggleFavorite = (map: MindMap) =>
+    runAction(async () => {
+      await upsertMap({ ...map, isFavorite: !map.isFavorite, updatedAt: Date.now() });
+      await refreshData();
+      toast.success(
+        map.isFavorite ? "Mapa removido dos favoritos." : "Mapa adicionado aos favoritos.",
+      );
+    }, "Não foi possível atualizar os favoritos agora.");
 
-  const moveMapHandler = async (map: MindMap, folderId: string | null) => {
-    await upsertMap({ ...map, folderId, updatedAt: Date.now() });
-    await refreshData();
-    toast.success(folderId ? "Mapa movido para a pasta selecionada." : "Mapa movido para a raiz.");
-  };
+  const moveMapHandler = (map: MindMap, folderId: string | null) =>
+    runAction(async () => {
+      await upsertMap({ ...map, folderId, updatedAt: Date.now() });
+      await refreshData();
+      toast.success(
+        folderId ? "Mapa movido para a pasta selecionada." : "Mapa movido para a raiz.",
+      );
+    }, "Não foi possível mover o mapa agora.");
 
   const renderFolderTree = (parentId: string | null = null, depth = 0): React.ReactNode =>
     (folderChildren.get(parentId) || []).map((folder) => {
@@ -451,7 +476,7 @@ function DashboardPage() {
           </aside>
 
           <section className="min-w-0 rounded-3xl border border-border bg-card/90 p-5 shadow-[var(--shadow-soft)] backdrop-blur">
-            <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="mb-6 flex flex-col gap-4 2xl:flex-row 2xl:items-end 2xl:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <button
@@ -486,7 +511,8 @@ function DashboardPage() {
                 </p>
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <PlanUsageBadge />
                 <label className="relative block min-w-[260px]">
                   <Search
                     className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
@@ -851,13 +877,14 @@ function DashboardPage() {
               type="button"
               onClick={() => {
                 if (!confirmDeleteFolder || !user) return;
-                void (async () => {
+                void runAction(async () => {
                   await deleteFolder(confirmDeleteFolder.id, { id: user.id, email: user.email });
                   if (selectedFolderId === confirmDeleteFolder.id) setSelectedFolderId(null);
                   setConfirmDeleteFolder(null);
                   await refreshData();
+                  void refreshEntitlements();
                   toast.success("Pasta excluída.");
-                })();
+                }, "Não foi possível excluir a pasta agora.");
               }}
               className="rounded-xl bg-destructive px-4 py-2 font-medium text-destructive-foreground"
             >
@@ -892,12 +919,13 @@ function DashboardPage() {
               type="button"
               onClick={() => {
                 if (!confirmDeleteMap || !user) return;
-                void (async () => {
+                void runAction(async () => {
                   await deleteMap(confirmDeleteMap.id, { id: user.id, email: user.email });
                   setConfirmDeleteMap(null);
                   await refreshData();
+                  void refreshEntitlements();
                   toast.success("Mapa excluído.");
-                })();
+                }, "Não foi possível excluir o mapa agora.");
               }}
               className="rounded-xl bg-destructive px-4 py-2 font-medium text-destructive-foreground"
             >

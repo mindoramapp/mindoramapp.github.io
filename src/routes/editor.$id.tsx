@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { ExportMenu } from "@/components/ExportMenu";
+import { useEntitlements } from "@/features/subscriptions";
 import { isOnboardingDone, resetOnboarding } from "@/lib/onboarding";
 
 export const Route = createFileRoute("/editor/$id")({
@@ -49,6 +50,12 @@ function EditorPage() {
   useEffect(() => {
     init();
   }, [init]);
+
+  const hasEntitlements = useEntitlements((state) => state.entitlements !== null);
+  const refreshEntitlements = useEntitlements((state) => state.refresh);
+  useEffect(() => {
+    if (user && !hasEntitlements) void refreshEntitlements();
+  }, [user, hasEntitlements, refreshEntitlements]);
 
   const userId = user?.id;
   const userEmail = user?.email;

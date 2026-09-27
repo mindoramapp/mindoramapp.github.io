@@ -128,6 +128,9 @@ const warnSchemaFallback = () => {
 
 const isSchemaCapabilityError = (error: unknown) => {
   if (!error || typeof error !== "object") return false;
+  // Plan limits (P0001) and permission denials (42501) are real refusals, never a reason to fall
+  // back to saving only in this browser.
+  if ("code" in error && (error.code === "P0001" || error.code === "42501")) return false;
 
   const details = [
     "message" in error ? error.message : "",

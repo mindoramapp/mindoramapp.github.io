@@ -32,7 +32,34 @@ npm run dev
 `src/routeTree.gen.ts` é gerado automaticamente pelo plugin do TanStack Router ao rodar
 `dev`/`build` — não edite à mão.
 
-O schema do banco fica em `supabase/schema.sql`, e as migrações em `supabase/migrations/`.
+## Banco de dados (Supabase)
+
+O schema completo está em `supabase/migrations/`, em ordem. As migrações são idempotentes e
+compatíveis com a versão anterior do frontend, então podem ser aplicadas antes do deploy.
+
+- **Supabase CLI:** `supabase link --project-ref <ref>` e depois `supabase db push`.
+- **Sem CLI:** cole cada arquivo, em ordem, no SQL Editor do painel do Supabase.
+
+Os testes em `supabase/tests/` rodam as migrações reais num Postgres em memória
+([PGlite](https://pglite.dev)), que simula o `auth` do Supabase, e verificam RLS, convite,
+limites de plano e o save versionado. Eles fazem parte do `npm test` e não precisam de Docker
+nem de acesso ao seu projeto.
+
+## Acesso, planos e permissões
+
+- **Convite:** a conta só usa o produto depois de ativada com um código gerado no painel
+  admin. A regra fica em `has_app_access()` e é exigida por todas as políticas RLS de conteúdo.
+- **Planos:** a tabela `plans` é a fonte única de preços e limites (FREE, Bronze R$ 5,
+  Prata R$ 10, Ouro R$ 20). Mudar um limite ou preço é um `UPDATE` nessa tabela, sem deploy.
+- **Aplicação no banco:** triggers recusam criar mapas, pastas ou nós acima do limite do
+  plano efetivo, com o erro `PLAN_LIMIT:<limite>`. Um downgrade nunca apaga dados: o que já
+  existe continua acessível, e só o crescimento é bloqueado.
+- **Frontend:** `src/features/subscriptions` lê os mesmos dados (`get_my_entitlements()`) e
+  expõe regras como `can(entitlements, "export_pdf")`. Nenhum componente compara nomes de plano.
+- **Assinaturas:** a tabela `subscriptions` é escrita apenas pelo backend (webhooks de
+  pagamento, na Etapa 7) ou por admins. Sem assinatura, o usuário está no FREE.
+
+A arquitetura completa e o plano de evolução estão em [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 
 ## Deploy
 

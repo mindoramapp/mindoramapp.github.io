@@ -39,6 +39,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useGraphHistory } from "@/hooks/useGraphHistory";
 import { layoutTree } from "@/lib/layout";
 import { exportMap, type ExportFormat } from "@/lib/export";
+import { reportActionError } from "@/lib/feedback";
+import { fitsLimit, limitOf, PlanLimitError, useEntitlements } from "@/features/subscriptions";
 import {
   createBlankMap,
   upsertMap,
@@ -174,6 +176,9 @@ function EditorInner({
   onShowTour,
 }: Props) {
   const isMobile = useIsMobile();
+  const maxNodes = useEntitlements((state) =>
+    state.entitlements ? limitOf(state.entitlements, "max_nodes_per_map") : null,
+  );
   const [nodes, setNodes, onNodesChange] = useNodesState<MindNodeData>(map.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(map.edges);
   const [selectedId, setSelectedId] = useState<string | null>("root");
@@ -262,11 +267,23 @@ function EditorInner({
     setShowHelp(true);
   }, [isMobile]);
 
+  // Warn once per failure streak, not on every retry.
+  const saveFailureNotified = useRef(false);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      void upsertMap({ ...map, nodes, edges, viewport, updatedAt: Date.now() }).catch((error) => {
-        console.error("Falha ao salvar mapa", error);
-      });
+      upsertMap({ ...map, nodes, edges, viewport, updatedAt: Date.now() })
+        .then(() => {
+          saveFailureNotified.current = false;
+        })
+        .catch((error) => {
+          if (saveFailureNotified.current) return;
+          saveFailureNotified.current = true;
+          reportActionError(
+            error,
+            "Não foi possível salvar seu mapa. Tentaremos novamente na próxima alteração.",
+          );
+        });
     }, 300);
     return () => window.clearTimeout(timer);
   }, [nodes, edges, viewport, map]);
@@ -420,6 +437,10 @@ function EditorInner({
     ) => {
       const parent = nodes.find((node) => node.id === parentId);
       if (!parent) return;
+      if (!fitsLimit(maxNodes, nodes.length)) {
+        reportActionError(new PlanLimitError("max_nodes_per_map"), "");
+        return;
+      }
 
       const id = crypto.randomUUID();
       const targetParent = sibling
@@ -477,7 +498,7 @@ function EditorInner({
       ]);
       setSelectedId(id);
     },
-    [nodes, edges, orientation, map.mode, setNodes, setEdges],
+    [nodes, edges, orientation, map.mode, setNodes, setEdges, maxNodes],
   );
 
   const onNodeClick: NodeMouseHandler = useCallback(
@@ -593,8 +614,7 @@ function EditorInner({
           });
           toast.success("Submapa criado com sucesso.");
         })().catch((error) => {
-          console.error("Falha ao criar mapa conectado", error);
-          toast.error("Não foi possível criar o submapa agora.");
+          reportActionError(error, "Não foi possível criar o submapa agora.");
         });
       }
     };
