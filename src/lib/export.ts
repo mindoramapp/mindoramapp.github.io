@@ -69,10 +69,14 @@ export const toJson = (map: MindMap, nodes: Node<MindNodeData>[], edges: Edge[])
   return JSON.stringify(payload, null, 2);
 };
 
+// Labels are user text: escape everything Markdown or HTML could turn into links, images or tags.
+const escapeMarkdown = (text: string) =>
+  text.replace(/[\\`*_{}[\]()#+!|>~-]/g, "\\$&").replace(/</g, "&lt;");
+
 const markdownLine = (data: MindNodeData) => {
-  const label = (data.label || "Sem título").replace(/\s+/g, " ").trim();
+  const label = escapeMarkdown((data.label || "Sem título").replace(/\s+/g, " ").trim());
   if (data.kind === "checklist") return `[${data.checked ? "x" : " "}] ${label}`;
-  if (data.kind === "code") return `\`${label.replace(/`/g, "'")}\``;
+  if (data.kind === "code") return `\`${(data.label || "").replace(/[`\n]/g, "'")}\``;
   if (data.kind === "link" && data.url && /^https?:/i.test(data.url))
     return `[${label}](${data.url})`;
   return label;
@@ -189,10 +193,48 @@ export const exportMap = async (
   downloadFile(dataUrl, `${base}.${format}`);
 };
 
+const MAX_IMPORT_CHARS = 5_000_000;
+const MAX_IMPORT_NODES = 5_000;
+const MAX_LABEL_LENGTH = 1_000;
+const MAX_TITLE_LENGTH = 200;
+const MAX_ID_LENGTH = 100;
+const NODE_KINDS = ["text", "checklist", "code", "link"] as const;
+const TREE_SIDES = ["left", "right", "top", "bottom"] as const;
+
+const finiteOr = (value: unknown, fallback: number) =>
+  typeof value === "number" && Number.isFinite(value) ? value : fallback;
+
+const oneOf = <T extends string>(options: readonly T[], value: unknown): T | undefined =>
+  options.includes(value as T) ? (value as T) : undefined;
+
+/** Only known fields with the right types survive; everything else in the file is dropped. */
+const importNodeData = (data: Record<string, unknown>): MindNodeData => {
+  const clean: MindNodeData = {
+    label: String(data.label).slice(0, MAX_LABEL_LENGTH),
+    kind: oneOf(NODE_KINDS, data.kind) ?? "text",
+  };
+  if (data.isRoot === true) clean.isRoot = true;
+  if (typeof data.checked === "boolean") clean.checked = data.checked;
+  if (typeof data.url === "string") clean.url = sanitizeNodeUrl(data.url.slice(0, 2_000));
+  // Linked maps belong to the exporting account; the reference is never carried over.
+  return clean;
+};
+
+const importEdgeData = (data: unknown) => {
+  if (!isRecord(data)) return undefined;
+  const kind = data.kind === "graph" ? "graph" : "tree";
+  const treeSide = oneOf(TREE_SIDES, data.treeSide);
+  return treeSide ? { kind, treeSide } : { kind };
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 export const parseImportedMap = (raw: string): ImportedMap => {
+  if (raw.length > MAX_IMPORT_CHARS) {
+    throw new Error("O arquivo é muito grande para importar (limite de 5 MB).");
+  }
+
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -219,6 +261,9 @@ export const parseImportedMap = (raw: string): ImportedMap => {
       typeof node.data.label === "string",
   );
   if (validNodes.length === 0) throw new Error("O arquivo não contém nós.");
+  if (validNodes.length > MAX_IMPORT_NODES) {
+    throw new Error(`O arquivo é muito grande para importar (mais de ${MAX_IMPORT_NODES} nós).`);
+  }
 
   const nodeIds = new Set(validNodes.map((node) => node.id));
   const edges = Array.isArray(parsed.edges) ? parsed.edges : [];
@@ -236,24 +281,28 @@ export const parseImportedMap = (raw: string): ImportedMap => {
   return {
     title:
       typeof parsed.title === "string" && parsed.title.trim()
-        ? parsed.title.trim()
+        ? parsed.title.trim().slice(0, MAX_TITLE_LENGTH)
         : "Mapa importado",
     mode: MAP_MODES.includes(parsed.mode as MapMode) ? (parsed.mode as MapMode) : "brainstorm",
     viewport: {
-      x: typeof viewport.x === "number" ? viewport.x : 0,
-      y: typeof viewport.y === "number" ? viewport.y : 0,
-      zoom: typeof viewport.zoom === "number" ? viewport.zoom : 1,
+      x: finiteOr(viewport.x, 0),
+      y: finiteOr(viewport.y, 0),
+      zoom: Math.min(4, Math.max(0.1, finiteOr(viewport.zoom, 1))),
     },
-    nodes: cleanNodes(validNodes).map((node) => ({
-      ...node,
-      type: node.type ?? "mind",
-      data: {
-        ...node.data,
-        url: typeof node.data.url === "string" ? sanitizeNodeUrl(node.data.url) : undefined,
-        // Linked maps belong to the exporting account; don't carry the reference over.
-        linkedMapId: undefined,
-      },
+    nodes: validNodes.map((node) => ({
+      id: node.id.slice(0, MAX_ID_LENGTH),
+      type: "mind",
+      position: { x: finiteOr(node.position.x, 0), y: finiteOr(node.position.y, 0) },
+      data: importNodeData(node.data as unknown as Record<string, unknown>),
     })),
-    edges: cleanEdges(validEdges),
+    edges: validEdges.map((edge) => ({
+      id: edge.id.slice(0, MAX_ID_LENGTH),
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: typeof edge.sourceHandle === "string" ? edge.sourceHandle : undefined,
+      targetHandle: typeof edge.targetHandle === "string" ? edge.targetHandle : undefined,
+      label: typeof edge.label === "string" ? edge.label.slice(0, MAX_LABEL_LENGTH) : undefined,
+      data: importEdgeData(edge.data),
+    })),
   };
 };

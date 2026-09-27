@@ -19,6 +19,8 @@ export const sanitizeNodeUrl = (value: string): string => {
   if (!trimmed) return "";
 
   if (trimmed.startsWith("/")) {
+    // "//host" and "/\host" are protocol-relative URLs that browsers resolve to another site.
+    if (/^\/[/\\]/.test(trimmed)) return "";
     return trimmed;
   }
 
