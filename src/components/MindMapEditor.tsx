@@ -47,6 +47,20 @@ import { requestNodeEdit } from "./nodeEditing";
 import { useIsMobile, useIsTouch } from "@/hooks/use-mobile";
 import { useGraphHistory } from "@/hooks/useGraphHistory";
 import { useEdgeAutoPan } from "@/features/editor/useEdgeAutoPan";
+import { ThemePanel } from "@/features/editor/components/ThemePanel";
+import { WavyEdge } from "@/features/editor/components/WavyEdge";
+import { useThemePanel } from "@/features/editor/themeStore";
+import {
+  branchIndexes,
+  edgeStyle,
+  nodeVariables,
+  presetById,
+  sanitizeEdgeAppearance,
+  sanitizeNodeAppearance,
+  type EdgeAppearance,
+  type NodeAppearance,
+  type ThemePresetId,
+} from "@/features/editor/themes";
 import { layoutTree } from "@/lib/layout";
 import { isLiteMode } from "@/lib/performance";
 import { exportMap, type ExportFormat } from "@/lib/export";
@@ -63,6 +77,7 @@ import {
 const nodeTypes = { mind: MindNode };
 
 const VISIBLE_ONLY_THRESHOLD = 150;
+const EDGE_TYPES = { wavy: WavyEdge };
 
 /**
  * ReactFlow doesn't move focus when a node or the canvas is clicked, so a field in the
@@ -234,7 +249,8 @@ function EditorInner({
     isMobile || initialLayout.minimap.minimized,
   );
   const [helpMinimized, setHelpMinimized] = useState(initialLayout.help.minimized);
-  const [edgePendingDelete, setEdgePendingDelete] = useState<Edge | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const themePanelOpen = useThemePanel((state) => state.open);
   const [panelPositions, setPanelPositions] = useState({
     inspector: initialLayout.inspector.position,
     minimap: initialLayout.minimap.position,
@@ -466,35 +482,114 @@ function EditorInner({
     return connected;
   }, [selectedId, edges]);
 
+  const rootNode = nodes.find((node) => node.data.isRoot);
+  const presetId: ThemePresetId = rootNode?.data.mapTheme ?? "default";
+  const preset = presetById(presetId);
+  const branches = useMemo(() => branchIndexes(nodes, edges), [nodes, edges]);
+
   const styledNodes = useMemo(
     () =>
       nodes.map((node) => ({
         ...node,
         style: {
           ...node.style,
+          ...nodeVariables(
+            preset,
+            node.data.appearance,
+            Boolean(node.data.isRoot),
+            branches.get(node.id),
+          ),
           opacity: connectedSet && !connectedSet.has(node.id) ? 0.35 : 1,
           transition: "opacity 200ms ease",
         },
       })),
-    [nodes, connectedSet],
+    [nodes, connectedSet, preset, branches],
   );
 
   const styledEdges = useMemo(
     () =>
       edges.map((edge) => {
         const involved = selectedId && (edge.source === selectedId || edge.target === selectedId);
+        const appearance = edge.data?.appearance as EdgeAppearance | undefined;
+        const kind = edge.data?.kind === "graph" ? "graph" : "tree";
+        const isSelected = edge.id === selectedEdgeId;
+        const themed = edgeStyle(preset, appearance, kind, branches.get(edge.target));
         return {
           ...edge,
-          className: edge.data?.kind === "graph" ? "graph-edge" : "tree-edge",
-          animated: edge.data?.kind === "graph" && Boolean(involved) && !liteMode,
+          type: appearance?.line === "wavy" ? "wavy" : edge.type,
+          className: kind === "graph" ? "graph-edge" : "tree-edge",
+          animated: kind === "graph" && Boolean(involved) && !liteMode,
           style: {
-            opacity: selectedId && !involved ? 0.25 : 1,
+            ...themed,
+            ...(isSelected && {
+              filter: "drop-shadow(0 0 3px var(--primary))",
+              strokeWidth: Number(themed.strokeWidth ?? 2) + 1,
+            }),
+            opacity: (selectedId && !involved) || (selectedEdgeId && !isSelected) ? 0.3 : 1,
             transition: "opacity 200ms ease",
           },
         };
       }),
-    [edges, selectedId, liteMode],
+    [edges, selectedId, selectedEdgeId, liteMode, preset, branches],
   );
+
+  const selectedEdge = edges.find((edge) => edge.id === selectedEdgeId) ?? null;
+
+  const setMapTheme = useCallback(
+    (id: ThemePresetId) =>
+      setNodes((current) =>
+        current.map((node) =>
+          node.data.isRoot ? { ...node, data: { ...node.data, mapTheme: id } } : node,
+        ),
+      ),
+    [setNodes],
+  );
+
+  const patchNodeAppearance = useCallback(
+    (id: string, patch: NodeAppearance | null) =>
+      setNodes((current) =>
+        current.map((node) => {
+          if (node.id !== id) return node;
+          const next = patch ? sanitizeNodeAppearance(patch) : undefined;
+          const data = { ...node.data, appearance: next };
+          if (!next) delete data.appearance;
+          return { ...node, data };
+        }),
+      ),
+    [setNodes],
+  );
+
+  const patchEdgeAppearance = useCallback(
+    (id: string, patch: EdgeAppearance | null) =>
+      setEdges((current) =>
+        current.map((edge) => {
+          if (edge.id !== id) return edge;
+          const next = patch ? sanitizeEdgeAppearance(patch) : undefined;
+          const data = { ...edge.data, appearance: next };
+          if (!next) delete data.appearance;
+          return { ...edge, data };
+        }),
+      ),
+    [setEdges],
+  );
+
+  const deleteEdge = useCallback(
+    (id: string) => {
+      setEdges((current) => current.filter((edge) => edge.id !== id));
+      setSelectedEdgeId(null);
+      toast.success("Conexão removida. Ctrl+Z desfaz.");
+    },
+    [setEdges],
+  );
+
+  // Keep the 🎨 panel on the tab of whatever is selected.
+  useEffect(() => {
+    const panel = useThemePanel.getState();
+    if (!panel.open) return;
+    if (selectedEdgeId) panel.setTab("edge");
+    else if (selectedId) panel.setTab("node");
+    else if (panel.tab !== "map") panel.setTab("map");
+  }, [selectedId, selectedEdgeId]);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -598,6 +693,7 @@ function EditorInner({
   const onNodeClick: NodeMouseHandler = useCallback(
     (event, node) => {
       if (!(event.target as HTMLElement).closest("input, textarea")) leaveTextField();
+      setSelectedEdgeId(null);
       if (connectMode) {
         if (!pendingSource) {
           setPendingSource(node.id);
@@ -765,7 +861,13 @@ function EditorInner({
         }
       }
 
-      if (!selectedId) return;
+      if (!selectedId) {
+        if (selectedEdgeId && (event.key === "Delete" || event.key === "Backspace")) {
+          event.preventDefault();
+          deleteEdge(selectedEdgeId);
+        }
+        return;
+      }
 
       if (event.key === "F2") {
         event.preventDefault();
@@ -792,7 +894,18 @@ function EditorInner({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedId, addChild, edges, setNodes, setEdges, setConnectMode, undo, redo]);
+  }, [
+    selectedId,
+    selectedEdgeId,
+    deleteEdge,
+    addChild,
+    edges,
+    setNodes,
+    setEdges,
+    setConnectMode,
+    undo,
+    redo,
+  ]);
 
   const patchNode = useCallback(
     (id: string, patch: Partial<MindNodeData>) => {
@@ -1003,6 +1116,7 @@ function EditorInner({
     <div
       ref={canvasRef}
       className={`relative h-full w-full ${connectMode ? "cursor-crosshair" : ""}`}
+      style={preset.canvas ? { background: preset.canvas } : undefined}
     >
       <ReactFlow
         nodes={styledNodes}
@@ -1015,16 +1129,24 @@ function EditorInner({
         onNodeMouseLeave={() => setHoverId(null)}
         onPaneClick={() => {
           leaveTextField();
+          setSelectedEdgeId(null);
           setSelectedId(null);
           setPendingSource(null);
         }}
         onMoveEnd={(_, nextViewport) => persistViewport(nextViewport)}
-        onEdgeClick={(_, edge) => setEdgePendingDelete(edge)}
+        onEdgeClick={(_, edge) => {
+          // Clicking a line selects it and opens its appearance (it used to jump straight to a
+          // "remove connection" dialog, easy to trigger by accident).
+          setSelectedId(null);
+          setSelectedEdgeId(edge.id);
+          useThemePanel.getState().show("edge");
+        }}
         // Our edge auto-pan scales speed with the distance to the edge (ReactFlow's is fixed).
         autoPanOnNodeDrag={false}
         onNodeDrag={autoPan.onNodeDrag}
         onNodeDragStop={autoPan.onNodeDragStop}
         nodeTypes={nodeTypes}
+        edgeTypes={EDGE_TYPES}
         defaultViewport={map.viewport}
         // The saved viewport is usually framed on a desktop and can leave the map off screen on
         // a phone; compact screens frame the whole map once nodes are measured.
@@ -1037,7 +1159,7 @@ function EditorInner({
         nodesConnectable
         connectOnClick={false}
       >
-        <Background gap={24} size={1} color="oklch(0.7 0.02 270 / 0.25)" />
+        <Background gap={24} size={1} color={preset.dots ?? "oklch(0.7 0.02 270 / 0.25)"} />
         <Controls
           position="bottom-left"
           className={isMobile ? "!hidden" : "!shadow-none !mb-20 !ml-3"}
@@ -1248,40 +1370,18 @@ function EditorInner({
         />
       )}
 
-      <Dialog
-        open={Boolean(edgePendingDelete)}
-        onOpenChange={(open) => !open && setEdgePendingDelete(null)}
-      >
-        <DialogContent className="rounded-3xl">
-          <DialogHeader>
-            <DialogTitle>Remover conexão</DialogTitle>
-            <DialogDescription>Esta conexão será removida do mapa atual.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={() => setEdgePendingDelete(null)}
-              className="rounded-xl px-4 py-2 hover:bg-muted"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (!edgePendingDelete) return;
-                setEdges((currentEdges) =>
-                  currentEdges.filter((currentEdge) => currentEdge.id !== edgePendingDelete.id),
-                );
-                setEdgePendingDelete(null);
-                toast.success("Conexão removida.");
-              }}
-              className="rounded-xl bg-destructive px-4 py-2 font-medium text-destructive-foreground"
-            >
-              Remover
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {themePanelOpen && (
+        <ThemePanel
+          presetId={presetId}
+          onPreset={setMapTheme}
+          node={selectedNode ?? null}
+          onNodeAppearance={patchNodeAppearance}
+          edge={selectedEdge}
+          onEdgeAppearance={patchEdgeAppearance}
+          onDeleteEdge={deleteEdge}
+          mobile={isMobile}
+        />
+      )}
     </div>
   );
 }

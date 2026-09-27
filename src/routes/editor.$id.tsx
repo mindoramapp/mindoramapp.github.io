@@ -15,13 +15,30 @@ import {
   Undo2,
   Redo2,
   GraduationCap,
+  Palette,
 } from "lucide-react";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { ExportMenu } from "@/components/ExportMenu";
 import { EditorMoreMenu } from "@/components/EditorMoreMenu";
 import { PanelsMenu } from "@/components/PanelsMenu";
+import { useThemePanel } from "@/features/editor/themeStore";
 import { useEntitlements } from "@/features/subscriptions";
 import { isOnboardingDone, resetOnboarding } from "@/lib/onboarding";
+
+function AppearanceButton() {
+  const open = useThemePanel((state) => state.open);
+  return (
+    <button
+      onClick={() => useThemePanel.getState().toggle()}
+      aria-pressed={open}
+      className={`px-3 py-1.5 rounded-lg text-sm flex items-center justify-center gap-1.5 pointer-coarse:min-h-11 pointer-coarse:min-w-11 ${open ? "bg-muted" : "hover:bg-muted"}`}
+      title="Aparência: temas, cores de balões e linhas"
+      aria-label="Aparência"
+    >
+      <Palette size={14} /> <span className="hidden xl:inline">Aparência</span>
+    </button>
+  );
+}
 
 export const Route = createFileRoute("/editor/$id")({
   head: () => ({ meta: [{ title: "Editor - Mindora" }] }),
@@ -248,6 +265,7 @@ function EditorPage() {
           >
             <GraduationCap size={14} /> <span className="hidden xl:inline">Revisar</span>
           </button>
+          <AppearanceButton />
           <PanelsMenu />
           <button
             onClick={() => window.dispatchEvent(new Event("mm-center"))}

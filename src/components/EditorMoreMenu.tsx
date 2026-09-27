@@ -10,11 +10,13 @@ import {
   Image,
   Link2,
   MoreHorizontal,
+  Palette,
   Network,
   Shapes,
   Wand2,
 } from "lucide-react";
 import type { ExportFormat } from "@/lib/export";
+import { useThemePanel } from "@/features/editor/themeStore";
 
 interface Props {
   view: "tree" | "graph";
@@ -117,6 +119,14 @@ export function EditorMoreMenu({
             className={ITEM}
           >
             <Link2 size={16} /> {connectMode ? "Sair do modo conexão" : "Conectar nós"}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={run(() => useThemePanel.getState().toggle())}
+            className={ITEM}
+          >
+            <Palette size={16} /> Aparência (temas e cores)
           </button>
           <button type="button" role="menuitem" onClick={run(onOrganize)} className={ITEM}>
             <Wand2 size={16} /> Organizar automaticamente

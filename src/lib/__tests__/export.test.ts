@@ -126,3 +126,41 @@ describe("anotações dos nós", () => {
     expect(md).not.toMatch(/<b>|\]\(javascript:/);
   });
 });
+
+describe("temas no backup JSON", () => {
+  it("preserva tema do mapa e aparências válidas, descartando o resto", () => {
+    const map = createBlankMap(owner, "Tema");
+    const nodes = [
+      node("root", 0, { label: "Tema", isRoot: true, mapTheme: "neon" }),
+      node("a", 50, { appearance: { bg: "#fbcfe8", border: "rounded" } }),
+    ];
+    const edges: Edge[] = [
+      {
+        ...tree("root", "a"),
+        data: { kind: "tree", appearance: { color: "#ef4444", line: "wavy" } },
+      },
+    ];
+    const imported = parseImportedMap(toJson(map, nodes, edges));
+    expect(imported.nodes[0].data.mapTheme).toBe("neon");
+    expect(imported.nodes[1].data.appearance).toEqual({ bg: "#fbcfe8", border: "rounded" });
+    expect(imported.edges[0].data).toMatchObject({
+      appearance: { color: "#ef4444", line: "wavy" },
+    });
+
+    const evil = parseImportedMap(
+      toJson(
+        map,
+        [
+          node("root", 0, {
+            isRoot: true,
+            mapTheme: "hack" as never,
+            appearance: { bg: "expression(alert(1))" } as never,
+          }),
+        ],
+        [],
+      ),
+    );
+    expect(evil.nodes[0].data.mapTheme).toBeUndefined();
+    expect(evil.nodes[0].data.appearance).toBeUndefined();
+  });
+});

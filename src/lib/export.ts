@@ -2,6 +2,11 @@
 import { getRectOfNodes, getTransformForBounds, type Edge, type Node } from "reactflow";
 import type { MapMode, MindMap, MindNodeData, ViewportState } from "@/store/maps";
 import { sanitizeNodeUrl } from "@/lib/security";
+import {
+  isPresetId,
+  sanitizeEdgeAppearance,
+  sanitizeNodeAppearance,
+} from "@/features/editor/themes";
 
 export type ExportFormat = "png" | "svg" | "markdown" | "json";
 
@@ -222,6 +227,9 @@ const importNodeData = (data: Record<string, unknown>): MindNodeData => {
   if (data.isRoot === true) clean.isRoot = true;
   if (typeof data.checked === "boolean") clean.checked = data.checked;
   if (typeof data.url === "string") clean.url = sanitizeNodeUrl(data.url.slice(0, 2_000));
+  const appearance = sanitizeNodeAppearance(data.appearance);
+  if (appearance) clean.appearance = appearance;
+  if (clean.isRoot && isPresetId(data.mapTheme)) clean.mapTheme = data.mapTheme;
   if (typeof data.note === "string" && data.note.trim())
     clean.note = data.note.slice(0, MAX_NOTE_LENGTH);
   // Linked maps belong to the exporting account; the reference is never carried over.
@@ -232,7 +240,8 @@ const importEdgeData = (data: unknown) => {
   if (!isRecord(data)) return undefined;
   const kind = data.kind === "graph" ? "graph" : "tree";
   const treeSide = oneOf(TREE_SIDES, data.treeSide);
-  return treeSide ? { kind, treeSide } : { kind };
+  const appearance = sanitizeEdgeAppearance(data.appearance);
+  return { kind, ...(treeSide && { treeSide }), ...(appearance && { appearance }) };
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

@@ -27,6 +27,25 @@ const HANDLE_DEFINITIONS = [
   { side: "left", position: Position.Left },
 ] as const;
 
+const NODE_STYLE: React.CSSProperties = {
+  minWidth: 140,
+  maxWidth: 260,
+  background: "var(--mm-node-bg, var(--card))",
+  color: "var(--mm-node-text, var(--card-foreground))",
+  borderColor: "var(--mm-node-border-color, var(--node-border))",
+  borderStyle: "var(--mm-node-border-style, solid)" as React.CSSProperties["borderStyle"],
+  borderWidth: "var(--mm-node-border-width, 1px)",
+  borderRadius: "var(--mm-node-radius, 0.75rem)",
+  boxShadow: "var(--mm-node-shadow, var(--shadow-soft))",
+};
+
+const ROOT_STYLE: React.CSSProperties = {
+  ...NODE_STYLE,
+  background: "var(--mm-root-bg, var(--gradient-hero))",
+  color: "var(--mm-root-text, var(--primary-foreground))",
+  borderColor: "transparent",
+};
+
 type HandleSide = (typeof HANDLE_DEFINITIONS)[number]["side"];
 
 function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
@@ -94,14 +113,13 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
       <ContextMenuTrigger asChild>
         <div
           className={[
-            "group/node px-3 py-2 rounded-xl border transition select-none relative",
-            "shadow-[var(--shadow-soft)]",
-            data.isRoot
-              ? "bg-[image:var(--gradient-hero)] text-primary-foreground border-transparent font-semibold"
-              : "bg-card text-card-foreground border-[var(--node-border)] hover:border-primary/50",
+            "group/node px-3 py-2 transition select-none relative",
+            data.isRoot ? "font-semibold" : "hover:brightness-[0.98]",
             selected ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : "",
           ].join(" ")}
-          style={{ minWidth: 140, maxWidth: 260 }}
+          // Colors come from the map theme / node overrides as CSS variables set on the node
+          // wrapper (see features/editor/themes.ts); without a theme they fall back to the app's.
+          style={data.isRoot ? ROOT_STYLE : NODE_STYLE}
           onDoubleClick={(e) => {
             if (editing) return;
             e.stopPropagation();
@@ -162,9 +180,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
           )}
 
           <div className="flex items-center gap-2">
-            <span className={data.isRoot ? "opacity-90" : "text-muted-foreground"}>
-              {KIND_ICON[kind]}
-            </span>
+            <span className={data.isRoot ? "opacity-90" : "opacity-60"}>{KIND_ICON[kind]}</span>
 
             {kind === "checklist" && !data.isRoot && (
               <button
@@ -209,11 +225,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
                   className="bg-transparent outline-none w-full text-sm"
                 />
               ) : kind === "code" ? (
-                <code
-                  className={`text-xs font-mono break-all ${data.isRoot ? "" : "text-foreground"}`}
-                >
-                  {data.label}
-                </code>
+                <code className="text-xs font-mono break-all">{data.label}</code>
               ) : kind === "link" && safeUrl ? (
                 <a
                   href={resolvedUrl ?? undefined}
@@ -225,7 +237,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
                   {data.label}
                 </a>
               ) : kind === "link" ? (
-                <span className="text-sm break-words text-muted-foreground">Link inválido</span>
+                <span className="text-sm break-words opacity-60">Link inválido</span>
               ) : (
                 <span
                   className={`text-sm break-words ${kind === "checklist" && data.checked ? "line-through opacity-60" : ""}`}
