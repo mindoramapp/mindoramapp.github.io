@@ -202,6 +202,35 @@ function findAvailableChildPosition(
   return preferred;
 }
 
+/** Id of the node under the pointer, or of the closest one within a short distance of it. */
+function nodeNearPoint(x: number, y: number, excludeId: string, maxDistance = 40) {
+  let best: { id: string; distance: number } | null = null;
+  for (const element of document.querySelectorAll<HTMLElement>(".react-flow__node")) {
+    const id = element.dataset.id;
+    if (!id || id === excludeId) continue;
+    const rect = element.getBoundingClientRect();
+    const dx = Math.max(rect.left - x, 0, x - rect.right);
+    const dy = Math.max(rect.top - y, 0, y - rect.bottom);
+    const distance = Math.hypot(dx, dy);
+    if (distance <= maxDistance && (!best || distance < best.distance)) best = { id, distance };
+  }
+  return best?.id;
+}
+
+/** Side of `node` that faces `other`, for attaching a line between them. */
+function handleFacing(node: Node, other: Node): "left" | "right" | "top" | "bottom" {
+  const center = (n: Node) => ({
+    x: n.position.x + (n.width ?? 160) / 2,
+    y: n.position.y + (n.height ?? 44) / 2,
+  });
+  const a = center(node);
+  const b = center(other);
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? "right" : "left";
+  return dy >= 0 ? "bottom" : "top";
+}
+
 function getTreeHandleIds(spawnSide: "left" | "right" | "top" | "bottom") {
   if (spawnSide === "left") return { sourceHandle: "source-left", targetHandle: "target-right" };
   if (spawnSide === "top") return { sourceHandle: "source-top", targetHandle: "target-bottom" };
@@ -621,8 +650,18 @@ function EditorInner({
     else if (panel.tab !== "map") panel.setTab("map");
   }, [selectedId, selectedEdgeId]);
 
+  // Drag-to-connect: ReactFlow only connects when the pointer is released on (or near) a handle.
+  // We also accept a release anywhere on the other node and pick the handle facing the source.
+  const connectingFrom = useRef<{
+    nodeId: string;
+    handleId: string | null;
+    handleType: "source" | "target" | null;
+  } | null>(null);
+  const [connecting, setConnecting] = useState(false);
+
   const onConnect = useCallback(
     (params: Connection) => {
+      connectingFrom.current = null;
       if (!params.source || !params.target || params.source === params.target) return;
       const exists = edges.some(
         (edge) =>
@@ -643,6 +682,56 @@ function EditorInner({
       );
     },
     [edges, setEdges],
+  );
+
+  const onConnectStart = useCallback(
+    (
+      _: unknown,
+      params: { nodeId: string | null; handleId: string | null; handleType: string | null },
+    ) => {
+      connectingFrom.current = params.nodeId
+        ? {
+            nodeId: params.nodeId,
+            handleId: params.handleId,
+            handleType: params.handleType === "target" ? "target" : "source",
+          }
+        : null;
+      setConnecting(true);
+    },
+    [],
+  );
+
+  const onConnectEnd = useCallback(
+    (event: MouseEvent | TouchEvent) => {
+      setConnecting(false);
+      const from = connectingFrom.current;
+      connectingFrom.current = null;
+      if (!from) return; // ReactFlow already connected through a handle
+      const point = "changedTouches" in event ? event.changedTouches[0] : event;
+      if (!point) return;
+      const targetId = nodeNearPoint(point.clientX, point.clientY, from.nodeId);
+      if (!targetId || targetId === from.nodeId) return;
+      const fromNode = nodesRef.current.find((node) => node.id === from.nodeId);
+      const toNode = nodesRef.current.find((node) => node.id === targetId);
+      if (!fromNode || !toNode) return;
+      const facing = handleFacing(toNode, fromNode);
+      if (from.handleType === "target") {
+        onConnect({
+          source: targetId,
+          sourceHandle: `source-${facing}`,
+          target: from.nodeId,
+          targetHandle: from.handleId,
+        });
+      } else {
+        onConnect({
+          source: from.nodeId,
+          sourceHandle: from.handleId,
+          target: targetId,
+          targetHandle: `target-${facing}`,
+        });
+      }
+    },
+    [onConnect],
   );
 
   const addChild = useCallback(
@@ -1161,7 +1250,7 @@ function EditorInner({
   return (
     <div
       ref={canvasRef}
-      className={`relative h-full w-full ${connectMode ? "cursor-crosshair" : ""}`}
+      className={`relative h-full w-full ${connectMode ? "cursor-crosshair" : ""} ${connecting ? "mm-connecting" : ""}`}
       style={preset.canvas ? { background: preset.canvas } : undefined}
     >
       <ReactFlow
@@ -1204,6 +1293,10 @@ function EditorInner({
         onlyRenderVisibleElements={nodes.length > VISIBLE_ONLY_THRESHOLD}
         nodesConnectable
         connectOnClick={false}
+        onConnectStart={onConnectStart}
+        onConnectEnd={onConnectEnd}
+        // Snap to a handle from farther away than ReactFlow's default 20px.
+        connectionRadius={40}
       >
         <Background gap={24} size={1} color={preset.dots ?? "oklch(0.7 0.02 270 / 0.25)"} />
         <Controls

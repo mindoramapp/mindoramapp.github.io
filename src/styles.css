@@ -134,8 +134,9 @@ select optgroup {
 .mind-handle {
   /* Above the hover "+" buttons and their bridges: dragging from a handle must always connect. */
   z-index: 20;
-  width: 14px !important;
-  height: 14px !important;
+  /* Bigger than the dot so it's easy to grab. */
+  width: 20px !important;
+  height: 20px !important;
   border: 0 !important;
   background: transparent !important;
   transition: opacity 160ms ease;
@@ -144,28 +145,40 @@ select optgroup {
   content: "";
   position: absolute;
   inset: 50%;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   transform: translate(-50%, -50%);
   border-radius: 9999px;
   background: var(--primary);
 }
+/* While dragging a new line: every handle shows, the "+" buttons step aside and the node under
+   the pointer is highlighted, since dropping anywhere on it connects. */
+.mm-connecting .mind-handle {
+  opacity: 1 !important;
+}
+.mm-connecting .react-flow__node button[aria-label^="Criar balão filho"] {
+  display: none;
+}
+.mm-connecting .react-flow__node:hover > div {
+  outline: 2px dashed var(--primary);
+  outline-offset: 4px;
+}
 .mind-handle-left {
-  left: -10px !important;
+  left: -13px !important;
   transform: translateY(-50%);
 }
 .mind-handle-right {
-  right: -10px !important;
+  right: -13px !important;
   left: auto !important;
   transform: translateY(-50%);
 }
 .mind-handle-top {
-  top: -10px !important;
+  top: -13px !important;
   transform: translateX(-50%);
 }
 .mind-handle-bottom {
   top: auto !important;
-  bottom: -10px !important;
+  bottom: -13px !important;
   transform: translateX(-50%);
 }
 .react-flow__attribution {
