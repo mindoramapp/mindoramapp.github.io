@@ -59,28 +59,28 @@ const PLUS_BUTTONS: {
     side: "right",
     label: "à direita",
     className:
-      "-right-9 top-1/2 -translate-y-1/2 before:-left-4 before:top-1/2 before:h-8 before:w-4 before:-translate-y-1/2",
+      "-right-9 top-1/2 -translate-y-1/2 before:-left-2 before:top-1/2 before:h-8 before:w-2 before:-translate-y-1/2",
     touchClassName: "pointer-coarse:-right-12",
   },
   {
     side: "left",
     label: "à esquerda",
     className:
-      "-left-9 top-1/2 -translate-y-1/2 before:-right-4 before:top-1/2 before:h-8 before:w-4 before:-translate-y-1/2",
+      "-left-9 top-1/2 -translate-y-1/2 before:-right-2 before:top-1/2 before:h-8 before:w-2 before:-translate-y-1/2",
     touchClassName: "pointer-coarse:-left-12",
   },
   {
     side: "top",
     label: "acima",
     className:
-      "-top-9 left-1/2 -translate-x-1/2 before:-bottom-4 before:left-1/2 before:h-4 before:w-8 before:-translate-x-1/2",
+      "-top-9 left-1/2 -translate-x-1/2 before:-bottom-2 before:left-1/2 before:h-2 before:w-8 before:-translate-x-1/2",
     touchClassName: "pointer-coarse:-top-14",
   },
   {
     side: "bottom",
     label: "abaixo",
     className:
-      "-bottom-9 left-1/2 -translate-x-1/2 before:-top-4 before:left-1/2 before:h-4 before:w-8 before:-translate-x-1/2",
+      "-bottom-9 left-1/2 -translate-x-1/2 before:-top-2 before:left-1/2 before:h-2 before:w-8 before:-translate-x-1/2",
     touchClassName: "pointer-coarse:-bottom-14",
   },
 ];
@@ -224,7 +224,8 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
                   // nodrag/nopan: clicking the button must not start a node drag or a canvas pan.
                   "nodrag nopan absolute z-10 grid h-6 w-6 place-items-center rounded-full",
                   "bg-primary text-primary-foreground shadow-md transition-opacity duration-150",
-                  // Invisible bridge over the gap, so moving from the node to the button keeps the hover.
+                  // Invisible bridge over the gap between the connection handle and the button, so moving
+                  // from the node to the button keeps the hover. It must not cover the handle itself.
                   "before:absolute before:content-[''] pointer-coarse:before:hidden",
                   button.className,
                   "opacity-0 group-hover/node:opacity-100 focus-visible:opacity-100",

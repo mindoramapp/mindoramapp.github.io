@@ -49,9 +49,42 @@ describe("layoutTree", () => {
   const result = layoutTree(nodes, edges);
   const at = (id: string) => result.nodes.find((n) => n.id === id)!.position;
 
-  it("places children created from the top/bottom handles too (they used to be left behind)", () => {
-    expect(at("aspectos").x).toBeGreaterThan(at("calculo").x);
-    expect(at("n2").x).toBeGreaterThan(at("calculo").x);
+  it("keeps children created from the top/bottom '+' above/below their parent", () => {
+    expect(at("aspectos").x).toBe(at("calculo").x);
+    expect(at("aspectos").y).toBeLessThan(at("calculo").y);
+    expect(at("n2").x).toBe(at("calculo").x);
+    expect(at("n2").y).toBeGreaterThan(at("calculo").y);
+    expect(at("n1").x).toBeGreaterThan(at("calculo").x);
+  });
+
+  it("stacks several top children outward, the first one closest to the parent", () => {
+    const r = layoutTree(
+      [node("p"), node("t1"), node("t2"), node("b1"), node("b2")],
+      [
+        edge("p", "t1", "top"),
+        edge("p", "t2", "top"),
+        edge("p", "b1", "bottom"),
+        edge("p", "b2", "bottom"),
+      ],
+    );
+    const y = (id: string) => r.nodes.find((n) => n.id === id)!.position.y;
+    expect(y("t2")).toBeLessThan(y("t1"));
+    expect(y("t1")).toBeLessThan(y("p"));
+    expect(y("p")).toBeLessThan(y("b1"));
+    expect(y("b1")).toBeLessThan(y("b2"));
+  });
+
+  it("does the same on the other axis in vertical maps", () => {
+    const r = layoutTree(
+      [node("p"), node("l"), node("rr"), node("d")],
+      [edge("p", "l", "left"), edge("p", "rr", "right"), edge("p", "d", "bottom")],
+      "vertical",
+    );
+    const pos = (id: string) => r.nodes.find((n) => n.id === id)!.position;
+    expect(pos("l").x).toBeLessThan(pos("p").x);
+    expect(pos("rr").x).toBeGreaterThan(pos("p").x);
+    expect(pos("l").y).toBe(pos("p").y);
+    expect(pos("d").y).toBeGreaterThan(pos("p").y);
   });
 
   it("never overlaps two nodes", () => {
@@ -61,19 +94,21 @@ describe("layoutTree", () => {
   });
 
   it("aligns siblings in the same column and keeps parents centered on their children", () => {
-    expect(new Set([at("aspectos").x, at("n1").x, at("n2").x]).size).toBe(1);
+    expect(new Set([at("aspectos").x, at("calculo").x, at("n2").x]).size).toBe(1);
     expect(new Set([at("limite").x, at("rh").x, at("n3").x]).size).toBe(1);
     const kids = [at("n4").y, at("n5").y];
     expect(at("rh").y).toBeCloseTo((kids[0] + kids[1]) / 2);
   });
 
   it("re-attaches every tree line to the handles facing its child", () => {
+    const expected: Record<string, string[]> = {
+      "calculo-aspectos": ["source-top", "target-bottom", "top"],
+      "calculo-n2": ["source-bottom", "target-top", "bottom"],
+    };
     for (const e of result.edges.filter((e) => e.data?.kind !== "graph")) {
-      expect([e.sourceHandle, e.targetHandle, e.data.treeSide], e.id).toEqual([
-        "source-right",
-        "target-left",
-        "right",
-      ]);
+      expect([e.sourceHandle, e.targetHandle, e.data.treeSide], e.id).toEqual(
+        expected[e.id] ?? ["source-right", "target-left", "right"],
+      );
     }
   });
 
