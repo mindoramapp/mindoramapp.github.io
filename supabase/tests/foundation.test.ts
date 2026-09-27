@@ -119,21 +119,21 @@ describe("authorization", () => {
       await t.db.query<{ id: string }>("select id from plans where is_active order by sort_order")
     ).rows;
     await t.db.exec("reset role;");
-    expect(plans.map((plan) => plan.id)).toEqual(["free", "plus", "pro"]);
+    expect(plans.map((plan) => plan.id)).toEqual(["free", "plus", "plus_semester", "pro"]);
   });
 });
 
 describe("plan limits", () => {
-  it("allows 3 active maps on FREE and blocks the 4th with a PLAN_LIMIT error", async () => {
+  it("allows 5 active maps on FREE and blocks the 6th with a PLAN_LIMIT error", async () => {
     const user = await t.createUser();
-    for (let i = 0; i < 3; i++) await t.createMap(user.id);
+    for (let i = 0; i < 5; i++) await t.createMap(user.id);
     expect(await errorOf(t.createMap(user.id))).toBe("PLAN_LIMIT:max_maps");
   });
 
   it("does not count maps in the trash, but checks the limit when restoring", async () => {
     const user = await t.createUser();
     const trashed = await t.createMap(user.id, 1, { deleted: true });
-    for (let i = 0; i < 3; i++) await t.createMap(user.id);
+    for (let i = 0; i < 5; i++) await t.createMap(user.id);
 
     const message = await errorOf(
       t.as(user.id, "update mind_maps set deleted_at = null where id = $1", [trashed]),
@@ -143,11 +143,8 @@ describe("plan limits", () => {
 
   it("keeps full-row upserts of existing maps working at the limit (current production client)", async () => {
     const user = await t.createUser();
-    const ids = [
-      await t.createMap(user.id),
-      await t.createMap(user.id),
-      await t.createMap(user.id),
-    ];
+    const ids = [];
+    for (let i = 0; i < 5; i++) ids.push(await t.createMap(user.id));
     const rows = await t.as<{ version: number }>(
       user.id,
       `insert into mind_maps (id, owner_id, owner_email, title, mode, nodes, edges)
@@ -160,19 +157,19 @@ describe("plan limits", () => {
   });
 
   it("limits nodes per map, but lets over-limit maps be edited after a downgrade", async () => {
-    expect(await errorOf(t.createMap((await t.createUser()).id, 51))).toBe(
+    expect(await errorOf(t.createMap((await t.createUser()).id, 101))).toBe(
       "PLAN_LIMIT:max_nodes_per_map",
     );
 
-    // Built on Gold, then the subscription expired (back to FREE, 50 nodes).
+    // Built on Gold, then the subscription expired (back to FREE, 100 nodes).
     const user = await t.createUser({ plan: "gold" });
-    const mapId = await t.createMap(user.id, 80);
+    const mapId = await t.createMap(user.id, 130);
     await t.admin("update subscriptions set status = 'expired' where user_id = $1", [user.id]);
 
-    await t.as(user.id, "update mind_maps set nodes = $2 where id = $1", [mapId, nodesJson(70)]);
+    await t.as(user.id, "update mind_maps set nodes = $2 where id = $1", [mapId, nodesJson(120)]);
     expect(
       await errorOf(
-        t.as(user.id, "update mind_maps set nodes = $2 where id = $1", [mapId, nodesJson(71)]),
+        t.as(user.id, "update mind_maps set nodes = $2 where id = $1", [mapId, nodesJson(121)]),
       ),
     ).toBe("PLAN_LIMIT:max_nodes_per_map");
   });
@@ -185,6 +182,7 @@ describe("plan limits", () => {
         "insert into mind_folders (owner_id, owner_email, name) values ($1, 'x', 'Pasta')",
         [user.id],
       );
+    await insertFolder();
     await insertFolder();
     expect(await errorOf(insertFolder())).toBe("PLAN_LIMIT:max_folders");
   });

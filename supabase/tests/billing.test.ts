@@ -28,14 +28,28 @@ const daysBetween = (a: string, b: string) =>
   (new Date(b).getTime() - new Date(a).getTime()) / 86_400_000;
 
 describe("offer", () => {
-  it("sells Free, Plus (R$ 14,90) and Pro (R$ 24,90)", async () => {
-    const plans = await t.admin<{ id: string; price_cents: number; limits: { max_maps: number } }>(
-      "select id, price_cents, limits from plans where is_active order by sort_order",
+  it("sells Free, Estudante (R$ 9,90/month or R$ 49,90/semester) and Pro (R$ 19,90)", async () => {
+    const plans = await t.admin<{
+      id: string;
+      price_cents: number;
+      billing_period_days: number;
+      limits: { max_maps: number | null; max_review_maps: number | null };
+    }>(
+      "select id, price_cents, billing_period_days, limits from plans where is_active order by sort_order",
     );
-    expect(plans.map((p) => [p.id, p.price_cents, p.limits.max_maps])).toEqual([
-      ["free", 0, 3],
-      ["plus", 1490, 15],
-      ["pro", 2490, 100],
+    expect(
+      plans.map((p) => [
+        p.id,
+        p.price_cents,
+        p.billing_period_days,
+        p.limits.max_maps,
+        p.limits.max_review_maps,
+      ]),
+    ).toEqual([
+      ["free", 0, 30, 5, 1],
+      ["plus", 990, 30, 30, null],
+      ["plus_semester", 4990, 183, 30, null],
+      ["pro", 1990, 30, null, null],
     ]);
   });
 });
@@ -44,7 +58,7 @@ describe("PIX orders", () => {
   it("takes the amount from the plan and gives a short unique code", async () => {
     const user = await t.createUser();
     const order = await request(user.id, "plus");
-    expect(order.amount_cents).toBe(1490);
+    expect(order.amount_cents).toBe(990);
     expect(order.status).toBe("pending");
     expect(order.code).toMatch(/^MND-[A-HJ-NP-Z2-9]{6}$/);
   });
@@ -58,7 +72,7 @@ describe("PIX orders", () => {
       [true, "canceled"],
       [false, "pending"],
     ]);
-    expect(second.amount_cents).toBe(2490);
+    expect(second.amount_cents).toBe(1990);
   });
 
   it("refuses the free plan, retired plans and unknown plans", async () => {
@@ -147,6 +161,33 @@ describe("admin confirmation and the 30-day period", () => {
     expect(daysBetween(first.period_start!, renewal.period_end!)).toBeCloseTo(60);
   });
 
+  it("gives six months for the semester plan", async () => {
+    const admin = await t.createUser({ role: "superadmin" });
+    const user = await t.createUser();
+    const done = await confirm(admin.id, (await request(user.id, "plus_semester")).id);
+    expect(done.status).toBe("confirmed");
+    expect(daysBetween(done.period_start!, done.period_end!)).toBeCloseTo(183);
+    expect(await planOf(user.id)).toBe("plus_semester");
+  });
+
+  it("keeps the days already paid when switching between monthly and semester Estudante", async () => {
+    const admin = await t.createUser({ role: "superadmin" });
+    const user = await t.createUser();
+    const monthly = await confirm(admin.id, (await request(user.id, "plus")).id);
+    const semester = await confirm(admin.id, (await request(user.id, "plus_semester")).id);
+    expect(semester.period_start).toEqual(monthly.period_end);
+    expect(daysBetween(monthly.period_start!, semester.period_end!)).toBeCloseTo(213);
+  });
+
+  it("starts an upgrade to a different plan now", async () => {
+    const admin = await t.createUser({ role: "superadmin" });
+    const user = await t.createUser();
+    const monthly = await confirm(admin.id, (await request(user.id, "plus")).id);
+    const pro = await confirm(admin.id, (await request(user.id, "pro")).id);
+    expect(pro.period_start).not.toEqual(monthly.period_end);
+    expect(daysBetween(pro.period_start!, pro.period_end!)).toBeCloseTo(30);
+  });
+
   it("goes back to Free when the period ends, keeping every map", async () => {
     const admin = await t.createUser({ role: "superadmin" });
     const user = await t.createUser();
@@ -204,7 +245,7 @@ describe("admin confirmation and the 30-day period", () => {
       days_elapsed: 21,
       days_remaining: 9,
       payments_count: 1,
-      total_paid_cents: 1490,
+      total_paid_cents: 990,
     });
     expect((row.pending_request as { status: string }).status).toBe("pending");
     expect(await errorOf(t.as(user.id, "select * from admin_billing_overview()"))).toBe(

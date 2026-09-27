@@ -11,7 +11,7 @@ as decisões de arquitetura e a ordem de implementação.
 | Acesso               | **Continua por convite.** Cadastro exige código do admin; quem é liberado entra no FREE. |
 | Armazenamento de nós | **JSONB no mapa**, com `version` para controle de concorrência.                          |
 | Gateway de pagamento | **Pix manual por enquanto:** QR/copia e cola para a chave do dono, confirmação no admin. |
-| Planos               | **Free / Plus (R$ 14,90) / Pro (R$ 24,90)**, 30 dias por pagamento, aviso 10 dias antes. |
+| Planos               | **Free / Estudante (R$ 9,90/mês ou R$ 49,90/semestre) / Pro (R$ 19,90)**, 30 ou 183 dias por pagamento, aviso 10 dias antes. Free revisa 1 mapa. |
 | Backend              | **Supabase** (Postgres + RLS + funções; Edge Functions para pagamentos e IA).            |
 
 ## Posicionamento e diferenciais

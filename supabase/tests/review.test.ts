@@ -89,3 +89,40 @@ describe("review_cards", () => {
     expect(await t.admin("select * from review_cards where map_id = $1", [mapId])).toHaveLength(0);
   });
 });
+
+describe("review limit per plan", () => {
+  const canReview = async (userId: string, mapId: string) =>
+    (await t.as<{ ok: boolean }>(userId, "select can_review_map($1) as ok", [mapId]))[0].ok;
+
+  it("lets Free review one map and blocks a second one", async () => {
+    const user = await t.createUser();
+    const first = await t.createMap(user.id);
+    const second = await t.createMap(user.id);
+
+    expect(await canReview(user.id, second)).toBe(true); // nothing reviewed yet
+    await upsertCard(user.id, first);
+    await upsertCard(user.id, first, "other"); // more cards on the same map are fine
+    expect(await canReview(user.id, first)).toBe(true);
+    expect(await canReview(user.id, second)).toBe(false);
+    expect(await errorOf(upsertCard(user.id, second))).toMatch(/row-level security/);
+  });
+
+  it("reviews every map on a paid plan", async () => {
+    const user = await t.createUser({ plan: "plus" });
+    for (let i = 0; i < 3; i++) await upsertCard(user.id, await t.createMap(user.id));
+    expect(await t.as(user.id, "select distinct map_id from review_cards")).toHaveLength(3);
+  });
+
+  it("keeps maps already under review after a downgrade, without progress loss", async () => {
+    const user = await t.createUser({ plan: "plus" });
+    const maps = [await t.createMap(user.id), await t.createMap(user.id)];
+    for (const mapId of maps) await upsertCard(user.id, mapId);
+    await t.admin("update subscriptions set status = 'expired' where user_id = $1", [user.id]);
+
+    for (const mapId of maps) {
+      expect(await canReview(user.id, mapId)).toBe(true);
+      await upsertCard(user.id, mapId, "root", 5);
+    }
+    expect(await canReview(user.id, await t.createMap(user.id))).toBe(false);
+  });
+});

@@ -22,6 +22,17 @@ const fromRow = (row: ReviewCardRow): ReviewState => ({
   lastReviewedAt: row.last_reviewed_at,
 });
 
+/**
+ * Whether this map can be reviewed on the user's plan (Free reviews a single map; maps already
+ * under review stay available). The database enforces the same rule on every save.
+ */
+export const canReviewMap = async (mapId: string): Promise<boolean> => {
+  if (!supabase) return true;
+  const { data, error } = await supabase.rpc("can_review_map", { p_map_id: mapId });
+  if (error) throw error;
+  return data === true;
+};
+
 export const loadReviewStates = async (mapId: string): Promise<Map<string, ReviewState>> => {
   if (!supabase) return new Map();
   const { data, error } = await supabase

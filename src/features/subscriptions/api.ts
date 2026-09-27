@@ -12,7 +12,7 @@ export const fetchPlans = async (): Promise<Plan[]> => {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("plans")
-    .select("id, name, price_cents, currency, sort_order, limits")
+    .select("id, name, price_cents, currency, sort_order, billing_period_days, limits")
     .eq("is_active", true)
     .order("sort_order");
   if (error) throw error;

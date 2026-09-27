@@ -24,6 +24,20 @@ export const daysUntil = (iso: string, now = new Date()) =>
 /** The period is ending: warn this many days before. */
 export const RENEWAL_WARNING_DAYS = 10;
 
+// Names for places that only have a plan id (e.g. an order, or a plan that already ended). The
+// `plans` table is the source of truth; keep these in step with it.
+const PLAN_LABELS: Record<string, string> = {
+  free: "Free",
+  plus: "Estudante",
+  plus_semester: "Estudante semestral",
+  pro: "Pro",
+};
+export const planLabel = (planId: string) => PLAN_LABELS[planId] ?? planId;
+
+/** How long one payment of the plan lasts, in words. */
+export const planPeriodLabel = (planId: string) =>
+  planId === "plus_semester" ? "6 meses" : "30 dias";
+
 export type RenewalState =
   | { kind: "none" }
   | { kind: "ending"; daysLeft: number; endsAt: string; planId: string }

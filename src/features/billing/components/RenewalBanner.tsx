@@ -4,10 +4,9 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { CalendarClock, X } from "lucide-react";
 import { useEntitlements } from "@/features/subscriptions";
-import { formatDate, renewalState } from "../format";
+import { formatDate, planLabel, renewalState } from "../format";
 
 const DISMISS_KEY = "mindora-renewal-dismissed";
-const PLAN_NAMES: Record<string, string> = { plus: "Plus", pro: "Pro" };
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -24,7 +23,7 @@ export function RenewalBanner() {
   const state = renewalState(subscription);
   if (state.kind === "none" || dismissed) return null;
 
-  const planName = PLAN_NAMES[state.planId] ?? state.planId;
+  const planName = planLabel(state.planId);
   const dismiss = () => {
     setDismissed(true);
     try {

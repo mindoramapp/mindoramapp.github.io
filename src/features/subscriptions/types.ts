@@ -2,7 +2,7 @@
 // The database is the source of truth; nothing here hardcodes prices or limits.
 
 // "bronze" | "silver" | "gold" were the first draft of the offer; kept for old references.
-export type PlanId = "free" | "plus" | "pro" | "bronze" | "silver" | "gold";
+export type PlanId = "free" | "plus" | "plus_semester" | "pro" | "bronze" | "silver" | "gold";
 export type ExportFormat = "png" | "pdf" | "svg";
 export type SharePermission = "view" | "comment" | "edit";
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "canceled" | "expired";
@@ -12,6 +12,8 @@ export interface PlanLimits {
   max_maps: number | null;
   max_nodes_per_map: number | null;
   max_folders: number | null;
+  /** Maps that can be in review mode at once; missing on retired plans (= unlimited). */
+  max_review_maps?: number | null;
   ai_credits_monthly: number;
   export_formats: ExportFormat[];
   watermark: boolean;
@@ -30,6 +32,8 @@ export interface Plan {
   price_cents: number;
   currency: string;
   sort_order: number;
+  /** Days one payment covers: 30 (monthly) or 183 (semester). */
+  billing_period_days: number;
   limits: PlanLimits;
 }
 

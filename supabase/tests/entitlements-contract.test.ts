@@ -16,6 +16,7 @@ import { createTestDb, type TestDb } from "./harness";
 
 const EXPECTED_KEYS: (keyof PlanLimits)[] = [
   "max_maps",
+  "max_review_maps",
   "max_nodes_per_map",
   "max_folders",
   "ai_credits_monthly",
@@ -48,22 +49,23 @@ describe("plans seeded by the migrations", () => {
   it("match the commercial offer", () => {
     expect(plans.map((p) => [p.id, formatPrice(p).replace(/\u00a0/g, " ")])).toEqual([
       ["free", "Grátis"],
-      ["plus", "R$ 14,90"],
-      ["pro", "R$ 24,90"],
+      ["plus", "R$ 9,90"],
+      ["plus_semester", "R$ 49,90"],
+      ["pro", "R$ 19,90"],
     ]);
   });
 
-  it("point upgrade prompts to the cheapest plan offering each feature", () => {
-    expect(cheapestPlanWith(plans, "export_pdf")?.id).toBe("plus");
-    expect(cheapestPlanWith(plans, "export_svg")?.id).toBe("pro");
-    expect(cheapestPlanWith(plans, "no_watermark")?.id).toBe("plus");
-    expect(cheapestPlanWith(plans, "share_view")?.id).toBe("plus");
-    expect(cheapestPlanWith(plans, "share_edit")?.id).toBe("pro");
-    expect(cheapestPlanWith(plans, "ai")?.id).toBe("pro");
-    expect(cheapestPlanAbove(plans, "max_maps", 4)?.id).toBe("plus");
-    expect(cheapestPlanAbove(plans, "max_maps", 16)?.id).toBe("pro");
-    expect(cheapestPlanAbove(plans, "max_maps", 101)).toBeUndefined();
-    expect(cheapestPlanAbove(plans, "max_nodes_per_map", 200)?.id).toBe("pro");
+  it("only sell what the app really does (no AI, sharing or collaboration yet)", () => {
+    for (const feature of ["ai", "share_view", "share_edit", "collaboration"] as const)
+      expect(cheapestPlanWith(plans, feature), feature).toBeUndefined();
+  });
+
+  it("point upgrade prompts to the cheapest plan above each limit", () => {
+    expect(cheapestPlanAbove(plans, "max_maps", 6)?.id).toBe("plus");
+    expect(cheapestPlanAbove(plans, "max_maps", 31)?.id).toBe("pro");
+    expect(cheapestPlanAbove(plans, "max_maps", 10_000)?.id).toBe("pro");
+    expect(cheapestPlanAbove(plans, "max_nodes_per_map", 301)?.id).toBe("pro");
+    expect(cheapestPlanAbove(plans, "max_nodes_per_map", 1001)).toBeUndefined();
   });
 });
 
@@ -75,9 +77,8 @@ describe("entitlements served to the client", () => {
     const [{ e }] = await t.as<{ e: Entitlements }>(user.id, "select get_my_entitlements() as e");
 
     expect(can(e, "export_png")).toBe(true);
-    expect(can(e, "export_pdf")).toBe(false);
-    expect(can(e, "no_watermark")).toBe(false);
-    expect(usageOf(e, "max_maps")).toEqual({ used: 2, limit: 3, ratio: 2 / 3, reached: false });
+    expect(e.limits.max_review_maps).toBe(1);
+    expect(usageOf(e, "max_maps")).toEqual({ used: 2, limit: 5, ratio: 2 / 5, reached: false });
   });
 
   it("unlock everything for superadmins", async () => {

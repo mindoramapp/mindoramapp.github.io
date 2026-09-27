@@ -20,7 +20,14 @@ import {
   rejectPix,
   saveBillingSettings,
 } from "../api";
-import { formatDate, formatDateTime, formatMoney, RENEWAL_WARNING_DAYS } from "../format";
+import {
+  formatDate,
+  formatDateTime,
+  formatMoney,
+  planLabel,
+  planPeriodLabel,
+  RENEWAL_WARNING_DAYS,
+} from "../format";
 import type { BillingOverviewRow, BillingSettings } from "../types";
 
 type Filter = "pending" | "ending" | "active" | "expired" | "all";
@@ -376,8 +383,7 @@ export function AdminBilling() {
                           {request.code} <Copy size={11} />
                         </button>
                         <p>
-                          {request.plan_id === "pro" ? "Pro" : "Plus"} ·{" "}
-                          {formatMoney(request.amount_cents)}
+                          {planLabel(request.plan_id)} · {formatMoney(request.amount_cents)}
                         </p>
                         <p className="text-muted-foreground">
                           Criado: {formatDateTime(request.created_at)}
@@ -445,7 +451,7 @@ export function AdminBilling() {
                 </DialogTitle>
                 <DialogDescription>
                   {action.kind === "confirm" && action.row.pending_request
-                    ? `Confirme só se o Pix de ${formatMoney(action.row.pending_request.amount_cents)} (${action.row.pending_request.code}) já está na sua conta. ${action.row.display_name} recebe 30 dias de plano.`
+                    ? `Confirme só se o Pix de ${formatMoney(action.row.pending_request.amount_cents)} (${action.row.pending_request.code}) já está na sua conta. ${action.row.display_name} recebe ${planPeriodLabel(action.row.pending_request.plan_id)} de ${planLabel(action.row.pending_request.plan_id)}.`
                     : action.kind === "reject"
                       ? `O pedido de ${action.row.display_name} será recusado e a pessoa verá o motivo abaixo.`
                       : `${action.row.display_name} volta ao Free agora. Os mapas continuam salvos.`}

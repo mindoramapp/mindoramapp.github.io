@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Check, Clock3, Crown, Sparkles, X } from "lucide-react";
+import { Check, Clock3, Crown, GraduationCap, Sparkles, X } from "lucide-react";
 import { Header } from "@/components/Header";
 import { useRequireAppAccess } from "@/features/auth/useRequireAppAccess";
 import {
@@ -29,26 +29,55 @@ const ORDER_ERRORS: Record<string, string> = {
   PLAN_NOT_AVAILABLE: "Este plano não está disponível no momento.",
 };
 
+// Only what the app really does today; nothing here is a promise of a future feature.
 function features(plan: Plan): { text: string; included: boolean }[] {
   const l = plan.limits;
   const count = (value: number | null, one: string, many: string) =>
-    value === null ? `${many} ilimitados` : `${value} ${value === 1 ? one : many}`;
+    value === null
+      ? `${many[0].toUpperCase()}${many.slice(1)} ilimitados`
+      : `${value} ${value === 1 ? one : many}`;
+  const reviewMaps = l.max_review_maps ?? null;
   return [
+    {
+      text:
+        reviewMaps === null
+          ? "Revisão com cartões em todos os mapas"
+          : `Revisão com cartões em ${reviewMaps} ${reviewMaps === 1 ? "mapa" : "mapas"}`,
+      included: true,
+    },
     { text: count(l.max_maps, "mapa", "mapas"), included: true },
     {
       text:
-        l.max_nodes_per_map === null ? "Nós ilimitados" : `Até ${l.max_nodes_per_map} nós por mapa`,
+        l.max_nodes_per_map === null
+          ? "Balões ilimitados"
+          : `Até ${l.max_nodes_per_map} balões por mapa`,
       included: true,
     },
-    { text: count(l.max_folders, "pasta", "pastas"), included: true },
-    { text: "Modo revisão com cartões", included: true },
-    { text: "Exportação sem marca d'água", included: !l.watermark },
-    { text: "Exportação em PDF", included: l.export_formats.includes("pdf") },
     {
-      text: "SVG e alta resolução",
-      included: l.export_formats.includes("svg") && l.high_res_export,
+      text: count(l.max_folders, "pasta", "pastas").replace("ilimitados", "ilimitadas"),
+      included: true,
     },
+    { text: "Temas, cores e exportação (PNG, SVG, Markdown, JSON)", included: true },
   ];
+}
+
+const isSemester = (plan: Plan) => plan.billing_period_days >= 180;
+const periodLabel = (plan: Plan) => (isSemester(plan) ? "/semestre" : "/mês");
+const renewLabel = (plan: Plan) => (isSemester(plan) ? "Renovar (+6 meses)" : "Renovar (+30 dias)");
+
+/** "equivale a R$ 8,32/mês · economize 16%" for a semester plan with a monthly twin. */
+function semesterNote(plan: Plan, plans: Plan[]) {
+  if (!isSemester(plan)) return null;
+  const months = plan.billing_period_days / 30.5;
+  const perMonth = Math.round(plan.price_cents / months);
+  const twin = plans.find(
+    (other) =>
+      other.id !== plan.id &&
+      !isSemester(other) &&
+      JSON.stringify(other.limits) === JSON.stringify(plan.limits),
+  );
+  const saving = twin ? Math.round((1 - plan.price_cents / (twin.price_cents * 6)) * 100) : 0;
+  return `equivale a ${formatMoney(perMonth)}/mês${saving > 0 ? ` · economize ${saving}%` : ""}`;
 }
 
 function PlansPage() {
@@ -127,12 +156,24 @@ function PlansPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Escolha seu plano</h2>
           <p className="mt-1 text-muted-foreground">
-            Pagamento mensal via Pix, sem cartão e sem renovação automática. Avisamos 10 dias antes
-            do fim.
+            Pagamento via Pix, por mês ou por semestre, sem cartão e sem renovação automática.
+            Avisamos 10 dias antes do fim.
           </p>
         </div>
 
         <RenewalBanner />
+
+        <div className="flex items-start gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-sm">
+          <GraduationCap size={20} className="mt-0.5 shrink-0 text-primary" />
+          <p>
+            <span className="font-medium">Feito para estudar.</span>{" "}
+            <span className="text-muted-foreground">
+              A revisão com cartões transforma cada ramo do mapa em um cartão e mostra de novo no
+              dia certo, para você não esquecer antes da prova. No Free ela vale para 1 mapa; nos
+              planos pagos, para todos.
+            </span>
+          </p>
+        </div>
 
         <section className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-border bg-card p-4">
@@ -183,11 +224,12 @@ function PlansPage() {
           ) : null}
         </section>
 
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan) => {
             const isCurrent = (billing?.plan_id ?? "free") === plan.id;
             const isPaid = plan.price_cents > 0;
-            const highlight = plan.id === "pro";
+            const highlight = isSemester(plan);
+            const note = semesterNote(plan, plans);
             const label = !isPaid
               ? isCurrent
                 ? "Seu plano atual"
@@ -195,7 +237,7 @@ function PlansPage() {
               : pending?.plan_id === plan.id
                 ? "Ver pagamento"
                 : isCurrent
-                  ? "Renovar (+30 dias)"
+                  ? renewLabel(plan)
                   : activeSubscription
                     ? `Mudar para ${plan.name}`
                     : `Assinar ${plan.name}`;
@@ -208,11 +250,11 @@ function PlansPage() {
               >
                 {highlight && (
                   <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                    <Crown size={12} /> Mais completo
+                    <Crown size={12} /> Melhor custo
                   </span>
                 )}
                 <h3 className="flex items-center gap-2 text-lg font-semibold">
-                  {plan.id === "plus" && <Sparkles size={16} className="text-primary" />}
+                  {plan.id.startsWith("plus") && <Sparkles size={16} className="text-primary" />}
                   {plan.name}
                   {isCurrent && (
                     <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
@@ -224,8 +266,11 @@ function PlansPage() {
                   <span className="text-3xl font-bold">
                     {isPaid ? formatMoney(plan.price_cents) : "Grátis"}
                   </span>
-                  {isPaid && <span className="text-sm text-muted-foreground"> /mês</span>}
+                  {isPaid && (
+                    <span className="text-sm text-muted-foreground"> {periodLabel(plan)}</span>
+                  )}
                 </p>
+                {note && <p className="mt-1 text-xs font-medium text-primary">{note}</p>}
                 <ul className="mt-5 flex-1 space-y-2 text-sm">
                   {features(plan).map((feature) => (
                     <li

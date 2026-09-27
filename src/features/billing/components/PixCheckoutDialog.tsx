@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { reportActionError } from "@/lib/feedback";
 import { cancelPixRequest, reportPixPaid } from "../api";
-import { formatDateTime, formatMoney } from "../format";
+import { formatDateTime, formatMoney, planPeriodLabel } from "../format";
 import { buildPixPayload } from "../pix";
 import type { BillingSettings, PaymentRequest } from "../types";
 
@@ -104,7 +104,8 @@ export function PixCheckoutDialog({ request, planName, settings, onClose, onChan
         <DialogHeader>
           <DialogTitle>Pagar {planName} com Pix</DialogTitle>
           <DialogDescription>
-            {formatMoney(request.amount_cents)} · válido por 30 dias a partir da confirmação
+            {formatMoney(request.amount_cents)} · válido por {planPeriodLabel(request.plan_id)} a
+            partir da confirmação
           </DialogDescription>
         </DialogHeader>
 
