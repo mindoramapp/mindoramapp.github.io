@@ -37,6 +37,7 @@ import {
 import { MindNode } from "./MindNode";
 import { FloatingPanel, PanelDockItem, type PanelPosition } from "./FloatingPanel";
 import { useEditorPanels } from "@/features/editor/panelsStore";
+import { clearDraft, writeDraft } from "@/features/editor/draftBackup";
 import {
   defaultPanelLayout,
   loadPanelLayout,
@@ -77,6 +78,7 @@ import {
 const nodeTypes = { mind: MindNode };
 
 const VISIBLE_ONLY_THRESHOLD = 150;
+const AUTOSAVE_DELAY = 500;
 const EDGE_TYPES = { wavy: WavyEdge };
 
 /**
@@ -348,23 +350,50 @@ function EditorInner({
   // Warn once per failure streak, not on every retry.
   const saveFailureNotified = useRef(false);
 
+  // Autosave: each change goes to this device right away (draft) and to the server 500ms after
+  // the last change. Leaving the editor, closing the tab or hiding it flushes the pending save,
+  // so a quick edit right before navigating away isn't lost.
+  const pendingSave = useRef<MindMap | null>(null);
+
+  const flushSave = useCallback(() => {
+    const snapshot = pendingSave.current;
+    if (!snapshot) return;
+    pendingSave.current = null;
+    upsertMap(snapshot)
+      .then(() => {
+        saveFailureNotified.current = false;
+        clearDraft(snapshot.ownerId, snapshot.id, snapshot.updatedAt);
+      })
+      .catch((error) => {
+        if (saveFailureNotified.current) return;
+        saveFailureNotified.current = true;
+        reportActionError(
+          error,
+          "Não foi possível salvar no servidor. Suas alterações ficaram guardadas neste aparelho e serão enviadas na próxima alteração.",
+        );
+      });
+  }, []);
+
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      upsertMap({ ...map, nodes, edges, viewport, updatedAt: Date.now() })
-        .then(() => {
-          saveFailureNotified.current = false;
-        })
-        .catch((error) => {
-          if (saveFailureNotified.current) return;
-          saveFailureNotified.current = true;
-          reportActionError(
-            error,
-            "Não foi possível salvar seu mapa. Tentaremos novamente na próxima alteração.",
-          );
-        });
-    }, 300);
+    const snapshot = { ...map, nodes, edges, viewport, updatedAt: Date.now() };
+    pendingSave.current = snapshot;
+    writeDraft(snapshot);
+    const timer = window.setTimeout(flushSave, AUTOSAVE_DELAY);
     return () => window.clearTimeout(timer);
-  }, [nodes, edges, viewport, map]);
+  }, [nodes, edges, viewport, map, flushSave]);
+
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === "hidden") flushSave();
+    };
+    window.addEventListener("pagehide", flushSave);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.removeEventListener("pagehide", flushSave);
+      document.removeEventListener("visibilitychange", onHide);
+      flushSave(); // leaving the editor
+    };
+  }, [flushSave]);
 
   const { undo, redo, canUndo, canRedo } = useGraphHistory(
     nodes,

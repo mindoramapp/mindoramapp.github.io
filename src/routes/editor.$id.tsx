@@ -4,6 +4,8 @@ import { useAuth } from "@/store/auth";
 import { Header } from "@/components/Header";
 import { MindMapEditor } from "@/components/MindMapEditor";
 import { getMap, type MindMap } from "@/store/maps";
+import { withNewerDraft } from "@/features/editor/draftBackup";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Brain,
@@ -107,7 +109,10 @@ function EditorPage() {
         }
 
         if (!cancelled) {
-          setMap(loadedMap);
+          const { map: mapToOpen, restored } = withNewerDraft(loadedMap);
+          if (restored)
+            toast.info("Recuperamos alterações que ainda não tinham sido salvas no servidor.");
+          setMap(mapToOpen);
           setView(loadedMap.mode === "study" ? "tree" : "graph");
         }
       } catch (error) {
