@@ -1,5 +1,5 @@
 // Smart contextual hints that appear based on what the user is doing
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Lightbulb, X } from "lucide-react";
 // window.setTimeout returns number in browsers, not NodeJS Timeout
 type TimerId = ReturnType<typeof window.setTimeout>;
@@ -66,11 +66,14 @@ export function ContextualTip({ userId, nodeCount, graphEdgeCount }: Props) {
   const [visible, setVisible] = useState(false);
   const dismissTimerRef = useRef<number | null>(null);
 
-  const dismiss = (tipId: string) => {
-    markTipShown(userId, tipId);
-    setVisible(false);
-    window.setTimeout(() => setActiveTip(null), 350);
-  };
+  const dismiss = useCallback(
+    (tipId: string) => {
+      markTipShown(userId, tipId);
+      setVisible(false);
+      window.setTimeout(() => setActiveTip(null), 350);
+    },
+    [userId],
+  );
 
   // Find the next applicable tip whenever state changes
   useEffect(() => {
@@ -78,7 +81,7 @@ export function ContextualTip({ userId, nodeCount, graphEdgeCount }: Props) {
 
     const shown = getShownTips(userId);
     const tip = TIP_DEFS.find(
-      (t) => !shown.has(t.id) && t.condition({ nodeCount, graphEdgeCount })
+      (t) => !shown.has(t.id) && t.condition({ nodeCount, graphEdgeCount }),
     );
     if (!tip) return;
 
@@ -103,7 +106,7 @@ export function ContextualTip({ userId, nodeCount, graphEdgeCount }: Props) {
     return () => {
       if (dismissTimerRef.current) window.clearTimeout(dismissTimerRef.current);
     };
-  }, [activeTip, visible]);
+  }, [activeTip, visible, dismiss]);
 
   if (!activeTip) return null;
 
@@ -114,7 +117,7 @@ export function ContextualTip({ userId, nodeCount, graphEdgeCount }: Props) {
         "flex items-center gap-3 rounded-2xl border border-border/80 bg-card/96 px-4 py-3",
         "shadow-[var(--shadow-soft)] backdrop-blur-xl",
         "transition-all duration-350",
-        visible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+        visible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
       )}
       role="status"
       aria-live="polite"

@@ -79,7 +79,10 @@ function AdminPage() {
       setDebug("");
 
       try {
-        const [usersResponse, auditResponse] = await Promise.all([loadAdminUsers(), loadAccessCodeAudit()]);
+        const [usersResponse, auditResponse] = await Promise.all([
+          loadAdminUsers(),
+          loadAccessCodeAudit(),
+        ]);
         if (!cancelled) {
           setProfiles(usersResponse);
           setAudit(auditResponse);
@@ -101,9 +104,12 @@ function AdminPage() {
 
   const stats = useMemo(() => {
     const activatedUsers = profiles.filter(
-      (profile) => profile.role === "superadmin" || Boolean(profile.access_granted_at)
+      (profile) => profile.role === "superadmin" || Boolean(profile.access_granted_at),
     ).length;
-    const totalUsageSeconds = profiles.reduce((sum, profile) => sum + (profile.total_usage_seconds || 0), 0);
+    const totalUsageSeconds = profiles.reduce(
+      (sum, profile) => sum + (profile.total_usage_seconds || 0),
+      0,
+    );
 
     return {
       totalUsers: profiles.length,
@@ -114,7 +120,7 @@ function AdminPage() {
 
   const pendingProfiles = useMemo(
     () => profiles.filter((profile) => profile.role !== "superadmin" && !profile.access_granted_at),
-    [profiles]
+    [profiles],
   );
 
   const generateCode = async (e: React.FormEvent) => {
@@ -157,7 +163,9 @@ function AdminPage() {
           </span>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Superadmin</h1>
-            <p className="text-muted-foreground">Controle de acessos, usuarios e codigos da plataforma.</p>
+            <p className="text-muted-foreground">
+              Controle de acessos, usuarios e codigos da plataforma.
+            </p>
           </div>
         </div>
 
@@ -229,9 +237,13 @@ function AdminPage() {
                               ? new Date(profile.access_granted_at).toLocaleString()
                               : "Aguardando codigo"}
                         </td>
-                        <td className="py-3 pr-3">{formatSeconds(profile.total_usage_seconds || 0)}</td>
+                        <td className="py-3 pr-3">
+                          {formatSeconds(profile.total_usage_seconds || 0)}
+                        </td>
                         <td className="py-3">
-                          {profile.last_seen_at ? new Date(profile.last_seen_at).toLocaleString() : "Sem registro"}
+                          {profile.last_seen_at
+                            ? new Date(profile.last_seen_at).toLocaleString()
+                            : "Sem registro"}
                         </td>
                       </tr>
                     ))}
@@ -283,13 +295,19 @@ function AdminPage() {
               {generatedCode && (
                 <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-4">
                   <p className="text-xs text-muted-foreground">Codigo gerado agora</p>
-                  <p className="text-xs text-muted-foreground mt-1">Destino: {generatedCodeTargetEmail}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Destino: {generatedCodeTargetEmail}
+                  </p>
                   <p className="mt-2 font-mono text-lg break-all">{generatedCode}</p>
                   <p className="text-xs text-muted-foreground mt-2">
                     Expira em {new Date(generatedCodeExpiresAt).toLocaleString()}
                   </p>
                   <a
-                    href={buildAccessCodeEmail(generatedCodeTargetEmail, generatedCode, generatedCodeExpiresAt)}
+                    href={buildAccessCodeEmail(
+                      generatedCodeTargetEmail,
+                      generatedCode,
+                      generatedCodeExpiresAt,
+                    )}
                     className="mt-3 inline-flex items-center gap-2 rounded-lg border border-primary/30 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
                   >
                     <Mail size={14} /> Enviar para o email do usuario
@@ -304,13 +322,15 @@ function AdminPage() {
                 {audit.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Nenhum codigo gerado ainda.</p>
                 ) : (
-                    audit.map((row) => (
-                      <div key={row.id} className="rounded-xl border border-border p-3 text-sm">
-                        <p className="font-medium">{row.used_at ? "Utilizado" : "Disponivel"}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Destino: {row.target_email}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Expira em {new Date(row.expires_at).toLocaleString()}
-                        </p>
+                  audit.map((row) => (
+                    <div key={row.id} className="rounded-xl border border-border p-3 text-sm">
+                      <p className="font-medium">{row.used_at ? "Utilizado" : "Disponivel"}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Destino: {row.target_email}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Expira em {new Date(row.expires_at).toLocaleString()}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         Criado em {new Date(row.created_at).toLocaleString()}
                       </p>

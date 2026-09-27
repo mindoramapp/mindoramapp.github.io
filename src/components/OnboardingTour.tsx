@@ -11,21 +11,7 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const TOUR_KEY = "mm_onboard_v2_";
-
-export function isOnboardingDone(userId: string): boolean {
-  if (typeof window === "undefined") return true;
-  return localStorage.getItem(TOUR_KEY + userId) === "done";
-}
-
-export function resetOnboarding(userId: string) {
-  localStorage.removeItem(TOUR_KEY + userId);
-}
-
-function markDone(userId: string) {
-  localStorage.setItem(TOUR_KEY + userId, "done");
-}
+import { markOnboardingDone } from "@/lib/onboarding";
 
 interface TourStep {
   icon: React.ReactNode;
@@ -136,7 +122,7 @@ export function OnboardingTour({ userId, onDone }: Props) {
   }, [step, current.highlight]);
 
   const finish = () => {
-    markDone(userId);
+    markOnboardingDone(userId);
     setMounted(false);
     window.setTimeout(onDone, 300);
   };
@@ -153,14 +139,14 @@ export function OnboardingTour({ userId, onDone }: Props) {
     "transition-all duration-300",
     current.placement === "below-header"
       ? "left-1/2 -translate-x-1/2 top-20"
-      : "left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2"
+      : "left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2",
   );
 
   return (
     <div
       className={cn(
         "fixed inset-0 z-50 transition-opacity duration-300",
-        mounted ? "opacity-100" : "opacity-0"
+        mounted ? "opacity-100" : "opacity-0",
       )}
     >
       {/* Overlay */}
@@ -196,7 +182,7 @@ export function OnboardingTour({ userId, onDone }: Props) {
                     ? "w-6 bg-primary"
                     : i < step
                       ? "w-1.5 bg-primary/50"
-                      : "w-1.5 bg-border"
+                      : "w-1.5 bg-border",
                 )}
               />
             ))}

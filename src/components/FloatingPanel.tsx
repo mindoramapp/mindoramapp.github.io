@@ -20,7 +20,7 @@ interface FloatingPanelProps {
 function useFloatingDrag(
   mobile: boolean,
   panelRef: React.RefObject<HTMLDivElement | null>,
-  onPositionChange: (position: { x: number; y: number }) => void
+  onPositionChange: (position: { x: number; y: number }) => void,
 ) {
   const dragOffset = useRef({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
@@ -113,14 +113,16 @@ export function FloatingPanel({
         data-panel-id={`${id}-tab`}
         className={cn(
           "absolute z-20 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/95 px-3 py-2 text-xs font-medium text-foreground shadow-[var(--shadow-soft)] backdrop-blur-xl transition-colors hover:bg-muted",
-          dragging && "select-none cursor-grabbing"
+          dragging && "select-none cursor-grabbing",
         )}
         style={{ left: position.x, top: position.y }}
         onPointerDown={startDrag}
         onClick={onToggle}
         aria-label={`Expandir ${title}`}
       >
-        <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-primary">{icon}</span>
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-primary">
+          {icon}
+        </span>
         <span>{title}</span>
         <PanelBottomOpen size={14} className="text-muted-foreground" />
       </button>
@@ -134,22 +136,26 @@ export function FloatingPanel({
       className={cn(
         "z-20 overflow-hidden rounded-3xl border border-border/80 bg-card/95 text-card-foreground shadow-[var(--shadow-soft)] backdrop-blur-xl",
         mobile ? "fixed inset-x-3 bottom-4 max-h-[72vh]" : `absolute ${widthClassName}`,
-        dragging && "select-none"
+        dragging && "select-none",
       )}
       style={mobile ? undefined : { left: position.x, top: position.y }}
     >
       <div
         className={cn(
           "flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3",
-          mobile ? "cursor-default" : "cursor-grab active:cursor-grabbing"
+          mobile ? "cursor-default" : "cursor-grab active:cursor-grabbing",
         )}
         onPointerDown={startDrag}
       >
         <div className="flex min-w-0 items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-2xl bg-primary/10 text-primary">{icon}</span>
+          <span className="grid h-8 w-8 place-items-center rounded-2xl bg-primary/10 text-primary">
+            {icon}
+          </span>
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold">{title}</div>
-            <div className="text-[11px] text-muted-foreground">{mobile ? "Painel móvel" : "Arraste para mover"}</div>
+            <div className="text-[11px] text-muted-foreground">
+              {mobile ? "Painel móvel" : "Arraste para mover"}
+            </div>
           </div>
         </div>
 
@@ -168,7 +174,11 @@ export function FloatingPanel({
         </div>
       </div>
 
-      <div className={cn("overflow-auto", mobile ? "max-h-[calc(72vh-65px)] p-4" : "max-h-[65vh] p-4")}>{children}</div>
+      <div
+        className={cn("overflow-auto", mobile ? "max-h-[calc(72vh-65px)] p-4" : "max-h-[65vh] p-4")}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -192,7 +202,7 @@ export function PanelDockItem({ label, icon, active, minimized, onClick }: Panel
           ? "border-primary/40 bg-primary text-primary-foreground"
           : minimized
             ? "border-border/80 bg-card/95 text-foreground hover:bg-muted"
-            : "border-border/80 bg-card/70 text-muted-foreground hover:text-foreground"
+            : "border-border/80 bg-card/70 text-muted-foreground hover:text-foreground",
       )}
     >
       {active ? <PanelBottomOpen size={14} /> : icon}

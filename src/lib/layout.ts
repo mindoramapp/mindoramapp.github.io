@@ -31,7 +31,7 @@ function getPrimarySides(orientation: LayoutOrientation) {
 export function layoutTree(
   nodes: Node[],
   edges: Edge[],
-  orientation: LayoutOrientation = "horizontal"
+  orientation: LayoutOrientation = "horizontal",
 ): Node[] {
   const treeEdges = edges.filter((edge) => edge.data?.kind !== "graph");
   const childrenBySide = new Map<string, Record<LayoutSide, string[]>>();
@@ -86,9 +86,12 @@ export function layoutTree(
     childIds: string[],
     branchCenter: number,
     depth: number,
-    side: LayoutSide
+    side: LayoutSide,
   ) => {
-    const totalSpan = childIds.reduce((sum, childId) => sum + (subtreeSize.get(childId) || crossSize), 0);
+    const totalSpan = childIds.reduce(
+      (sum, childId) => sum + (subtreeSize.get(childId) || crossSize),
+      0,
+    );
     let cursor = branchCenter - totalSpan / 2;
     childIds.forEach((childId) => {
       const childSize = subtreeSize.get(childId) || crossSize;

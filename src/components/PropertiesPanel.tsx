@@ -44,7 +44,9 @@ export function PropertiesPanel({ node, onPatch, onDelete, onKeywordConnect }: P
               type="button"
               onClick={() => onPatch(id, { kind: entry.id })}
               className={`flex flex-col items-center gap-1 rounded-xl border py-2 text-[10px] transition-colors ${
-                kind === entry.id ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted"
+                kind === entry.id
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border hover:bg-muted"
               }`}
             >
               {entry.icon}

@@ -3,7 +3,8 @@ export type ThemeMode = "light" | "dark";
 export const THEME_KEY = "mm_theme";
 export const THEME_EVENT = "mindora-theme-change";
 
-const isThemeMode = (value: string | null): value is ThemeMode => value === "light" || value === "dark";
+const isThemeMode = (value: string | null): value is ThemeMode =>
+  value === "light" || value === "dark";
 
 export const getSystemTheme = (): ThemeMode => {
   if (typeof window === "undefined") return "light";

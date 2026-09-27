@@ -48,7 +48,9 @@ function RootComponent() {
     const handleAuthCallback = async () => {
       const url = new URL(window.location.href);
       const hashValue = window.location.hash || "";
-      const hashPayload = hashValue.startsWith("#/") ? hashValue.slice(2) : hashValue.replace(/^#/, "");
+      const hashPayload = hashValue.startsWith("#/")
+        ? hashValue.slice(2)
+        : hashValue.replace(/^#/, "");
       const hashParams = new URLSearchParams(hashPayload);
       const tokenHash = url.searchParams.get("token_hash");
       const type = url.searchParams.get("type");
@@ -63,7 +65,9 @@ function RootComponent() {
       const loginHref = `${window.location.pathname}#/login`;
 
       if (errorCode || errorDescription || hashErrorCode || hashErrorDescription) {
-        const decodedError = decodeURIComponent(errorDescription || hashErrorDescription || "").trim();
+        const decodedError = decodeURIComponent(
+          errorDescription || hashErrorDescription || "",
+        ).trim();
         const message = decodedError
           ? decodedError
           : (errorCode || hashErrorCode) === "otp_expired"

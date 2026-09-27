@@ -122,7 +122,7 @@ const warnSchemaFallback = () => {
   if (warnedAboutSchemaFallback) return;
   warnedAboutSchemaFallback = true;
   console.warn(
-    "[maps] Supabase schema for folders/viewport is missing. Falling back to local persistence until the migration is applied."
+    "[maps] Supabase schema for folders/viewport is missing. Falling back to local persistence until the migration is applied.",
   );
 };
 
@@ -179,7 +179,8 @@ const mergeFoldersById = (remoteFolders: MindFolder[], localFolders: MindFolder[
 
 const normalizeLocalMap = (map: Partial<MindMap>, owner: MapOwner): MindMap => {
   const ownerEmail = normalizeOptionalEmail(map.ownerEmail);
-  const ownerId = map.ownerId || (ownerEmail && ownerEmail === normalizeEmail(owner.email) ? owner.id : "");
+  const ownerId =
+    map.ownerId || (ownerEmail && ownerEmail === normalizeEmail(owner.email) ? owner.id : "");
 
   return {
     id: map.id || crypto.randomUUID(),
@@ -240,7 +241,7 @@ const migrateLegacyLocalMaps = (owner: MapOwner): MindMap[] => {
 const loadLocalMaps = (owner: MapOwner): MindMap[] =>
   migrateLegacyLocalMaps(owner).filter(
     (map) =>
-      map.ownerId === owner.id || normalizeEmail(map.ownerEmail) === normalizeEmail(owner.email)
+      map.ownerId === owner.id || normalizeEmail(map.ownerEmail) === normalizeEmail(owner.email),
   );
 
 const migrateLegacyLocalFolders = (owner: MapOwner): MindFolder[] => {
@@ -269,16 +270,17 @@ const migrateLegacyLocalFolders = (owner: MapOwner): MindFolder[] => {
 const loadLocalFolders = (owner: MapOwner): MindFolder[] =>
   migrateLegacyLocalFolders(owner).filter(
     (folder) =>
-      folder.ownerId === owner.id || normalizeEmail(folder.ownerEmail) === normalizeEmail(owner.email)
+      folder.ownerId === owner.id ||
+      normalizeEmail(folder.ownerEmail) === normalizeEmail(owner.email),
   );
 
 const removeLocalMapsForOwner = (owner: MapOwner) => {
   saveAllMaps(
     readAllMaps(owner.id).filter(
       (map) =>
-        map.ownerId !== owner.id && normalizeEmail(map.ownerEmail) !== normalizeEmail(owner.email)
+        map.ownerId !== owner.id && normalizeEmail(map.ownerEmail) !== normalizeEmail(owner.email),
     ),
-    owner.id
+    owner.id,
   );
 };
 
@@ -286,9 +288,10 @@ const removeLocalFoldersForOwner = (owner: MapOwner) => {
   saveAllFolders(
     readAllFolders(owner.id).filter(
       (folder) =>
-        folder.ownerId !== owner.id && normalizeEmail(folder.ownerEmail) !== normalizeEmail(owner.email)
+        folder.ownerId !== owner.id &&
+        normalizeEmail(folder.ownerEmail) !== normalizeEmail(owner.email),
     ),
-    owner.id
+    owner.id,
   );
 };
 
@@ -384,7 +387,9 @@ export const migrateLocalFoldersToSupabase = async (owner: MapOwner) => {
     return;
   }
 
-  const { error } = await supabase.from(FOLDERS_TABLE).upsert(localFolders.map(folderToRow), { onConflict: "id" });
+  const { error } = await supabase
+    .from(FOLDERS_TABLE)
+    .upsert(localFolders.map(folderToRow), { onConflict: "id" });
   if (error) {
     if (isSchemaCapabilityError(error)) {
       warnSchemaFallback();
@@ -507,7 +512,9 @@ export const upsertFolder = async (folder: MindFolder) => {
     return;
   }
 
-  const { error } = await supabase.from(FOLDERS_TABLE).upsert(folderToRow(folder), { onConflict: "id" });
+  const { error } = await supabase
+    .from(FOLDERS_TABLE)
+    .upsert(folderToRow(folder), { onConflict: "id" });
   if (error) {
     if (isSchemaCapabilityError(error)) {
       warnSchemaFallback();
@@ -526,10 +533,16 @@ export const deleteFolder = async (id: string, owner: MapOwner) => {
   if (!supabase) {
     const folders = readAllFolders(owner.id).filter(
       (folder) =>
-        !(folder.id === id && (folder.ownerId === owner.id || normalizeEmail(folder.ownerEmail) === normalizeEmail(owner.email)))
+        !(
+          folder.id === id &&
+          (folder.ownerId === owner.id ||
+            normalizeEmail(folder.ownerEmail) === normalizeEmail(owner.email))
+        ),
     );
     saveAllFolders(folders, owner.id);
-    const maps = readAllMaps(owner.id).map((map) => (map.folderId === id ? { ...map, folderId: null } : map));
+    const maps = readAllMaps(owner.id).map((map) =>
+      map.folderId === id ? { ...map, folderId: null } : map,
+    );
     saveAllMaps(maps, owner.id);
     return;
   }
@@ -544,23 +557,37 @@ export const deleteFolder = async (id: string, owner: MapOwner) => {
       warnSchemaFallback();
       const folders = readAllFolders(owner.id).filter(
         (folder) =>
-          !(folder.id === id && (folder.ownerId === owner.id || normalizeEmail(folder.ownerEmail) === normalizeEmail(owner.email)))
+          !(
+            folder.id === id &&
+            (folder.ownerId === owner.id ||
+              normalizeEmail(folder.ownerEmail) === normalizeEmail(owner.email))
+          ),
       );
       saveAllFolders(folders, owner.id);
-      const maps = readAllMaps(owner.id).map((map) => (map.folderId === id ? { ...map, folderId: null } : map));
+      const maps = readAllMaps(owner.id).map((map) =>
+        map.folderId === id ? { ...map, folderId: null } : map,
+      );
       saveAllMaps(maps, owner.id);
       return;
     }
     throw mapsError;
   }
 
-  const { error } = await supabase.from(FOLDERS_TABLE).delete().eq("id", id).eq("owner_id", owner.id);
+  const { error } = await supabase
+    .from(FOLDERS_TABLE)
+    .delete()
+    .eq("id", id)
+    .eq("owner_id", owner.id);
   if (error) {
     if (isSchemaCapabilityError(error)) {
       warnSchemaFallback();
       const folders = readAllFolders(owner.id).filter(
         (folder) =>
-          !(folder.id === id && (folder.ownerId === owner.id || normalizeEmail(folder.ownerEmail) === normalizeEmail(owner.email)))
+          !(
+            folder.id === id &&
+            (folder.ownerId === owner.id ||
+              normalizeEmail(folder.ownerEmail) === normalizeEmail(owner.email))
+          ),
       );
       saveAllFolders(folders, owner.id);
       return;
@@ -576,10 +603,11 @@ export const deleteMap = async (id: string, owner: MapOwner) => {
         (map) =>
           !(
             map.id === id &&
-            (map.ownerId === owner.id || normalizeEmail(map.ownerEmail) === normalizeEmail(owner.email))
-          )
+            (map.ownerId === owner.id ||
+              normalizeEmail(map.ownerEmail) === normalizeEmail(owner.email))
+          ),
       ),
-      owner.id
+      owner.id,
     );
     return;
   }
@@ -592,7 +620,7 @@ export const createBlankMap = (
   owner: MapOwner,
   title: string,
   mode: MapMode = "brainstorm",
-  options?: { folderId?: string | null; parentMapId?: string | null; viewport?: ViewportState }
+  options?: { folderId?: string | null; parentMapId?: string | null; viewport?: ViewportState },
 ): MindMap => ({
   id: crypto.randomUUID(),
   ownerId: owner.id,
@@ -621,7 +649,7 @@ export type TemplateId = "blank" | "brainstorm" | "study" | "project";
 export const createMapFromTemplate = (
   owner: MapOwner,
   templateId: TemplateId,
-  options?: { folderId?: string | null }
+  options?: { folderId?: string | null },
 ): MindMap => {
   const base = {
     id: crypto.randomUUID(),
@@ -644,7 +672,12 @@ export const createMapFromTemplate = (
       title: "Brainstorm",
       mode: "brainstorm",
       nodes: [
-        { id: "root", type: "mind", position: { x: 0, y: 0 }, data: { label: "Brainstorm", isRoot: true, kind: "text" } },
+        {
+          id: "root",
+          type: "mind",
+          position: { x: 0, y: 0 },
+          data: { label: "Brainstorm", isRoot: true, kind: "text" },
+        },
         ...ids.map((id, i) => ({
           id,
           type: "mind",
@@ -670,23 +703,112 @@ export const createMapFromTemplate = (
       title: "Mapa de Estudo",
       mode: "study",
       nodes: [
-        { id: "root", type: "mind", position: { x: 0, y: 0 }, data: { label: "Tema principal", isRoot: true, kind: "text" } },
-        { id: c1, type: "mind", position: { x: 260, y: -150 }, data: { label: "Conceitos fundamentais", kind: "text" as NodeKind } },
-        { id: c1a, type: "mind", position: { x: 520, y: -200 }, data: { label: "Definição", kind: "text" as NodeKind } },
-        { id: c1b, type: "mind", position: { x: 520, y: -100 }, data: { label: "Características", kind: "text" as NodeKind } },
-        { id: c2, type: "mind", position: { x: 260, y: 0 }, data: { label: "Exemplos práticos", kind: "text" as NodeKind } },
-        { id: c2a, type: "mind", position: { x: 520, y: 0 }, data: { label: "Exemplo 1", kind: "text" as NodeKind } },
-        { id: c3, type: "mind", position: { x: 260, y: 150 }, data: { label: "Revisão", kind: "text" as NodeKind } },
-        { id: c3a, type: "mind", position: { x: 520, y: 150 }, data: { label: "Pontos-chave", kind: "text" as NodeKind } },
+        {
+          id: "root",
+          type: "mind",
+          position: { x: 0, y: 0 },
+          data: { label: "Tema principal", isRoot: true, kind: "text" },
+        },
+        {
+          id: c1,
+          type: "mind",
+          position: { x: 260, y: -150 },
+          data: { label: "Conceitos fundamentais", kind: "text" as NodeKind },
+        },
+        {
+          id: c1a,
+          type: "mind",
+          position: { x: 520, y: -200 },
+          data: { label: "Definição", kind: "text" as NodeKind },
+        },
+        {
+          id: c1b,
+          type: "mind",
+          position: { x: 520, y: -100 },
+          data: { label: "Características", kind: "text" as NodeKind },
+        },
+        {
+          id: c2,
+          type: "mind",
+          position: { x: 260, y: 0 },
+          data: { label: "Exemplos práticos", kind: "text" as NodeKind },
+        },
+        {
+          id: c2a,
+          type: "mind",
+          position: { x: 520, y: 0 },
+          data: { label: "Exemplo 1", kind: "text" as NodeKind },
+        },
+        {
+          id: c3,
+          type: "mind",
+          position: { x: 260, y: 150 },
+          data: { label: "Revisão", kind: "text" as NodeKind },
+        },
+        {
+          id: c3a,
+          type: "mind",
+          position: { x: 520, y: 150 },
+          data: { label: "Pontos-chave", kind: "text" as NodeKind },
+        },
       ],
       edges: [
-        { id: `e-r-c1`, source: "root", target: c1, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
-        { id: `e-c1-c1a`, source: c1, target: c1a, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
-        { id: `e-c1-c1b`, source: c1, target: c1b, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
-        { id: `e-r-c2`, source: "root", target: c2, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
-        { id: `e-c2-c2a`, source: c2, target: c2a, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
-        { id: `e-r-c3`, source: "root", target: c3, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
-        { id: `e-c3-c3a`, source: c3, target: c3a, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
+        {
+          id: `e-r-c1`,
+          source: "root",
+          target: c1,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
+        {
+          id: `e-c1-c1a`,
+          source: c1,
+          target: c1a,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
+        {
+          id: `e-c1-c1b`,
+          source: c1,
+          target: c1b,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
+        {
+          id: `e-r-c2`,
+          source: "root",
+          target: c2,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
+        {
+          id: `e-c2-c2a`,
+          source: c2,
+          target: c2a,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
+        {
+          id: `e-r-c3`,
+          source: "root",
+          target: c3,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
+        {
+          id: `e-c3-c3a`,
+          source: c3,
+          target: c3a,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
       ],
     };
   }
@@ -698,25 +820,126 @@ export const createMapFromTemplate = (
       title: "Plano de Projeto",
       mode: "project",
       nodes: [
-        { id: "root", type: "mind", position: { x: 0, y: 0 }, data: { label: "Meu Projeto", isRoot: true, kind: "text" } },
-        { id: p1, type: "mind", position: { x: 260, y: -150 }, data: { label: "Planejamento", kind: "checklist" as NodeKind } },
-        { id: t1, type: "mind", position: { x: 520, y: -200 }, data: { label: "Definir escopo", kind: "checklist" as NodeKind } },
-        { id: t2, type: "mind", position: { x: 520, y: -100 }, data: { label: "Levantar requisitos", kind: "checklist" as NodeKind } },
-        { id: p2, type: "mind", position: { x: 260, y: 0 }, data: { label: "Execução", kind: "checklist" as NodeKind } },
-        { id: t3, type: "mind", position: { x: 520, y: -30 }, data: { label: "Desenvolver", kind: "checklist" as NodeKind } },
-        { id: t4, type: "mind", position: { x: 520, y: 70 }, data: { label: "Revisar", kind: "checklist" as NodeKind } },
-        { id: p3, type: "mind", position: { x: 260, y: 150 }, data: { label: "Entrega", kind: "checklist" as NodeKind } },
-        { id: t5, type: "mind", position: { x: 520, y: 150 }, data: { label: "Publicar", kind: "checklist" as NodeKind } },
+        {
+          id: "root",
+          type: "mind",
+          position: { x: 0, y: 0 },
+          data: { label: "Meu Projeto", isRoot: true, kind: "text" },
+        },
+        {
+          id: p1,
+          type: "mind",
+          position: { x: 260, y: -150 },
+          data: { label: "Planejamento", kind: "checklist" as NodeKind },
+        },
+        {
+          id: t1,
+          type: "mind",
+          position: { x: 520, y: -200 },
+          data: { label: "Definir escopo", kind: "checklist" as NodeKind },
+        },
+        {
+          id: t2,
+          type: "mind",
+          position: { x: 520, y: -100 },
+          data: { label: "Levantar requisitos", kind: "checklist" as NodeKind },
+        },
+        {
+          id: p2,
+          type: "mind",
+          position: { x: 260, y: 0 },
+          data: { label: "Execução", kind: "checklist" as NodeKind },
+        },
+        {
+          id: t3,
+          type: "mind",
+          position: { x: 520, y: -30 },
+          data: { label: "Desenvolver", kind: "checklist" as NodeKind },
+        },
+        {
+          id: t4,
+          type: "mind",
+          position: { x: 520, y: 70 },
+          data: { label: "Revisar", kind: "checklist" as NodeKind },
+        },
+        {
+          id: p3,
+          type: "mind",
+          position: { x: 260, y: 150 },
+          data: { label: "Entrega", kind: "checklist" as NodeKind },
+        },
+        {
+          id: t5,
+          type: "mind",
+          position: { x: 520, y: 150 },
+          data: { label: "Publicar", kind: "checklist" as NodeKind },
+        },
       ],
       edges: [
-        { id: `e-r-p1`, source: "root", target: p1, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
-        { id: `e-p1-t1`, source: p1, target: t1, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
-        { id: `e-p1-t2`, source: p1, target: t2, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
-        { id: `e-r-p2`, source: "root", target: p2, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
-        { id: `e-p2-t3`, source: p2, target: t3, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
-        { id: `e-p2-t4`, source: p2, target: t4, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
-        { id: `e-r-p3`, source: "root", target: p3, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
-        { id: `e-p3-t5`, source: p3, target: t5, sourceHandle: "source-right", targetHandle: "target-left", data: { kind: "tree", treeSide: "right" } },
+        {
+          id: `e-r-p1`,
+          source: "root",
+          target: p1,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
+        {
+          id: `e-p1-t1`,
+          source: p1,
+          target: t1,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
+        {
+          id: `e-p1-t2`,
+          source: p1,
+          target: t2,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
+        {
+          id: `e-r-p2`,
+          source: "root",
+          target: p2,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
+        {
+          id: `e-p2-t3`,
+          source: p2,
+          target: t3,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
+        {
+          id: `e-p2-t4`,
+          source: p2,
+          target: t4,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
+        {
+          id: `e-r-p3`,
+          source: "root",
+          target: p3,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
+        {
+          id: `e-p3-t5`,
+          source: p3,
+          target: t5,
+          sourceHandle: "source-right",
+          targetHandle: "target-left",
+          data: { kind: "tree", treeSide: "right" },
+        },
       ],
     };
   }
@@ -725,7 +948,11 @@ export const createMapFromTemplate = (
   return createBlankMap(owner, "Novo mapa", "brainstorm", options);
 };
 
-export const createFolder = (owner: MapOwner, name: string, parentId: string | null = null): MindFolder => ({
+export const createFolder = (
+  owner: MapOwner,
+  name: string,
+  parentId: string | null = null,
+): MindFolder => ({
   id: crypto.randomUUID(),
   ownerId: owner.id,
   ownerEmail: normalizeEmail(owner.email),

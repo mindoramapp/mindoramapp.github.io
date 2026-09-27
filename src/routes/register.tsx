@@ -59,12 +59,12 @@ function RegisterPage() {
       return;
     }
 
-    setSuccess(
-      result.message || "Conta criada."
-    );
+    setSuccess(result.message || "Conta criada.");
     const nextUser = useAuth.getState().user;
     if (nextUser) {
-      navigate({ to: nextUser.role === "superadmin" || nextUser.accessGranted ? "/dashboard" : "/activate" });
+      navigate({
+        to: nextUser.role === "superadmin" || nextUser.accessGranted ? "/dashboard" : "/activate",
+      });
     }
   };
 
@@ -94,7 +94,8 @@ function RegisterPage() {
             Crie seu acesso. Usuários comuns vão precisar de um código no primeiro login.
           </p>
           <p className="text-xs text-muted-foreground text-center">
-            Depois do cadastro, você poderá entrar e solicitar a liberação do acesso com o código enviado pelo admin.
+            Depois do cadastro, você poderá entrar e solicitar a liberação do acesso com o código
+            enviado pelo admin.
           </p>
         </div>
         {!configured && (
@@ -165,7 +166,10 @@ function RegisterPage() {
           </button>
         </form>
         <p className="text-sm text-muted-foreground text-center mt-4">
-          Já tem conta? <Link to="/login" className="text-primary hover:underline">Entrar</Link>
+          Já tem conta?{" "}
+          <Link to="/login" className="text-primary hover:underline">
+            Entrar
+          </Link>
         </p>
       </div>
     </div>

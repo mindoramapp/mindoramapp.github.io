@@ -134,7 +134,10 @@ function DashboardPage() {
       const key = folder.parentId || null;
       const current = map.get(key) || [];
       current.push(folder);
-      map.set(key, current.sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
+      map.set(
+        key,
+        current.sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+      );
     });
     return map;
   }, [folders]);
@@ -155,7 +158,11 @@ function DashboardPage() {
   const favoriteMaps = useMemo(() => maps.filter((map) => map.isFavorite), [maps]);
 
   const filteredMaps = useMemo(() => {
-    const normalizedSearch = search.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+    const normalizedSearch = search
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase()
+      .trim();
     return maps
       .filter((map) => (selectedFolderId ? map.folderId === selectedFolderId : true))
       .filter((map) => {
@@ -207,13 +214,23 @@ function DashboardPage() {
     if (!user) return;
 
     if (folderModalMode === "create") {
-      const folder = createFolder({ id: user.id, email: user.email }, folderName || "Nova pasta", selectedFolderId);
+      const folder = createFolder(
+        { id: user.id, email: user.email },
+        folderName || "Nova pasta",
+        selectedFolderId,
+      );
       await upsertFolder(folder);
-      setFolders((current) => [...current, folder].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
+      setFolders((current) =>
+        [...current, folder].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+      );
       setExpandedFolders((current) => ({ ...current, [folder.id]: true }));
       toast.success("Pasta criada.");
     } else if (folderBeingEdited) {
-      const updatedFolder = { ...folderBeingEdited, name: folderName.trim() || folderBeingEdited.name, updatedAt: Date.now() };
+      const updatedFolder = {
+        ...folderBeingEdited,
+        name: folderName.trim() || folderBeingEdited.name,
+        updatedAt: Date.now(),
+      };
       await upsertFolder(updatedFolder);
       await refreshData();
       toast.success("Pasta renomeada.");
@@ -245,7 +262,9 @@ function DashboardPage() {
   const toggleFavorite = async (map: MindMap) => {
     await upsertMap({ ...map, isFavorite: !map.isFavorite, updatedAt: Date.now() });
     await refreshData();
-    toast.success(map.isFavorite ? "Mapa removido dos favoritos." : "Mapa adicionado aos favoritos.");
+    toast.success(
+      map.isFavorite ? "Mapa removido dos favoritos." : "Mapa adicionado aos favoritos.",
+    );
   };
 
   const moveMapHandler = async (map: MindMap, folderId: string | null) => {
@@ -282,9 +301,17 @@ function DashboardPage() {
               void moveMapHandler(droppedMap, folder.id);
             }}
           >
-            <button type="button" onClick={() => toggleFolder(folder.id)} className="text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => toggleFolder(folder.id)}
+              className="text-muted-foreground"
+            >
               {children.length > 0 ? (
-                isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />
+                isExpanded ? (
+                  <ChevronDown size={14} />
+                ) : (
+                  <ChevronRight size={14} />
+                )
               ) : (
                 <span className="block w-[14px]" />
               )}
@@ -374,9 +401,13 @@ function DashboardPage() {
             <div className="space-y-1">{renderFolderTree()}</div>
 
             <div className="mt-6 border-t border-border pt-4">
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Favoritos</h3>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Favoritos
+              </h3>
               {favoriteMaps.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Marque mapas importantes para acessá-los aqui.</p>
+                <p className="text-xs text-muted-foreground">
+                  Marque mapas importantes para acessá-los aqui.
+                </p>
               ) : (
                 <div className="space-y-1">
                   {favoriteMaps.slice(0, 5).map((map) => (
@@ -399,20 +430,30 @@ function DashboardPage() {
             <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <button type="button" onClick={() => setSelectedFolderId(null)} className="hover:text-foreground">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFolderId(null)}
+                    className="hover:text-foreground"
+                  >
                     Início
                   </button>
                   {breadcrumbs.map((folder) => (
                     <span key={folder.id} className="inline-flex items-center gap-2">
                       <ChevronRight size={12} />
-                      <button type="button" onClick={() => setSelectedFolderId(folder.id)} className="hover:text-foreground">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFolderId(folder.id)}
+                        className="hover:text-foreground"
+                      >
                         {folder.name}
                       </button>
                     </span>
                   ))}
                 </div>
                 <h1 className="mt-2 text-3xl font-bold tracking-tight">
-                  {selectedFolderId ? folderMap.get(selectedFolderId)?.name || "Pasta" : "Seus mapas"}
+                  {selectedFolderId
+                    ? folderMap.get(selectedFolderId)?.name || "Pasta"
+                    : "Seus mapas"}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {filteredMaps.length === 0
@@ -423,7 +464,10 @@ function DashboardPage() {
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <label className="relative block min-w-[260px]">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                  <Search
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    size={16}
+                  />
                   <input
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
@@ -513,7 +557,9 @@ function DashboardPage() {
                       </div>
                       <div>
                         <div className="font-semibold text-sm">{tpl.title}</div>
-                        <div className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{tpl.desc}</div>
+                        <div className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+                          {tpl.desc}
+                        </div>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
@@ -531,7 +577,11 @@ function DashboardPage() {
                   Prefere criar do zero?{" "}
                   <button
                     type="button"
-                    onClick={() => { setTitle(""); setMode("brainstorm"); setShowMapModal(true); }}
+                    onClick={() => {
+                      setTitle("");
+                      setMode("brainstorm");
+                      setShowMapModal(true);
+                    }}
                     className="font-medium text-primary hover:underline"
                   >
                     Personalizar novo mapa
@@ -543,7 +593,6 @@ function DashboardPage() {
                 <FileText className="mx-auto mb-3" />
                 Nenhum mapa nesta área ainda.
               </div>
-
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredMaps.map((map) => (
@@ -562,7 +611,8 @@ function DashboardPage() {
                       >
                         <h3 className="font-semibold">{map.title}</h3>
                         <p className="mt-2 text-xs text-muted-foreground">
-                          {map.nodes.length} nós · {new Date(map.updatedAt).toLocaleDateString("pt-BR")}
+                          {map.nodes.length} nós ·{" "}
+                          {new Date(map.updatedAt).toLocaleDateString("pt-BR")}
                         </p>
                       </button>
                       <button
@@ -599,7 +649,9 @@ function DashboardPage() {
                     </div>
 
                     <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span className="rounded-full bg-muted px-2 py-1 uppercase tracking-wide">{map.mode}</span>
+                      <span className="rounded-full bg-muted px-2 py-1 uppercase tracking-wide">
+                        {map.mode}
+                      </span>
                       <span>{map.parentMapId ? "Submapa" : "Mapa raiz"}</span>
                     </div>
                   </div>
@@ -614,7 +666,9 @@ function DashboardPage() {
         <DialogContent className="rounded-3xl">
           <DialogHeader>
             <DialogTitle>Novo mapa mental</DialogTitle>
-            <DialogDescription>Defina o título, o modo e a pasta inicial do mapa.</DialogDescription>
+            <DialogDescription>
+              Defina o título, o modo e a pasta inicial do mapa.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={createMap} className="space-y-4">
             <input
@@ -628,17 +682,36 @@ function DashboardPage() {
             <div>
               <p className="mb-2 text-xs text-muted-foreground">Modo de uso</p>
               <div className="grid grid-cols-3 gap-2">
-                {([
-                  { id: "study", label: "Estudo", icon: <BookOpen size={16} />, desc: "Estrutura clara" },
-                  { id: "brainstorm", label: "Brainstorm", icon: <Rocket size={16} />, desc: "Exploração livre" },
-                  { id: "project", label: "Projeto", icon: <ListChecks size={16} />, desc: "Tarefas e execução" },
-                ] as const).map((entry) => (
+                {(
+                  [
+                    {
+                      id: "study",
+                      label: "Estudo",
+                      icon: <BookOpen size={16} />,
+                      desc: "Estrutura clara",
+                    },
+                    {
+                      id: "brainstorm",
+                      label: "Brainstorm",
+                      icon: <Rocket size={16} />,
+                      desc: "Exploração livre",
+                    },
+                    {
+                      id: "project",
+                      label: "Projeto",
+                      icon: <ListChecks size={16} />,
+                      desc: "Tarefas e execução",
+                    },
+                  ] as const
+                ).map((entry) => (
                   <button
                     type="button"
                     key={entry.id}
                     onClick={() => setMode(entry.id)}
                     className={`flex flex-col items-center gap-1 rounded-xl border p-3 text-xs transition-colors ${
-                      mode === entry.id ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted"
+                      mode === entry.id
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border hover:bg-muted"
                     }`}
                   >
                     {entry.icon}
@@ -649,7 +722,11 @@ function DashboardPage() {
               </div>
             </div>
             <DialogFooter>
-              <button type="button" onClick={() => setShowMapModal(false)} className="rounded-xl px-4 py-2 hover:bg-muted">
+              <button
+                type="button"
+                onClick={() => setShowMapModal(false)}
+                className="rounded-xl px-4 py-2 hover:bg-muted"
+              >
                 Cancelar
               </button>
               <button className="rounded-xl bg-[image:var(--gradient-hero)] px-4 py-2 font-medium text-primary-foreground">
@@ -672,7 +749,9 @@ function DashboardPage() {
       >
         <DialogContent className="rounded-3xl">
           <DialogHeader>
-            <DialogTitle>{folderModalMode === "create" ? "Nova pasta" : "Renomear pasta"}</DialogTitle>
+            <DialogTitle>
+              {folderModalMode === "create" ? "Nova pasta" : "Renomear pasta"}
+            </DialogTitle>
             <DialogDescription>
               {folderModalMode === "create"
                 ? "Crie uma pasta para organizar os mapas desta área."
@@ -689,7 +768,11 @@ function DashboardPage() {
               className="w-full rounded-xl border border-border bg-input px-3 py-2.5 outline-none focus:ring-2 focus:ring-ring"
             />
             <DialogFooter>
-              <button type="button" onClick={() => setShowFolderModal(false)} className="rounded-xl px-4 py-2 hover:bg-muted">
+              <button
+                type="button"
+                onClick={() => setShowFolderModal(false)}
+                className="rounded-xl px-4 py-2 hover:bg-muted"
+              >
                 Cancelar
               </button>
               <button className="rounded-xl bg-[image:var(--gradient-hero)] px-4 py-2 font-medium text-primary-foreground">
@@ -700,7 +783,10 @@ function DashboardPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(confirmDeleteFolder)} onOpenChange={(open) => !open && setConfirmDeleteFolder(null)}>
+      <Dialog
+        open={Boolean(confirmDeleteFolder)}
+        onOpenChange={(open) => !open && setConfirmDeleteFolder(null)}
+      >
         <DialogContent className="rounded-3xl">
           <DialogHeader>
             <DialogTitle>Excluir pasta</DialogTitle>
@@ -711,7 +797,11 @@ function DashboardPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <button type="button" onClick={() => setConfirmDeleteFolder(null)} className="rounded-xl px-4 py-2 hover:bg-muted">
+            <button
+              type="button"
+              onClick={() => setConfirmDeleteFolder(null)}
+              className="rounded-xl px-4 py-2 hover:bg-muted"
+            >
               Cancelar
             </button>
             <button
@@ -734,16 +824,25 @@ function DashboardPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(confirmDeleteMap)} onOpenChange={(open) => !open && setConfirmDeleteMap(null)}>
+      <Dialog
+        open={Boolean(confirmDeleteMap)}
+        onOpenChange={(open) => !open && setConfirmDeleteMap(null)}
+      >
         <DialogContent className="rounded-3xl">
           <DialogHeader>
             <DialogTitle>Excluir mapa</DialogTitle>
             <DialogDescription>
-              {confirmDeleteMap ? `O mapa "${confirmDeleteMap.title}" será removido permanentemente.` : ""}
+              {confirmDeleteMap
+                ? `O mapa "${confirmDeleteMap.title}" será removido permanentemente.`
+                : ""}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <button type="button" onClick={() => setConfirmDeleteMap(null)} className="rounded-xl px-4 py-2 hover:bg-muted">
+            <button
+              type="button"
+              onClick={() => setConfirmDeleteMap(null)}
+              className="rounded-xl px-4 py-2 hover:bg-muted"
+            >
               Cancelar
             </button>
             <button

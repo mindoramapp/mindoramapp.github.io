@@ -5,7 +5,8 @@ import { Header } from "@/components/Header";
 import { MindMapEditor } from "@/components/MindMapEditor";
 import { getMap, type MindMap } from "@/store/maps";
 import { ArrowLeft, Brain, GitBranch, Network, Crosshair, Link2, Wand2, Undo2 } from "lucide-react";
-import { OnboardingTour, isOnboardingDone, resetOnboarding } from "@/components/OnboardingTour";
+import { OnboardingTour } from "@/components/OnboardingTour";
+import { isOnboardingDone, resetOnboarding } from "@/lib/onboarding";
 
 export const Route = createFileRoute("/editor/$id")({
   head: () => ({ meta: [{ title: "Editor - Mindora" }] }),
@@ -111,7 +112,10 @@ function EditorPage() {
         </Header>
         <div className="relative flex-1 overflow-hidden bg-background">
           {/* Dot-grid background matching ReactFlow */}
-          <svg className="absolute inset-0 h-full w-full opacity-[0.18]" xmlns="http://www.w3.org/2000/svg">
+          <svg
+            className="absolute inset-0 h-full w-full opacity-[0.18]"
+            xmlns="http://www.w3.org/2000/svg"
+          >
             <defs>
               <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
                 <circle cx="1" cy="1" r="1" fill="currentColor" className="text-foreground" />
@@ -217,9 +221,7 @@ function EditorPage() {
         />
       </div>
 
-      {showTour && userId && (
-        <OnboardingTour userId={userId} onDone={() => setShowTour(false)} />
-      )}
+      {showTour && userId && <OnboardingTour userId={userId} onDone={() => setShowTour(false)} />}
     </div>
   );
 }

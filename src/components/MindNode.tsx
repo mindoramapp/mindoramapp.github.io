@@ -61,16 +61,13 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
     dispatch({ label: value.trim() || "Sem titulo" });
   };
 
-  const requestChildCreation = (
-    e: React.MouseEvent | React.PointerEvent,
-    side: HandleSide
-  ) => {
+  const requestChildCreation = (e: React.MouseEvent | React.PointerEvent, side: HandleSide) => {
     e.stopPropagation();
     window.dispatchEvent(new CustomEvent("mm-node-add-child", { detail: { id, side } }));
   };
 
   const requestAction = (
-    action: "add-child" | "add-sibling" | "edit" | "connect" | "create-linked-map" | "delete"
+    action: "add-child" | "add-sibling" | "edit" | "connect" | "create-linked-map" | "delete",
   ) => {
     window.dispatchEvent(new CustomEvent("mm-node-action", { detail: { id, action } }));
   };
@@ -116,7 +113,9 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
           ))}
 
           <div className="flex items-center gap-2">
-            <span className={data.isRoot ? "opacity-90" : "text-muted-foreground"}>{KIND_ICON[kind]}</span>
+            <span className={data.isRoot ? "opacity-90" : "text-muted-foreground"}>
+              {KIND_ICON[kind]}
+            </span>
 
             {kind === "checklist" && !data.isRoot && (
               <button
@@ -127,7 +126,11 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
                 className="shrink-0"
                 aria-label="toggle"
               >
-                {data.checked ? <CheckSquare size={14} className="text-primary" /> : <Square size={14} />}
+                {data.checked ? (
+                  <CheckSquare size={14} className="text-primary" />
+                ) : (
+                  <Square size={14} />
+                )}
               </button>
             )}
 
@@ -198,11 +201,11 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
         </div>
       </ContextMenuTrigger>
 
-        <ContextMenuContent className="w-52">
-          <ContextMenuItem onClick={() => requestAction("edit")}>Editar texto</ContextMenuItem>
-          <ContextMenuItem onClick={() => requestAction("add-child")}>Criar filho</ContextMenuItem>
-          <ContextMenuItem onClick={() => requestAction("add-sibling")}>Criar irmão</ContextMenuItem>
-          <ContextMenuItem onClick={() => requestAction("connect")}>Iniciar conexão</ContextMenuItem>
+      <ContextMenuContent className="w-52">
+        <ContextMenuItem onClick={() => requestAction("edit")}>Editar texto</ContextMenuItem>
+        <ContextMenuItem onClick={() => requestAction("add-child")}>Criar filho</ContextMenuItem>
+        <ContextMenuItem onClick={() => requestAction("add-sibling")}>Criar irmão</ContextMenuItem>
+        <ContextMenuItem onClick={() => requestAction("connect")}>Iniciar conexão</ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onClick={() => requestAction("create-linked-map")}>
           Criar mapa conectado

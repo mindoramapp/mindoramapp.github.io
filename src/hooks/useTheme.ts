@@ -43,7 +43,7 @@ export function useTheme() {
       setTheme: (next: ThemeMode) => setThemePreference(next),
       toggle: () => setThemePreference(theme === "light" ? "dark" : "light"),
     }),
-    [theme]
+    [theme],
   );
 
   return controls;

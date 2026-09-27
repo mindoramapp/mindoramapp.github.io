@@ -33,7 +33,9 @@ export function ThemeToggle({
           className={`absolute transition-all duration-300 ${theme === "light" ? "rotate-0 scale-100" : "rotate-90 scale-0"}`}
         />
       </span>
-      {!compact && <span className="text-sm font-medium">{theme === "dark" ? "Light mode" : "Dark mode"}</span>}
+      {!compact && (
+        <span className="text-sm font-medium">{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+      )}
     </button>
   );
 }

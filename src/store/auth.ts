@@ -66,7 +66,8 @@ const normalizeEmail = (email: string) => email.trim().toLowerCase();
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 const getDisplayName = (user: SupabaseUser) => {
-  const metadataName = typeof user.user_metadata?.name === "string" ? user.user_metadata.name.trim() : "";
+  const metadataName =
+    typeof user.user_metadata?.name === "string" ? user.user_metadata.name.trim() : "";
   if (metadataName) return metadataName;
 
   const email = user.email?.trim();
@@ -142,7 +143,7 @@ const buildFallbackProfile = (authUser: SupabaseUser): UserProfile => {
 
 const fetchProfile = async (
   userId: string,
-  options?: { retries?: number; retryDelayMs?: number }
+  options?: { retries?: number; retryDelayMs?: number },
 ): Promise<UserProfile | null> => {
   if (!supabase) return null;
 
@@ -168,7 +169,7 @@ const fetchProfile = async (
 
 const hydrateFromSession = async (
   session: Session | null,
-  options?: { allowFallbackProfile?: boolean; profileRetries?: number }
+  options?: { allowFallbackProfile?: boolean; profileRetries?: number },
 ) => {
   if (!session?.user || !supabase) {
     return { profile: null as UserProfile | null, user: null as User | null };
@@ -177,8 +178,7 @@ const hydrateFromSession = async (
   const profile =
     (await fetchProfile(session.user.id, {
       retries: options?.profileRetries ?? 0,
-    })) ||
-    (options?.allowFallbackProfile ? buildFallbackProfile(session.user) : null);
+    })) || (options?.allowFallbackProfile ? buildFallbackProfile(session.user) : null);
 
   return {
     profile,
@@ -408,7 +408,14 @@ export const useAuth = create<AuthState>((set, get) => ({
     } = await supabase.auth.getSession();
 
     const { profile, user } = await hydrateFromSession(session, { profileRetries: 2 });
-    set({ profile, user, initialized: true, configured: true, configError: null, debugMessage: null });
+    set({
+      profile,
+      user,
+      initialized: true,
+      configured: true,
+      configError: null,
+      debugMessage: null,
+    });
   },
   recordUsage: async (seconds) => {
     if (!supabase || seconds < 1) return;
@@ -422,6 +429,13 @@ export const useAuth = create<AuthState>((set, get) => ({
     }
 
     await supabase.auth.signOut();
-    set({ user: null, profile: null, initialized: true, configured: true, configError: null, debugMessage: null });
+    set({
+      user: null,
+      profile: null,
+      initialized: true,
+      configured: true,
+      configError: null,
+      debugMessage: null,
+    });
   },
 }));

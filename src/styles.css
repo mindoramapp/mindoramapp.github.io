@@ -87,8 +87,12 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html { scroll-behavior: smooth; }
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -140,7 +144,9 @@
     bottom: -10px !important;
     transform: translateX(-50%);
   }
-  .react-flow__attribution { background: transparent !important; }
+  .react-flow__attribution {
+    background: transparent !important;
+  }
   .react-flow__controls button {
     background: var(--card) !important;
     color: var(--foreground) !important;
@@ -151,16 +157,27 @@
 @layer utilities {
   .landing-grid {
     background-image:
-      linear-gradient(to right, color-mix(in oklab, var(--color-border) 55%, transparent) 1px, transparent 1px),
-      linear-gradient(to bottom, color-mix(in oklab, var(--color-border) 55%, transparent) 1px, transparent 1px);
+      linear-gradient(
+        to right,
+        color-mix(in oklab, var(--color-border) 55%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--color-border) 55%, transparent) 1px,
+        transparent 1px
+      );
     background-size: 44px 44px;
     mask-image: radial-gradient(circle at center, black 28%, transparent 90%);
   }
 
   .landing-panel {
     border: 1px solid color-mix(in oklab, var(--color-border) 82%, transparent);
-    background:
-      linear-gradient(180deg, color-mix(in oklab, var(--color-card) 92%, transparent), color-mix(in oklab, var(--color-card) 78%, transparent));
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-card) 92%, transparent),
+      color-mix(in oklab, var(--color-card) 78%, transparent)
+    );
     backdrop-filter: blur(24px);
   }
 

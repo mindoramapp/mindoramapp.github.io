@@ -56,7 +56,9 @@ function LoginPage() {
     }
 
     const nextUser = useAuth.getState().user;
-    navigate({ to: nextUser?.role === "superadmin" || nextUser?.accessGranted ? "/dashboard" : "/activate" });
+    navigate({
+      to: nextUser?.role === "superadmin" || nextUser?.accessGranted ? "/dashboard" : "/activate",
+    });
   };
 
   if (!initialized) return null;
@@ -128,7 +130,10 @@ function LoginPage() {
           </button>
         </form>
         <p className="text-sm text-muted-foreground text-center mt-4">
-          Primeiro acesso? <Link to="/register" className="text-primary hover:underline">Criar conta</Link>
+          Primeiro acesso?{" "}
+          <Link to="/register" className="text-primary hover:underline">
+            Criar conta
+          </Link>
         </p>
       </div>
     </div>

@@ -15,7 +15,14 @@ import ReactFlow, {
   type NodeMouseHandler,
   type Viewport,
 } from "reactflow";
-import { CircleHelp, Map as MiniMapIcon, PanelBottomOpen, PanelRightOpen, RotateCcw, SlidersHorizontal } from "lucide-react";
+import {
+  CircleHelp,
+  Map as MiniMapIcon,
+  PanelBottomOpen,
+  PanelRightOpen,
+  RotateCcw,
+  SlidersHorizontal,
+} from "lucide-react";
 import { ContextualTip } from "./ContextualTip";
 import {
   Dialog,
@@ -30,7 +37,13 @@ import { FloatingPanel, PanelDockItem } from "./FloatingPanel";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { layoutTree } from "@/lib/layout";
-import { createBlankMap, upsertMap, type MindMap, type MindNodeData, type ViewportState } from "@/store/maps";
+import {
+  createBlankMap,
+  upsertMap,
+  type MindMap,
+  type MindNodeData,
+  type ViewportState,
+} from "@/store/maps";
 
 const nodeTypes = { mind: MindNode };
 
@@ -65,7 +78,8 @@ function getDescendantIds(nodeId: string, edges: Edge[]): Set<string> {
     if (!currentId) continue;
 
     edges.forEach((edge) => {
-      if (edge.data?.kind === "graph" || edge.source !== currentId || descendants.has(edge.target)) return;
+      if (edge.data?.kind === "graph" || edge.source !== currentId || descendants.has(edge.target))
+        return;
       descendants.add(edge.target);
       queue.push(edge.target);
     });
@@ -74,7 +88,11 @@ function getDescendantIds(nodeId: string, edges: Edge[]): Set<string> {
   return descendants;
 }
 
-function overlapsAnyNode(position: { x: number; y: number }, nodes: Node<MindNodeData>[], ignoreNodeIds: Set<string>) {
+function overlapsAnyNode(
+  position: { x: number; y: number },
+  nodes: Node<MindNodeData>[],
+  ignoreNodeIds: Set<string>,
+) {
   const minHorizontalGap = 210;
   const minVerticalGap = 110;
 
@@ -92,7 +110,7 @@ function findAvailableChildPosition(
   nodes: Node<MindNodeData>[],
   ignoreNodeIds: Set<string>,
   orientation: "horizontal" | "vertical",
-  spawnSide: "left" | "right" | "top" | "bottom"
+  spawnSide: "left" | "right" | "top" | "bottom",
 ) {
   if (!overlapsAnyNode(preferred, nodes, ignoreNodeIds)) return preferred;
 
@@ -138,7 +156,17 @@ function getTreeHandleIds(spawnSide: "left" | "right" | "top" | "bottom") {
   return { sourceHandle: "source-right", targetHandle: "target-left" };
 }
 
-function EditorInner({ map, mode, orientation, connectMode, setConnectMode, organizeSignal, undoSignal, userId, onShowTour }: Props) {
+function EditorInner({
+  map,
+  mode,
+  orientation,
+  connectMode,
+  setConnectMode,
+  organizeSignal,
+  undoSignal,
+  userId,
+  onShowTour,
+}: Props) {
   const isMobile = useIsMobile();
   const [nodes, setNodes, onNodesChange] = useNodesState<MindNodeData>(map.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(map.edges);
@@ -181,6 +209,9 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
     setPendingSource(null);
     setHoverId(null);
     lastSavedViewport.current = map.viewport;
+    // Only reload local state when switching maps: map.nodes/edges change on every autosave and
+    // resetting from them would clobber in-progress edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map.id, setNodes, setEdges]);
 
   useEffect(() => {
@@ -283,9 +314,14 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
 
   useEffect(() => {
     const handler = (event: Event) => {
-      const { id, patch } = (event as CustomEvent).detail as { id: string; patch: Partial<MindNodeData> };
+      const { id, patch } = (event as CustomEvent).detail as {
+        id: string;
+        patch: Partial<MindNodeData>;
+      };
       setNodes((currentNodes) =>
-        currentNodes.map((node) => (node.id === id ? { ...node, data: { ...node.data, ...patch } } : node))
+        currentNodes.map((node) =>
+          node.id === id ? { ...node, data: { ...node.data, ...patch } } : node,
+        ),
       );
     };
     window.addEventListener("mm-node-update", handler);
@@ -312,7 +348,7 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
           transition: "opacity 200ms ease",
         },
       })),
-    [nodes, connectedSet]
+    [nodes, connectedSet],
   );
 
   const styledEdges = useMemo(
@@ -329,7 +365,7 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
           },
         };
       }),
-    [edges, selectedId]
+    [edges, selectedId],
   );
 
   const onConnect = useCallback(
@@ -338,7 +374,7 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
       const exists = edges.some(
         (edge) =>
           (edge.source === params.source && edge.target === params.target) ||
-          (edge.source === params.target && edge.target === params.source)
+          (edge.source === params.target && edge.target === params.source),
       );
       if (exists) return;
 
@@ -349,11 +385,11 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
             id: `e-${params.source}-${params.target}-${Date.now()}`,
             data: { kind: "graph" },
           },
-          currentEdges
-        )
+          currentEdges,
+        ),
       );
     },
-    [edges, setEdges]
+    [edges, setEdges],
   );
 
   const addChild = useCallback(
@@ -361,23 +397,29 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
       parentId: string,
       sibling = false,
       nodeData?: Partial<MindNodeData>,
-      spawnSide?: "left" | "right" | "top" | "bottom"
+      spawnSide?: "left" | "right" | "top" | "bottom",
     ) => {
       const parent = nodes.find((node) => node.id === parentId);
       if (!parent) return;
 
       const id = crypto.randomUUID();
       const targetParent = sibling
-        ? edges.find((edge) => edge.target === parentId && edge.data?.kind !== "graph")?.source ?? parentId
+        ? (edges.find((edge) => edge.target === parentId && edge.data?.kind !== "graph")?.source ??
+          parentId)
         : parentId;
       const base = nodes.find((node) => node.id === targetParent) || parent;
       const resolvedSpawnSide = spawnSide || (orientation === "vertical" ? "bottom" : "right");
-      const childCount = edges.filter((edge) => edge.source === targetParent && edge.data?.kind !== "graph").length;
+      const childCount = edges.filter(
+        (edge) => edge.source === targetParent && edge.data?.kind !== "graph",
+      ).length;
       const angle = childCount * 0.6 - 0.6;
       const horizontalDirection = resolvedSpawnSide === "left" ? -1 : 1;
       const verticalDirection = resolvedSpawnSide === "top" ? -1 : 1;
       const dx = orientation === "vertical" ? Math.cos(angle) * 40 : horizontalDirection * 240;
-      const dy = orientation === "vertical" ? verticalDirection * 140 : Math.sin(angle) * 40 + childCount * 30 - 30;
+      const dy =
+        orientation === "vertical"
+          ? verticalDirection * 140
+          : Math.sin(angle) * 40 + childCount * 30 - 30;
       const preferredPosition = {
         x: base.position.x + dx + (orientation === "vertical" ? Math.cos(angle) * 220 : 0),
         y: base.position.y + dy,
@@ -387,7 +429,7 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
         nodes,
         new Set<string>([targetParent]),
         orientation,
-        resolvedSpawnSide
+        resolvedSpawnSide,
       );
       const handleIds = getTreeHandleIds(resolvedSpawnSide);
 
@@ -416,7 +458,7 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
       ]);
       setSelectedId(id);
     },
-    [nodes, edges, orientation, map.mode, setNodes, setEdges]
+    [nodes, edges, orientation, map.mode, setNodes, setEdges],
   );
 
   const onNodeClick: NodeMouseHandler = useCallback(
@@ -431,7 +473,7 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
           const exists = edges.some(
             (edge) =>
               (edge.source === pendingSource && edge.target === node.id) ||
-              (edge.source === node.id && edge.target === pendingSource)
+              (edge.source === node.id && edge.target === pendingSource),
           );
           if (!exists) {
             setEdges((currentEdges) => [
@@ -451,12 +493,15 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
 
       setSelectedId(node.id);
     },
-    [connectMode, pendingSource, edges, setEdges]
+    [connectMode, pendingSource, edges, setEdges],
   );
 
   useEffect(() => {
     const handler = (event: Event) => {
-      const { id, side } = (event as CustomEvent).detail as { id: string; side?: "left" | "right" | "top" | "bottom" };
+      const { id, side } = (event as CustomEvent).detail as {
+        id: string;
+        side?: "left" | "right" | "top" | "bottom";
+      };
       addChild(id, false, undefined, side);
     };
     window.addEventListener("mm-node-add-child", handler);
@@ -500,7 +545,9 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
         const idsToRemove = getDescendantIds(id, edges);
         setNodes((currentNodes) => currentNodes.filter((node) => !idsToRemove.has(node.id)));
         setEdges((currentEdges) =>
-          currentEdges.filter((edge) => !idsToRemove.has(edge.source) && !idsToRemove.has(edge.target))
+          currentEdges.filter(
+            (edge) => !idsToRemove.has(edge.source) && !idsToRemove.has(edge.target),
+          ),
         );
         setSelectedId(null);
         return;
@@ -515,7 +562,7 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
             { id: map.ownerId, email: map.ownerEmail },
             `${sourceNode.data.label || "Mapa"} - conectado`,
             map.mode,
-            { folderId: map.folderId, parentMapId: map.id }
+            { folderId: map.folderId, parentMapId: map.id },
           );
 
           await upsertMap(linkedMap);
@@ -535,7 +582,19 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
 
     window.addEventListener("mm-node-action", handler);
     return () => window.removeEventListener("mm-node-action", handler);
-  }, [addChild, edges, map.folderId, map.id, map.mode, map.ownerEmail, map.ownerId, nodes, setConnectMode, setEdges, setNodes]);
+  }, [
+    addChild,
+    edges,
+    map.folderId,
+    map.id,
+    map.mode,
+    map.ownerEmail,
+    map.ownerId,
+    nodes,
+    setConnectMode,
+    setEdges,
+    setNodes,
+  ]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -569,7 +628,9 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
         const idsToRemove = getDescendantIds(selectedId, edges);
         setNodes((currentNodes) => currentNodes.filter((node) => !idsToRemove.has(node.id)));
         setEdges((currentEdges) =>
-          currentEdges.filter((edge) => !idsToRemove.has(edge.source) && !idsToRemove.has(edge.target))
+          currentEdges.filter(
+            (edge) => !idsToRemove.has(edge.source) && !idsToRemove.has(edge.target),
+          ),
         );
         setSelectedId(null);
       }
@@ -582,10 +643,12 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
   const patchNode = useCallback(
     (id: string, patch: Partial<MindNodeData>) => {
       setNodes((currentNodes) =>
-        currentNodes.map((node) => (node.id === id ? { ...node, data: { ...node.data, ...patch } } : node))
+        currentNodes.map((node) =>
+          node.id === id ? { ...node, data: { ...node.data, ...patch } } : node,
+        ),
       );
     },
-    [setNodes]
+    [setNodes],
   );
 
   const deleteNode = useCallback(
@@ -594,11 +657,13 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
       const idsToRemove = getDescendantIds(id, edges);
       setNodes((currentNodes) => currentNodes.filter((node) => !idsToRemove.has(node.id)));
       setEdges((currentEdges) =>
-        currentEdges.filter((edge) => !idsToRemove.has(edge.source) && !idsToRemove.has(edge.target))
+        currentEdges.filter(
+          (edge) => !idsToRemove.has(edge.source) && !idsToRemove.has(edge.target),
+        ),
       );
       setSelectedId(null);
     },
-    [edges, setNodes, setEdges]
+    [edges, setNodes, setEdges],
   );
 
   const keywordConnect = useCallback(
@@ -634,7 +699,7 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
         const exists = edges.some(
           (edge) =>
             (edge.source === id && edge.target === target.id) ||
-            (edge.source === target.id && edge.target === id)
+            (edge.source === target.id && edge.target === id),
         );
         if (!exists) {
           newEdges.push({
@@ -649,11 +714,13 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
       if (newEdges.length > 0) {
         setEdges((currentEdges) => [...currentEdges, ...newEdges]);
         toast.success(
-          scope === "one" ? "Conexão sugerida adicionada." : `${newEdges.length} conexões por palavra-chave foram criadas.`
+          scope === "one"
+            ? "Conexão sugerida adicionada."
+            : `${newEdges.length} conexões por palavra-chave foram criadas.`,
         );
       }
     },
-    [nodes, edges, setEdges]
+    [nodes, edges, setEdges],
   );
 
   const persistViewport = useCallback((nextViewport: Viewport | ViewportState) => {
@@ -689,7 +756,7 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
     const exists = edges.some(
       (edge) =>
         (edge.source === selectedId && edge.target === hoverId) ||
-        (edge.source === hoverId && edge.target === selectedId)
+        (edge.source === hoverId && edge.target === selectedId),
     );
     return exists ? null : { source: selectedId, target: hoverId };
   }, [hoverId, selectedId, nodes, edges]);
@@ -823,9 +890,16 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
           widthClassName="w-[340px]"
           onToggle={toggleInspector}
           onMinimize={() => setInspectorMinimized(true)}
-          onPositionChange={(position) => setPanelPositions((current) => ({ ...current, inspector: position }))}
+          onPositionChange={(position) =>
+            setPanelPositions((current) => ({ ...current, inspector: position }))
+          }
         >
-          <PropertiesPanel node={selectedNode} onPatch={patchNode} onDelete={deleteNode} onKeywordConnect={keywordConnect} />
+          <PropertiesPanel
+            node={selectedNode}
+            onPatch={patchNode}
+            onDelete={deleteNode}
+            onKeywordConnect={keywordConnect}
+          />
         </FloatingPanel>
       )}
 
@@ -857,22 +931,42 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
           widthClassName="w-[290px]"
           onToggle={toggleHelp}
           onMinimize={() => setHelpMinimized(true)}
-          onPositionChange={(position) => setPanelPositions((current) => ({ ...current, help: position }))}
+          onPositionChange={(position) =>
+            setPanelPositions((current) => ({ ...current, help: position }))
+          }
         >
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>
-              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">Duplo-clique</kbd> no nó cria filho
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
+                Duplo-clique
+              </kbd>{" "}
+              no nó cria filho
             </p>
             <p>
-              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">Tab</kbd> cria filho ·{" "}
-              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">Enter</kbd> cria irmão
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
+                Tab
+              </kbd>{" "}
+              cria filho ·{" "}
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
+                Enter
+              </kbd>{" "}
+              cria irmão
             </p>
             <p>
-              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">Ctrl+Z</kbd> desfaz ·{" "}
-              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">Del</kbd> remove
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
+                Ctrl+Z
+              </kbd>{" "}
+              desfaz ·{" "}
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
+                Del
+              </kbd>{" "}
+              remove
             </p>
             <p>
-              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">Clique direito</kbd> abre menu de ações no nó
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
+                Clique direito
+              </kbd>{" "}
+              abre menu de ações no nó
             </p>
             {isMobile && (
               <p>Toque no nó para selecionar e use as abas inferiores para expandir os painéis.</p>
@@ -895,7 +989,6 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
           </div>
         </FloatingPanel>
       )}
-
 
       {isMobile && !mobilePanelExpanded && (
         <div className="absolute bottom-3 left-1/2 z-20 flex max-w-[calc(100%-24px)] -translate-x-1/2 gap-2 overflow-x-auto rounded-full border border-border/80 bg-card/92 p-2 shadow-[var(--shadow-soft)] backdrop-blur-xl">
@@ -933,21 +1026,30 @@ function EditorInner({ map, mode, orientation, connectMode, setConnectMode, orga
         />
       )}
 
-      <Dialog open={Boolean(edgePendingDelete)} onOpenChange={(open) => !open && setEdgePendingDelete(null)}>
+      <Dialog
+        open={Boolean(edgePendingDelete)}
+        onOpenChange={(open) => !open && setEdgePendingDelete(null)}
+      >
         <DialogContent className="rounded-3xl">
           <DialogHeader>
             <DialogTitle>Remover conexão</DialogTitle>
             <DialogDescription>Esta conexão será removida do mapa atual.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <button type="button" onClick={() => setEdgePendingDelete(null)} className="rounded-xl px-4 py-2 hover:bg-muted">
+            <button
+              type="button"
+              onClick={() => setEdgePendingDelete(null)}
+              className="rounded-xl px-4 py-2 hover:bg-muted"
+            >
               Cancelar
             </button>
             <button
               type="button"
               onClick={() => {
                 if (!edgePendingDelete) return;
-                setEdges((currentEdges) => currentEdges.filter((currentEdge) => currentEdge.id !== edgePendingDelete.id));
+                setEdges((currentEdges) =>
+                  currentEdges.filter((currentEdge) => currentEdge.id !== edgePendingDelete.id),
+                );
                 setEdgePendingDelete(null);
                 toast.success("Conexão removida.");
               }}
@@ -969,4 +1071,3 @@ export function MindMapEditor(props: Props) {
     </ReactFlowProvider>
   );
 }
-

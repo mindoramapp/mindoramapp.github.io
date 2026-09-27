@@ -60,7 +60,11 @@ export const createAccessCode = async (targetUserId: string, expiresInHours: num
   };
 };
 
-export const buildAccessCodeEmail = (targetEmail: string, accessCode: string, expiresAt: string) => {
+export const buildAccessCodeEmail = (
+  targetEmail: string,
+  accessCode: string,
+  expiresAt: string,
+) => {
   const subject = "Seu codigo de acesso ao Mindora";
   const body = [
     "Ola,",

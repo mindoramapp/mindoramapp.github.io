@@ -26,7 +26,11 @@ import { useAuth } from "@/store/auth";
 
 const sectionFade = {
   hidden: { opacity: 0, y: 36 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+  },
 };
 
 const heroCards = [
@@ -39,32 +43,38 @@ const benefits = [
   {
     icon: Network,
     title: "Conexões inteligentes",
-    description: "Relacione ideias distantes, cruze contextos e revele padrões que não aparecem em listas comuns.",
+    description:
+      "Relacione ideias distantes, cruze contextos e revele padrões que não aparecem em listas comuns.",
   },
   {
     icon: BrainCircuit,
     title: "Pensamento assistido por IA",
-    description: "Estruture temas, refine ramos e ganhe apoio para transformar intuições em mapas claros e acionáveis.",
+    description:
+      "Estruture temas, refine ramos e ganhe apoio para transformar intuições em mapas claros e acionáveis.",
   },
   {
     icon: Workflow,
     title: "Navegação fluida",
-    description: "Entre em submapas, retorne ao contexto anterior e mantenha o raciocínio visual sempre em movimento.",
+    description:
+      "Entre em submapas, retorne ao contexto anterior e mantenha o raciocínio visual sempre em movimento.",
   },
   {
     icon: PanelLeftOpen,
     title: "Organização premium",
-    description: "Pastas, favoritos, atalhos visuais e uma experiência desenhada para manter tudo sob controle.",
+    description:
+      "Pastas, favoritos, atalhos visuais e uma experiência desenhada para manter tudo sob controle.",
   },
   {
     icon: ShieldCheck,
     title: "Colaboração com governança",
-    description: "Controle o acesso inicial, gerencie aprovações e mantenha o ambiente pronto para equipes exigentes.",
+    description:
+      "Controle o acesso inicial, gerencie aprovações e mantenha o ambiente pronto para equipes exigentes.",
   },
   {
     icon: Zap,
     title: "Produtividade real",
-    description: "Do brainstorming ao plano de execução, reduza atrito e avance com mais foco e menos ruído mental.",
+    description:
+      "Do brainstorming ao plano de execução, reduza atrito e avance com mais foco e menos ruído mental.",
   },
 ];
 
@@ -148,7 +158,9 @@ function QuickAccessCard() {
     }
 
     const nextUser = useAuth.getState().user;
-    navigate({ to: nextUser?.role === "superadmin" || nextUser?.accessGranted ? "/dashboard" : "/activate" });
+    navigate({
+      to: nextUser?.role === "superadmin" || nextUser?.accessGranted ? "/dashboard" : "/activate",
+    });
   };
 
   return (
@@ -157,7 +169,9 @@ function QuickAccessCard() {
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-foreground">Acesso rápido</p>
-          <p className="mt-1 text-xs text-muted-foreground">Entre em segundos ou crie sua conta agora.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Entre em segundos ou crie sua conta agora.
+          </p>
         </div>
         <div className="grid h-10 w-10 place-items-center rounded-2xl bg-primary/10 text-primary">
           <MoonStar size={18} />
@@ -234,7 +248,7 @@ export function LandingPage() {
       { label: "Diferenciais", id: "diferenciais" },
       { label: "Produtividade", id: "produtividade" },
     ],
-    []
+    [],
   );
 
   return (
@@ -248,7 +262,11 @@ export function LandingPage() {
 
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/72 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <button type="button" onClick={() => scrollToId("top")} className="flex items-center gap-3 text-left">
+          <button
+            type="button"
+            onClick={() => scrollToId("top")}
+            className="flex items-center gap-3 text-left"
+          >
             <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[image:var(--gradient-hero)] text-primary-foreground shadow-[var(--shadow-soft)]">
               <Network size={20} />
             </span>
@@ -293,7 +311,14 @@ export function LandingPage() {
       <main id="top">
         <section className="relative isolate overflow-hidden">
           <div className="absolute inset-0 -z-20">
-            <video autoPlay muted loop playsInline preload="metadata" className="h-full w-full object-cover">
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              className="h-full w-full object-cover"
+            >
               <source src="/mindora-hero.mp4" type="video/mp4" />
             </video>
           </div>
@@ -319,8 +344,8 @@ export function LandingPage() {
                   Transforme pensamentos em conexões inteligentes.
                 </h1>
                 <p className="mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-                  O MindoraMap organiza ideias, revela relações escondidas e acelera o raciocínio com uma experiência
-                  visual premium, fluida e pronta para trabalho sério.
+                  O MindoraMap organiza ideias, revela relações escondidas e acelera o raciocínio
+                  com uma experiência visual premium, fluida e pronta para trabalho sério.
                 </p>
               </motion.div>
 
@@ -355,7 +380,9 @@ export function LandingPage() {
               >
                 {heroCards.map((card) => (
                   <div key={card.title} className="landing-panel rounded-[24px] p-4">
-                    <div className="text-xs uppercase tracking-[0.22em] text-muted-foreground">{card.title}</div>
+                    <div className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+                      {card.title}
+                    </div>
                     <div className="mt-3 text-3xl font-semibold tracking-tight">{card.value}</div>
                     <p className="mt-2 text-sm text-muted-foreground">{card.hint}</p>
                   </div>
@@ -380,7 +407,11 @@ export function LandingPage() {
                 className="absolute rounded-full border border-white/18 bg-background/70 px-4 py-2 text-xs font-medium text-foreground shadow-[var(--shadow-soft)] backdrop-blur"
                 style={{ left: node.x, top: node.y }}
                 animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 4 + index, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                transition={{
+                  duration: 4 + index,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "easeInOut",
+                }}
               >
                 {node.title}
               </motion.div>
@@ -395,8 +426,8 @@ export function LandingPage() {
               Da ideia bruta ao mapa estratégico com clareza incomum.
             </h2>
             <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
-              Menos caos, mais contexto. O MindoraMap une pensamento visual, organização e tecnologia para ampliar o
-              seu raciocínio.
+              Menos caos, mais contexto. O MindoraMap une pensamento visual, organização e
+              tecnologia para ampliar o seu raciocínio.
             </p>
           </Reveal>
 
@@ -410,7 +441,9 @@ export function LandingPage() {
                       <Icon size={20} />
                     </div>
                     <h3 className="mt-5 text-xl font-semibold">{benefit.title}</h3>
-                    <p className="mt-3 text-sm leading-7 text-muted-foreground">{benefit.description}</p>
+                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                      {benefit.description}
+                    </p>
                   </div>
                 </Reveal>
               );
@@ -426,8 +459,8 @@ export function LandingPage() {
                 Um canvas que parece vivo e entende a forma como você pensa.
               </h2>
               <p className="mt-4 text-base leading-7 text-muted-foreground">
-                Crie ramos, conecte temas, aprofunde ideias em submapas e mantenha contexto mesmo em estruturas mais
-                densas.
+                Crie ramos, conecte temas, aprofunde ideias em submapas e mantenha contexto mesmo em
+                estruturas mais densas.
               </p>
               <div className="mt-8 space-y-3">
                 {[
@@ -435,7 +468,10 @@ export function LandingPage() {
                   "Submapas para aprofundar sem poluir o panorama principal",
                   "Experiência visual refinada para explorar raciocínio complexo",
                 ].map((item) => (
-                  <div key={item} className="flex items-start gap-3 rounded-2xl border border-border/60 bg-card/60 p-4">
+                  <div
+                    key={item}
+                    className="flex items-start gap-3 rounded-2xl border border-border/60 bg-card/60 p-4"
+                  >
                     <CheckCircle2 size={18} className="mt-0.5 text-primary" />
                     <span className="text-sm text-muted-foreground">{item}</span>
                   </div>
@@ -447,7 +483,9 @@ export function LandingPage() {
               <div className="landing-panel relative overflow-hidden rounded-[32px] p-4 sm:p-6">
                 <div className="mb-4 flex items-center justify-between rounded-[22px] border border-border/70 bg-background/70 px-4 py-3 backdrop-blur">
                   <div>
-                    <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Workspace</div>
+                    <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                      Workspace
+                    </div>
                     <div className="mt-1 text-lg font-semibold">Estratégia Q3 · MindoraMap</div>
                   </div>
                   <div className="flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1 text-xs text-muted-foreground">
@@ -462,50 +500,115 @@ export function LandingPage() {
                     <motion.div
                       className="absolute left-[8%] top-[40%] rounded-[24px] border border-primary/30 bg-primary/12 px-5 py-4 shadow-[var(--shadow-soft)] backdrop-blur"
                       animate={{ y: [0, -10, 0] }}
-                      transition={{ duration: 6, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                      transition={{
+                        duration: 6,
+                        repeat: Number.POSITIVE_INFINITY,
+                        ease: "easeInOut",
+                      }}
                     >
                       <div className="text-sm font-semibold">Visão central</div>
-                      <div className="mt-1 text-xs text-muted-foreground">Objetivos, riscos e prioridades</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Objetivos, riscos e prioridades
+                      </div>
                     </motion.div>
                     <motion.div
                       className="absolute left-[38%] top-[12%] rounded-[24px] border border-border/70 bg-card/75 px-5 py-4 shadow-[var(--shadow-soft)] backdrop-blur"
                       animate={{ y: [0, 8, 0] }}
-                      transition={{ duration: 5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                      transition={{
+                        duration: 5,
+                        repeat: Number.POSITIVE_INFINITY,
+                        ease: "easeInOut",
+                      }}
                     >
                       <div className="text-sm font-semibold">Pesquisa</div>
-                      <div className="mt-1 text-xs text-muted-foreground">Sinais de mercado e demanda</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Sinais de mercado e demanda
+                      </div>
                     </motion.div>
                     <motion.div
                       className="absolute right-[8%] top-[38%] rounded-[24px] border border-border/70 bg-card/75 px-5 py-4 shadow-[var(--shadow-soft)] backdrop-blur"
                       animate={{ y: [0, -8, 0] }}
-                      transition={{ duration: 5.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                      transition={{
+                        duration: 5.5,
+                        repeat: Number.POSITIVE_INFINITY,
+                        ease: "easeInOut",
+                      }}
                     >
                       <div className="text-sm font-semibold">Execução</div>
-                      <div className="mt-1 text-xs text-muted-foreground">Plano tático e ownership</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Plano tático e ownership
+                      </div>
                     </motion.div>
                     <motion.div
                       className="absolute bottom-[10%] left-[28%] rounded-[24px] border border-cyan-400/30 bg-cyan-400/10 px-5 py-4 shadow-[var(--shadow-soft)] backdrop-blur"
                       animate={{ y: [0, 10, 0] }}
-                      transition={{ duration: 6.2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                      transition={{
+                        duration: 6.2,
+                        repeat: Number.POSITIVE_INFINITY,
+                        ease: "easeInOut",
+                      }}
                     >
                       <div className="text-sm font-semibold">Conexão cruzada</div>
-                      <div className="mt-1 text-xs text-muted-foreground">Vínculo entre risco, pesquisa e entrega</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Vínculo entre risco, pesquisa e entrega
+                      </div>
                     </motion.div>
 
-                    <svg className="absolute inset-0 h-full w-full" viewBox="0 0 1000 620" fill="none" aria-hidden="true">
-                      <path d="M250 320C340 250 420 210 510 180" stroke="url(#line1)" strokeWidth="2.5" strokeDasharray="10 8" />
-                      <path d="M300 340C450 360 640 360 760 310" stroke="url(#line2)" strokeWidth="2.5" strokeDasharray="10 8" />
-                      <path d="M460 470C470 390 550 330 700 300" stroke="url(#line3)" strokeWidth="2.5" strokeDasharray="10 8" />
+                    <svg
+                      className="absolute inset-0 h-full w-full"
+                      viewBox="0 0 1000 620"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M250 320C340 250 420 210 510 180"
+                        stroke="url(#line1)"
+                        strokeWidth="2.5"
+                        strokeDasharray="10 8"
+                      />
+                      <path
+                        d="M300 340C450 360 640 360 760 310"
+                        stroke="url(#line2)"
+                        strokeWidth="2.5"
+                        strokeDasharray="10 8"
+                      />
+                      <path
+                        d="M460 470C470 390 550 330 700 300"
+                        stroke="url(#line3)"
+                        strokeWidth="2.5"
+                        strokeDasharray="10 8"
+                      />
                       <defs>
-                        <linearGradient id="line1" x1="250" y1="320" x2="510" y2="180" gradientUnits="userSpaceOnUse">
+                        <linearGradient
+                          id="line1"
+                          x1="250"
+                          y1="320"
+                          x2="510"
+                          y2="180"
+                          gradientUnits="userSpaceOnUse"
+                        >
                           <stop stopColor="rgba(93,95,255,0.2)" />
                           <stop offset="1" stopColor="rgba(93,95,255,0.95)" />
                         </linearGradient>
-                        <linearGradient id="line2" x1="300" y1="340" x2="760" y2="310" gradientUnits="userSpaceOnUse">
+                        <linearGradient
+                          id="line2"
+                          x1="300"
+                          y1="340"
+                          x2="760"
+                          y2="310"
+                          gradientUnits="userSpaceOnUse"
+                        >
                           <stop stopColor="rgba(34,211,238,0.4)" />
                           <stop offset="1" stopColor="rgba(136,122,255,0.95)" />
                         </linearGradient>
-                        <linearGradient id="line3" x1="460" y1="470" x2="700" y2="300" gradientUnits="userSpaceOnUse">
+                        <linearGradient
+                          id="line3"
+                          x1="460"
+                          y1="470"
+                          x2="700"
+                          y2="300"
+                          gradientUnits="userSpaceOnUse"
+                        >
                           <stop stopColor="rgba(16,185,129,0.2)" />
                           <stop offset="1" stopColor="rgba(34,211,238,0.8)" />
                         </linearGradient>
@@ -531,11 +634,16 @@ export function LandingPage() {
               <div className="landing-panel rounded-[32px] p-6 sm:p-8">
                 <div className="flex items-center gap-3 text-primary">
                   <GitBranchPlus size={20} />
-                  <span className="text-sm font-semibold uppercase tracking-[0.22em]">Conhecimento conectado</span>
+                  <span className="text-sm font-semibold uppercase tracking-[0.22em]">
+                    Conhecimento conectado
+                  </span>
                 </div>
                 <div className="mt-8 space-y-5">
                   {differentiators.map((item) => (
-                    <div key={item} className="flex items-start gap-4 rounded-[22px] border border-border/60 bg-background/50 p-4">
+                    <div
+                      key={item}
+                      className="flex items-start gap-4 rounded-[22px] border border-border/60 bg-background/50 p-4"
+                    >
                       <CheckCircle2 size={18} className="mt-0.5 text-primary" />
                       <span className="text-sm leading-7 text-muted-foreground">{item}</span>
                     </div>
@@ -591,7 +699,8 @@ export function LandingPage() {
               Métrica visual para uma sensação imediata de progresso.
             </h2>
             <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
-              Números fictícios, impacto real: tudo aqui foi desenhado para comunicar foco, velocidade e ordem mental.
+              Números fictícios, impacto real: tudo aqui foi desenhado para comunicar foco,
+              velocidade e ordem mental.
             </p>
           </Reveal>
 
@@ -599,7 +708,9 @@ export function LandingPage() {
             {stats.map((stat, index) => (
               <Reveal key={stat.label} delay={index * 0.06}>
                 <div className="landing-panel rounded-[28px] p-6 text-center">
-                  <div className="text-4xl font-semibold tracking-[-0.05em] text-primary sm:text-5xl">{stat.value}</div>
+                  <div className="text-4xl font-semibold tracking-[-0.05em] text-primary sm:text-5xl">
+                    {stat.value}
+                  </div>
                   <p className="mt-3 text-sm leading-7 text-muted-foreground">{stat.label}</p>
                 </div>
               </Reveal>
@@ -618,8 +729,8 @@ export function LandingPage() {
                     Leve seus pensamentos para um ambiente onde conexões viram vantagem competitiva.
                   </h2>
                   <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
-                    Crie sua conta, organize seus mapas e experimente uma nova forma de estruturar conhecimento, foco e
-                    execução.
+                    Crie sua conta, organize seus mapas e experimente uma nova forma de estruturar
+                    conhecimento, foco e execução.
                   </p>
                 </div>
 
@@ -654,20 +765,31 @@ export function LandingPage() {
               </span>
               <div>
                 <div className="text-sm font-semibold">MindoraMap</div>
-                <div className="text-xs text-muted-foreground">Produtividade visual com inteligência aplicada</div>
+                <div className="text-xs text-muted-foreground">
+                  Produtividade visual com inteligência aplicada
+                </div>
               </div>
             </div>
             <p className="mt-4 max-w-xl text-sm leading-7 text-muted-foreground">
-              Uma experiência pensada para transformar caos mental em estrutura clara, conectada e escalável.
+              Uma experiência pensada para transformar caos mental em estrutura clara, conectada e
+              escalável.
             </p>
           </div>
 
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <button type="button" onClick={() => scrollToId("beneficios")} className="transition-colors hover:text-foreground">
+              <button
+                type="button"
+                onClick={() => scrollToId("beneficios")}
+                className="transition-colors hover:text-foreground"
+              >
                 Benefícios
               </button>
-              <button type="button" onClick={() => scrollToId("showcase")} className="transition-colors hover:text-foreground">
+              <button
+                type="button"
+                onClick={() => scrollToId("showcase")}
+                className="transition-colors hover:text-foreground"
+              >
                 Showcase
               </button>
               <Link to="/login" className="transition-colors hover:text-foreground">
