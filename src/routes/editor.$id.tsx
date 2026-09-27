@@ -14,6 +14,7 @@ import {
   Wand2,
   Undo2,
   Redo2,
+  GraduationCap,
 } from "lucide-react";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { ExportMenu } from "@/components/ExportMenu";
@@ -232,6 +233,14 @@ function EditorPage() {
         </button>
 
         <ExportMenu />
+
+        <button
+          onClick={() => navigate({ to: "/review/$id", params: { id: map.id } })}
+          className="px-3 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center gap-1.5"
+          title="Revisar este mapa com cartões"
+        >
+          <GraduationCap size={14} /> Revisar
+        </button>
 
         <button
           onClick={() => window.dispatchEvent(new Event("mm-center"))}

@@ -13,6 +13,32 @@ as decisões de arquitetura e a ordem de implementação.
 | Gateway de pagamento | **A definir.** A Etapa 7 começa com um adaptador de desenvolvimento.                     |
 | Backend              | **Supabase** (Postgres + RLS + funções; Edge Functions para pagamentos e IA).            |
 
+## Posicionamento e diferenciais
+
+Preço baixo atrai, mas é fácil de copiar. O Mindora combina o preço com um **público claro** e
+recursos que as ferramentas genéricas (XMind, MindMeister, Miro) não fazem bem para ele.
+
+**Público:** estudantes brasileiros (ENEM, concursos, faculdade), e professores e turmas como
+extensão. Produto e conteúdo 100% em português, PIX e planos semestral/anual alinhados ao
+calendário de estudos.
+
+| #   | Diferencial                                                                                                                               | Status               |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| 1   | **Modo revisão:** cada ramo vira um cartão, com revisão espaçada (SM-2 simplificado), domínio do mapa em % e próxima revisão              | ✅ Feito             |
+| 2   | **IA de conversão:** PDF, slides, texto, edital ou transcrição de vídeo → mapa, com créditos por plano                                    | Planejado (Etapa 8)  |
+| 3   | **Galeria pública + compartilhamento no WhatsApp com prévia do mapa:** páginas indexáveis ("mapa mental sobre X") como motor de aquisição | Planejado (Etapa 9)  |
+| 4   | **Mapas conectados** como base de conhecimento da disciplina (mapa-índice, conexões entre mapas)                                          | Parcial (submapas)   |
+| 5   | **Editar como lista, ver como mapa**, e PWA instalável/offline para revisar no celular                                                    | Planejado (Etapa 4+) |
+| 6   | **Templates por disciplina e por edital**                                                                                                 | Planejado (Etapa 10) |
+
+**Não priorizar:** colaboração em tempo real (cara e dominada por Miro/Canva; fica simples no
+Ouro) e personalização visual extensa.
+
+**Modo revisão — decisões:** o progresso fica na tabela `review_cards` (por usuário, mapa e
+nó), separado do conteúdo, para não alterar a versão do mapa nem o desfazer do editor. Um
+ramo conta como "dominado" quando o intervalo até a próxima revisão chega a 3 dias ou mais. O
+recurso está disponível em todos os planos, por ser o principal argumento de aquisição.
+
 ---
 
 ## 1. Stack encontrada
@@ -243,18 +269,21 @@ aplicadas antes do deploy do frontend novo: o `upsert` antigo continua funcionan
 
 ## 13. Ordem de implementação
 
-| Etapa | Conteúdo                                                                                                                                                                          |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0     | Base: estrutura `features/`, config de env, primitivos de UI, migração do banco (profiles, plans, subscriptions, maps com version/soft delete, folders), testes de SQL com PGlite |
-| 1     | Autenticação completa (PKCE, Google, esqueci/redefinir senha, lembrar-me, termos), onboarding de perfil (o convite continua)                                                      |
-| 2     | Repositório de mapas + autosave versionado + status de salvamento + lixeira + favoritos                                                                                           |
-| 3     | AppShell (sidebar/header), Dashboard, Meus mapas (cards/lista, ordenação, paginação), Pastas                                                                                      |
-| 4     | Refatoração do editor (store, atalhos, estilo de nó, topbar com status/zoom), criação instantânea                                                                                 |
-| 5     | Landing page nova (hero, recursos, como funciona, templates, preços, FAQ, CTA)                                                                                                    |
-| 6     | Entitlements no frontend, "Meu plano", UpgradeDialog, exportação PDF e marca d'água                                                                                               |
-| 7     | Pagamentos (Edge Functions, adaptador do gateway escolhido, webhooks)                                                                                                             |
-| 8     | Página de templates com os 15 modelos                                                                                                                                             |
-| 9+    | Compartilhamento, IA com créditos, histórico, admin e métricas, colaboração                                                                                                       |
+| Etapa | Conteúdo                                                                                                                                              | Status   |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 0     | Base: planos e limites aplicados no banco, `save_map` versionado, convite garantido por RLS, testes de SQL com PGlite                                 | ✅ Feito |
+| R     | Modo revisão (diferencial nº 1): cartões por ramo, revisão espaçada, domínio do mapa                                                                  | ✅ Feito |
+| 1     | Autenticação completa (PKCE, Google, esqueci/redefinir senha, lembrar-me, termos), onboarding de perfil com o objetivo de estudo (o convite continua) |          |
+| 2     | Autosave versionado com status de salvamento (hoje, sair do editor em menos de 300 ms após uma edição a descarta) + lixeira + favoritos               |          |
+| 3     | AppShell (sidebar/header), Dashboard com "para revisar hoje", Meus mapas (cards/lista, ordenação, paginação), Pastas                                  |          |
+| 4     | Refatoração do editor (store, atalhos, estilo de nó, topbar com status/zoom), criação instantânea, visão "editar como lista"                          |          |
+| 5     | Landing page nova com o posicionamento em estudo (hero, recursos, como funciona, templates, preços, FAQ, CTA)                                         |          |
+| 6     | Entitlements no frontend, "Meu plano", UpgradeDialog, exportação PDF e marca d'água                                                                   |          |
+| 7     | Pagamentos (Edge Functions, adaptador do gateway, webhooks), com PIX e planos semestral/anual                                                         |          |
+| 8     | IA de conversão (PDF/texto/edital → mapa) com créditos e registro em `ai_usage`                                                                       |          |
+| 9     | Galeria pública e prévia no WhatsApp (exige trocar o roteamento `#/` por URLs reais pré-renderizadas)                                                 |          |
+| 10    | Templates por disciplina e edital (página `/templates`)                                                                                               |          |
+| 11+   | Professor/turma, PWA offline, compartilhamento com permissões, histórico, admin e métricas, colaboração                                               |          |
 
 Cada etapa termina com typecheck, lint, testes (unitários e SQL), build e verificação no navegador.
 

@@ -11,6 +11,10 @@ Zustand · Tailwind CSS 4 · Supabase (auth + banco).
 No editor: desfazer/refazer (Ctrl+Z / Ctrl+Shift+Z), exportação em PNG, SVG, Markdown e
 JSON, e importação de JSON pelo dashboard.
 
+**Modo revisão** (botão "Revisar" no editor): cada ramo do mapa vira um cartão de estudo, com
+revisão espaçada. Tecla Espaço revela a resposta; 1, 2 e 3 avaliam. O progresso fica em
+`review_cards`, e o domínio do mapa aparece em %.
+
 ## Desenvolvimento
 
 ```bash
