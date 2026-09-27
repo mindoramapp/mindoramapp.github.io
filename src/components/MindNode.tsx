@@ -1,5 +1,5 @@
 // Custom mind map node - supports text, checklist, code, link
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
 import { CheckSquare, Square, Code2, Link as LinkIcon, Plus, StickyNote, Type } from "lucide-react";
 import type { MindNodeData, NodeKind } from "@/store/maps";
@@ -28,8 +28,10 @@ const HANDLE_DEFINITIONS = [
 ] as const;
 
 const NODE_STYLE: React.CSSProperties = {
-  minWidth: 140,
-  maxWidth: 260,
+  // Wide enough for a short phrase per line, narrow enough that long text wraps into a few
+  // balanced lines instead of one endless line (text-only nodes get a bit more room).
+  minWidth: "var(--mm-node-min-width, 140px)",
+  maxWidth: "var(--mm-node-max-width, 260px)",
   background: "var(--mm-node-bg, var(--card))",
   color: "var(--mm-node-text, var(--card-foreground))",
   borderColor: "var(--mm-node-border-color, var(--node-border))",
@@ -89,12 +91,20 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
   const [editing, setEditing] = useState(false);
   const snappedTap = useRef(false);
   const [value, setValue] = useState(data.label);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const kind = data.kind || "text";
 
   useEffect(() => {
     setValue(data.label);
   }, [data.label]);
+
+  // Grow the edit field with its text (browsers without `field-sizing: content`).
+  useLayoutEffect(() => {
+    const field = inputRef.current;
+    if (!editing || !field) return;
+    field.style.height = "auto";
+    field.style.height = `${field.scrollHeight}px`;
+  }, [editing, value]);
 
   useEffect(() => {
     if (!editing) return;
@@ -136,6 +146,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
       | "edit"
       | "notes"
       | "connect"
+      | "toggle-box"
       | "create-linked-map"
       | "delete",
   ) => {
@@ -240,7 +251,12 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
             ))}
 
           <div className="flex items-center gap-2">
-            <span className={data.isRoot ? "opacity-90" : "opacity-60"}>{KIND_ICON[kind]}</span>
+            <span
+              className={`mm-kind-icon ${data.isRoot ? "opacity-90" : "opacity-60"}`}
+              data-kind={kind}
+            >
+              {KIND_ICON[kind]}
+            </span>
 
             {kind === "checklist" && !data.isRoot && (
               <button
@@ -261,14 +277,20 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
 
             <div className="flex-1 min-w-0">
               {editing ? (
-                <input
+                // Wraps exactly like the text shown afterwards; Enter confirms (no line breaks
+                // in labels), the height follows the text.
+                <textarea
                   ref={inputRef}
                   value={value}
-                  onChange={(e) => setValue(e.target.value)}
+                  rows={1}
+                  onChange={(e) => setValue(e.target.value.replace(/\n/g, " "))}
                   onBlur={commit}
                   onKeyDown={(e) => {
                     e.stopPropagation();
-                    if (e.key === "Enter") commit();
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      commit();
+                    }
                     if (e.key === "Tab") {
                       // Keep the flow going: confirm and create the next child right away.
                       e.preventDefault();
@@ -282,7 +304,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
                       setEditing(false);
                     }
                   }}
-                  className="bg-transparent outline-none w-full text-sm"
+                  className="mm-node-field block w-full resize-none overflow-hidden bg-transparent text-sm outline-none [field-sizing:content] [text-wrap:pretty]"
                 />
               ) : kind === "code" ? (
                 <code className="text-xs font-mono break-all">{data.label}</code>
@@ -300,7 +322,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
                 <span className="text-sm break-words opacity-60">Link inválido</span>
               ) : (
                 <span
-                  className={`text-sm break-words ${kind === "checklist" && data.checked ? "line-through opacity-60" : ""}`}
+                  className={`text-sm break-words [text-wrap:pretty] ${kind === "checklist" && data.checked ? "line-through opacity-60" : ""}`}
                 >
                   {data.label}
                 </span>
@@ -332,6 +354,9 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
         <ContextMenuItem onClick={() => requestAction("add-child")}>Criar filho</ContextMenuItem>
         <ContextMenuItem onClick={() => requestAction("add-sibling")}>Criar irmão</ContextMenuItem>
         <ContextMenuItem onClick={() => requestAction("connect")}>Iniciar conexão</ContextMenuItem>
+        <ContextMenuItem onClick={() => requestAction("toggle-box")}>
+          Alternar balão / só texto
+        </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onClick={() => requestAction("create-linked-map")}>
           Criar mapa conectado

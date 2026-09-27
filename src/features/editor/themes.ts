@@ -5,6 +5,9 @@ import type { Edge, Node } from "reactflow";
 
 export type ThemePresetId = "default" | "dark" | "pastel" | "neon" | "minimal";
 export type NodeBorder = "solid" | "dashed" | "rounded" | "none";
+/** "box": the usual balloon; "text": just the text on the canvas, no background or border. */
+export type NodeBox = "box" | "text";
+export const isNodeBox = (value: unknown): value is NodeBox => value === "box" || value === "text";
 export type EdgeWidth = "thin" | "medium" | "thick";
 export type EdgeLine = "solid" | "dashed" | "wavy";
 /** Shape of the parent→child lines of the whole map. */
@@ -16,6 +19,8 @@ export interface NodeAppearance {
   bg?: string;
   text?: string;
   border?: NodeBorder;
+  /** Overrides the map's default node style for this node. */
+  box?: NodeBox;
 }
 
 export interface EdgeAppearance {
@@ -119,16 +124,30 @@ export const isHexColor = (value: unknown): value is string =>
 
 export const EDGE_WIDTHS: Record<EdgeWidth, number> = { thin: 1.25, medium: 2, thick: 3.5 };
 
-/** Black or white, whichever reads better on `hex` (WCAG relative luminance). */
-export function readableTextOn(hex: string): string {
-  if (!isHexColor(hex)) return "#111827";
+const luminance = (hex: string) => {
   const channel = (i: number) => {
     const c = parseInt(hex.slice(i, i + 2), 16) / 255;
     return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   };
-  const luminance = 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
-  return luminance > 0.45 ? "#111827" : "#ffffff";
+  return 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+};
+
+/** Black or white, whichever reads better on `hex` (WCAG relative luminance). */
+export function readableTextOn(hex: string): string {
+  if (!isHexColor(hex)) return "#111827";
+  return luminance(hex) > 0.45 ? "#111827" : "#ffffff";
 }
+
+/** WCAG contrast ratio between two hex colors (1 to 21). */
+export function contrastRatio(a: string, b: string): number {
+  if (!isHexColor(a) || !isHexColor(b)) return 21;
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** Canvas color behind the nodes: the preset's, or the app's light/dark background. */
+export const canvasColor = (preset: Preset, appDark: boolean) =>
+  preset.canvas ?? (appDark ? "#0b1020" : "#f8fafc");
 
 /**
  * Index of the top-level branch each node belongs to (the root's child it descends from), so
@@ -168,7 +187,23 @@ export function nodeVariables(
   appearance: NodeAppearance | undefined,
   isRoot: boolean,
   branch: number | undefined,
+  plain?: { canvas: string },
 ): Record<string, string> {
+  // Text only: no background, border or shadow, and a text color that never fades into the
+  // canvas (the user's color is kept when it is readable enough).
+  if (plain) {
+    const wanted = appearance?.text;
+    const text =
+      wanted && contrastRatio(wanted, plain.canvas) >= 3 ? wanted : readableTextOn(plain.canvas);
+    return {
+      [isRoot ? "--mm-root-bg" : "--mm-node-bg"]: "transparent",
+      [isRoot ? "--mm-root-text" : "--mm-node-text"]: text,
+      "--mm-node-border-width": "0px",
+      "--mm-node-shadow": "none",
+      "--mm-node-min-width": "0px",
+      "--mm-node-max-width": "300px",
+    };
+  }
   const vars: Record<string, string> = {};
   const branchColor =
     branch !== undefined && preset.branches
@@ -328,6 +363,7 @@ export function sanitizeNodeAppearance(value: unknown): NodeAppearance | undefin
   if (isHexColor(v.bg)) out.bg = v.bg;
   if (isHexColor(v.text)) out.text = v.text;
   if (NODE_BORDERS.includes(v.border as NodeBorder)) out.border = v.border as NodeBorder;
+  if (isNodeBox(v.box)) out.box = v.box;
   return Object.keys(out).length ? out : undefined;
 }
 

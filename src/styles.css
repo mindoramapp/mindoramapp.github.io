@@ -274,3 +274,22 @@ select optgroup {
     height: 44px;
   }
 }
+
+/* Text-only nodes ("Só texto"): no box, just the words on the canvas. A soft tint on hover and
+   the selection ring still show that it is a node you can click, drag and edit. */
+.react-flow__node.mm-plain > div {
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+.react-flow__node.mm-plain > div:hover {
+  background: color-mix(in oklab, currentColor 7%, transparent) !important;
+}
+.react-flow__node.mm-plain .mm-kind-icon[data-kind="text"] {
+  display: none;
+}
+/* Without a box the central idea still has to stand out. */
+.react-flow__node.mm-plain.mm-root span.text-sm,
+.react-flow__node.mm-plain.mm-root .mm-node-field {
+  font-size: 1.0625rem;
+  font-weight: 700;
+}

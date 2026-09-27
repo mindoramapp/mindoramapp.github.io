@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { toast } from "sonner";
 import ReactFlow, {
   Background,
+  ConnectionLineType,
   Controls,
   MiniMap,
   ReactFlowProvider,
@@ -52,9 +53,11 @@ import { ThemePanel } from "@/features/editor/components/ThemePanel";
 import { BracketEdge } from "@/features/editor/components/BracketEdge";
 import { WavyEdge } from "@/features/editor/components/WavyEdge";
 import { useThemePanel } from "@/features/editor/themeStore";
+import { useTheme } from "@/hooks/useTheme";
 import {
   branchIndexes,
   edgeStyle,
+  canvasColor,
   nodeVariables,
   presetById,
   sanitizeEdgeAppearance,
@@ -62,6 +65,7 @@ import {
   type EdgeAppearance,
   type NodeAppearance,
   type EdgeShape,
+  type NodeBox,
   type ThemePresetId,
 } from "@/features/editor/themes";
 import { layoutTree } from "@/lib/layout";
@@ -261,7 +265,10 @@ function EditorInner({
   );
   const [nodes, setNodes, onNodesChange] = useNodesState<MindNodeData>(map.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(map.edges);
-  const [selectedId, setSelectedId] = useState<string | null>("root");
+  // Start on the central idea, whatever its id (imported maps don't always call it "root").
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => map.nodes.find((node) => node.data.isRoot)?.id ?? null,
+  );
   const [pendingSource, setPendingSource] = useState<string | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [viewport, setViewport] = useState<ViewportState>(map.viewport);
@@ -318,12 +325,15 @@ function EditorInner({
   nodesRef.current = nodes;
   edgesRef.current = edges;
   const lastSavedViewport = useRef<ViewportState>(map.viewport);
+  // The central idea can't be deleted, whatever its id.
+  const isRootId = (id: string) =>
+    id === "root" || Boolean(nodesRef.current.find((node) => node.id === id)?.data.isRoot);
 
   useEffect(() => {
     setNodes(map.nodes);
     setEdges(map.edges);
     setViewport(map.viewport);
-    setSelectedId("root");
+    setSelectedId(map.nodes.find((node) => node.data.isRoot)?.id ?? null);
     setPendingSource(null);
     setHoverId(null);
     lastSavedViewport.current = map.viewport;
@@ -541,38 +551,52 @@ function EditorInner({
   }, [openNotes]);
 
   const connectedSet = useMemo(() => {
-    if (!selectedId) return null;
+    // A selection that isn't in the map (e.g. a stale id) must not dim every node.
+    if (!selectedId || !nodes.some((node) => node.id === selectedId)) return null;
     const connected = new Set<string>([selectedId]);
     edges.forEach((edge) => {
       if (edge.source === selectedId) connected.add(edge.target);
       if (edge.target === selectedId) connected.add(edge.source);
     });
     return connected;
-  }, [selectedId, edges]);
+  }, [selectedId, edges, nodes]);
 
   const rootNode = nodes.find((node) => node.data.isRoot);
   const presetId: ThemePresetId = rootNode?.data.mapTheme ?? "default";
   const edgeShape: EdgeShape = rootNode?.data.edgeShape ?? "bracket";
+  const nodeStyle: NodeBox = rootNode?.data.nodeStyle ?? "box";
+  const { theme: appTheme } = useTheme();
   const preset = presetById(presetId);
+  const canvas = canvasColor(preset, appTheme === "dark");
+  // For event handlers registered once (the node context menu).
+  const nodeStyleRef = useRef(nodeStyle);
+  useEffect(() => {
+    nodeStyleRef.current = nodeStyle;
+  }, [nodeStyle]);
   const branches = useMemo(() => branchIndexes(nodes, edges), [nodes, edges]);
 
   const styledNodes = useMemo(
     () =>
-      nodes.map((node) => ({
-        ...node,
-        style: {
-          ...node.style,
-          ...nodeVariables(
-            preset,
-            node.data.appearance,
-            Boolean(node.data.isRoot),
-            branches.get(node.id),
-          ),
-          opacity: connectedSet && !connectedSet.has(node.id) ? 0.35 : 1,
-          transition: "opacity 200ms ease",
-        },
-      })),
-    [nodes, connectedSet, preset, branches],
+      nodes.map((node) => {
+        const plain = (node.data.appearance?.box ?? nodeStyle) === "text";
+        return {
+          ...node,
+          className: plain ? (node.data.isRoot ? "mm-plain mm-root" : "mm-plain") : undefined,
+          style: {
+            ...node.style,
+            ...nodeVariables(
+              preset,
+              node.data.appearance,
+              Boolean(node.data.isRoot),
+              branches.get(node.id),
+              plain ? { canvas } : undefined,
+            ),
+            opacity: connectedSet && !connectedSet.has(node.id) ? 0.35 : 1,
+            transition: "opacity 200ms ease",
+          },
+        };
+      }),
+    [nodes, connectedSet, preset, branches, nodeStyle, canvas],
   );
 
   const styledEdges = useMemo(
@@ -585,13 +609,16 @@ function EditorInner({
         const themed = edgeStyle(preset, appearance, kind, branches.get(edge.target));
         return {
           ...edge,
-          // Cross-links keep the soft curve so they stand apart from the tree's brackets.
+          // With brackets, cross-links are firm too: right angles with rounded corners.
           type:
             appearance?.line === "wavy"
               ? "wavy"
-              : kind === "tree" && edgeShape === "bracket"
-                ? "bracket"
+              : edgeShape === "bracket"
+                ? kind === "tree"
+                  ? "bracket"
+                  : "smoothstep"
                 : edge.type,
+          pathOptions: { borderRadius: 12, offset: 16 },
           className: kind === "graph" ? "graph-edge" : "tree-edge",
           animated: kind === "graph" && Boolean(involved) && !liteMode,
           style: {
@@ -616,6 +643,17 @@ function EditorInner({
         current.map((node) =>
           node.data.isRoot ? { ...node, data: { ...node.data, mapTheme: id } } : node,
         ),
+      ),
+    [setNodes],
+  );
+
+  const setNodeStyle = useCallback(
+    (style: NodeBox) =>
+      setNodes((current) =>
+        current.map((node) => {
+          if (node.data.isRoot) return { ...node, data: { ...node.data, nodeStyle: style } };
+          return node;
+        }),
       ),
     [setNodes],
   );
@@ -672,7 +710,9 @@ function EditorInner({
     const panel = useThemePanel.getState();
     if (!panel.open) return;
     if (selectedEdgeId) panel.setTab("edge");
-    else if (selectedId) panel.setTab("node");
+    // The default selection ("root") may not exist in maps whose root has another id.
+    else if (selectedId && nodesRef.current.some((node) => node.id === selectedId))
+      panel.setTab("node");
     else if (panel.tab !== "map") panel.setTab("map");
   }, [selectedId, selectedEdgeId]);
 
@@ -910,6 +950,7 @@ function EditorInner({
           | "edit"
           | "notes"
           | "connect"
+          | "toggle-box"
           | "create-linked-map"
           | "delete";
       };
@@ -937,6 +978,24 @@ function EditorInner({
         return;
       }
 
+      if (action === "toggle-box") {
+        setNodes((current) =>
+          current.map((node) => {
+            if (node.id !== id) return node;
+            const plainNow = (node.data.appearance?.box ?? nodeStyleRef.current) === "text";
+            const box: NodeBox = plainNow ? "box" : "text";
+            // Matching the map's default needs no override.
+            const appearance: NodeAppearance = { ...node.data.appearance, box };
+            if (box === nodeStyleRef.current) delete appearance.box;
+            const clean = sanitizeNodeAppearance(appearance);
+            const data = { ...node.data, appearance: clean };
+            if (!clean) delete data.appearance;
+            return { ...node, data };
+          }),
+        );
+        return;
+      }
+
       if (action === "connect") {
         setSelectedId(id);
         setConnectMode(true);
@@ -945,7 +1004,7 @@ function EditorInner({
       }
 
       if (action === "delete") {
-        if (id === "root") return;
+        if (isRootId(id)) return;
         const idsToRemove = getDescendantIds(id, edges);
         setNodes((currentNodes) => currentNodes.filter((node) => !idsToRemove.has(node.id)));
         setEdges((currentEdges) =>
@@ -1040,7 +1099,7 @@ function EditorInner({
         event.preventDefault();
         addChild(selectedId, false);
       } else if (event.key === "Delete" || event.key === "Backspace") {
-        if (selectedId === "root") return;
+        if (isRootId(selectedId)) return;
         event.preventDefault();
         const idsToRemove = getDescendantIds(selectedId, edges);
         setNodes((currentNodes) => currentNodes.filter((node) => !idsToRemove.has(node.id)));
@@ -1081,7 +1140,7 @@ function EditorInner({
 
   const deleteNode = useCallback(
     (id: string) => {
-      if (id === "root") return;
+      if (isRootId(id)) return;
       const idsToRemove = getDescendantIds(id, edges);
       setNodes((currentNodes) => currentNodes.filter((node) => !idsToRemove.has(node.id)));
       setEdges((currentEdges) =>
@@ -1324,6 +1383,11 @@ function EditorInner({
         nodesConnectable
         connectOnClick={false}
         onConnectStart={onConnectStart}
+        // The line drawn while dragging a connection matches the map's line shape.
+        connectionLineType={
+          edgeShape === "bracket" ? ConnectionLineType.SmoothStep : ConnectionLineType.Bezier
+        }
+        connectionLineStyle={{ stroke: "var(--primary)", strokeWidth: 2 }}
         onConnectEnd={onConnectEnd}
         // Snap to a handle from farther away than ReactFlow's default 20px.
         connectionRadius={40}
@@ -1545,6 +1609,8 @@ function EditorInner({
           onPreset={setMapTheme}
           edgeShape={edgeShape}
           onEdgeShape={setEdgeShape}
+          nodeStyle={nodeStyle}
+          onNodeStyle={setNodeStyle}
           node={selectedNode ?? null}
           onNodeAppearance={patchNodeAppearance}
           edge={selectedEdge}

@@ -1,6 +1,6 @@
 // Mind map repository with Supabase persistence and local migration fallback
 import type { Edge, Node } from "reactflow";
-import type { EdgeShape, NodeAppearance, ThemePresetId } from "@/features/editor/themes";
+import type { EdgeShape, NodeAppearance, NodeBox, ThemePresetId } from "@/features/editor/themes";
 import { supabase } from "@/lib/supabase";
 
 export type MapMode = "study" | "brainstorm" | "project";
@@ -26,6 +26,8 @@ export interface MindNodeData {
   mapTheme?: ThemePresetId;
   /** Shape of the tree lines (root only); bracket when unset. */
   edgeShape?: EdgeShape;
+  /** Default node style of the map (root only); boxed when unset. */
+  nodeStyle?: NodeBox;
 }
 
 export interface MapOwner {

@@ -14,6 +14,7 @@ import {
   type NodeAppearance,
   type NodeBorder,
   type EdgeShape,
+  type NodeBox,
   type ThemePresetId,
 } from "../themes";
 
@@ -22,6 +23,8 @@ interface Props {
   onPreset: (id: ThemePresetId) => void;
   edgeShape: EdgeShape;
   onEdgeShape: (shape: EdgeShape) => void;
+  nodeStyle: NodeBox;
+  onNodeStyle: (style: NodeBox) => void;
   node: { id: string; data: MindNodeData } | null;
   onNodeAppearance: (id: string, patch: NodeAppearance | null) => void;
   edge: Edge | null;
@@ -38,6 +41,62 @@ const SHAPES: { id: EdgeShape; label: string; preview: string }[] = [
   },
   { id: "curve", label: "Curva suave", preview: "M2 12 C20 12 18 3 38 3 M2 12 C20 12 18 21 38 21" },
 ];
+
+const BOXES: { id: NodeBox; label: string }[] = [
+  { id: "box", label: "Balão" },
+  { id: "text", label: "Só texto" },
+];
+
+/** Balloon vs text-only switch, used for the whole map and for a single node. */
+function BoxChoice({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: NodeBox;
+  onChange: (value: NodeBox) => void;
+}) {
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-medium">{label}</p>
+      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={label}>
+        {BOXES.map((box) => (
+          <button
+            key={box.id}
+            type="button"
+            role="radio"
+            aria-checked={value === box.id}
+            onClick={() => onChange(box.id)}
+            className={`flex min-h-11 items-center gap-2 rounded-xl border px-2.5 text-xs font-medium ${value === box.id ? "border-primary bg-primary/5 ring-2 ring-primary/40" : "border-border hover:bg-muted"}`}
+          >
+            <svg viewBox="0 0 40 24" className="h-6 w-10 shrink-0" aria-hidden>
+              {box.id === "box" && (
+                <rect
+                  x="2"
+                  y="4"
+                  width="36"
+                  height="16"
+                  rx="4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                />
+              )}
+              <path
+                d="M9 10.5 H31 M9 14.5 H24"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+            {box.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const PREVIEW: Record<
   ThemePresetId,
@@ -157,6 +216,8 @@ export function ThemePanel({
   onPreset,
   edgeShape,
   onEdgeShape,
+  nodeStyle,
+  onNodeStyle,
   node,
   onNodeAppearance,
   edge,
@@ -169,6 +230,8 @@ export function ThemePanel({
   const close = useThemePanel((state) => state.close);
 
   const nodeAppearance = node?.data.appearance;
+  const nodeBox: NodeBox = nodeAppearance?.box ?? nodeStyle;
+  const plainNode = nodeBox === "text";
   const edgeAppearance = edge?.data?.appearance as EdgeAppearance | undefined;
   const TABS: { id: ThemeTab; label: string; disabled: boolean }[] = [
     { id: "map", label: "Tema do mapa", disabled: false },
@@ -313,6 +376,9 @@ export function ThemePanel({
               ))}
             </div>
           </div>
+          <div className="col-span-2 mt-2">
+            <BoxChoice label="Balões" value={nodeStyle} onChange={onNodeStyle} />
+          </div>
           <p className="col-span-2 mt-1 text-[11px] text-muted-foreground">
             Pastel e Neon dão uma cor para cada ramo. Balões e linhas que você personalizar mantêm a
             sua escolha.
@@ -325,35 +391,55 @@ export function ThemePanel({
           <p className="truncate text-xs text-muted-foreground">
             Balão: <span className="font-medium text-foreground">{node.data.label}</span>
           </p>
-          <ColorRow
-            label="Cor de fundo"
-            value={nodeAppearance?.bg}
-            onChange={(bg) => onNodeAppearance(node.id, { ...nodeAppearance, bg })}
+          <BoxChoice
+            label="Formato"
+            value={nodeBox}
+            // Choosing the map's default needs no override.
+            onChange={(box) =>
+              onNodeAppearance(node.id, {
+                ...nodeAppearance,
+                box: box === nodeStyle ? undefined : box,
+              })
+            }
           />
+          {!plainNode && (
+            <ColorRow
+              label="Cor de fundo"
+              value={nodeAppearance?.bg}
+              onChange={(bg) => onNodeAppearance(node.id, { ...nodeAppearance, bg })}
+            />
+          )}
           <ColorRow
             label="Cor do texto"
             value={nodeAppearance?.text}
             onChange={(text) => onNodeAppearance(node.id, { ...nodeAppearance, text })}
           />
-          <div>
-            <p className="mb-1.5 text-xs text-muted-foreground">Borda</p>
-            <div className="flex gap-1.5">
-              {BORDERS.map((border) => (
-                <button
-                  key={border.id}
-                  type="button"
-                  onClick={() =>
-                    onNodeAppearance(node.id, { ...nodeAppearance, border: border.id })
-                  }
-                  aria-pressed={(nodeAppearance?.border ?? "solid") === border.id}
-                  className={`${OPTION} ${optionState((nodeAppearance?.border ?? "solid") === border.id)}`}
-                >
-                  <span className={`h-3.5 w-7 border-current ${border.className}`} />
-                  {border.label}
-                </button>
-              ))}
+          {plainNode ? (
+            <p className="text-[11px] text-muted-foreground">
+              Só o texto aparece no mapa. Se a cor escolhida ficar difícil de ler sobre o fundo, o
+              Mindora usa uma cor legível no lugar.
+            </p>
+          ) : (
+            <div>
+              <p className="mb-1.5 text-xs text-muted-foreground">Borda</p>
+              <div className="flex gap-1.5">
+                {BORDERS.map((border) => (
+                  <button
+                    key={border.id}
+                    type="button"
+                    onClick={() =>
+                      onNodeAppearance(node.id, { ...nodeAppearance, border: border.id })
+                    }
+                    aria-pressed={(nodeAppearance?.border ?? "solid") === border.id}
+                    className={`${OPTION} ${optionState((nodeAppearance?.border ?? "solid") === border.id)}`}
+                  >
+                    <span className={`h-3.5 w-7 border-current ${border.className}`} />
+                    {border.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
           {nodeAppearance && (
             <button
               type="button"

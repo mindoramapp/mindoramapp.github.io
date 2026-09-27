@@ -5,6 +5,7 @@ import {
   bracketPath,
   branchIndexes,
   edgeStyle,
+  contrastRatio,
   nodeVariables,
   presetById,
   readableTextOn,
@@ -162,5 +163,48 @@ describe("bracketPath", () => {
   it("never overshoots on short links", () => {
     for (const v of nums(bracketPath(0, 0, 20, 4, true)))
       expect(Math.abs(v)).toBeLessThanOrEqual(20);
+  });
+});
+
+describe("text-only nodes", () => {
+  const light = { canvas: "#f8fafc" };
+  const dark = { canvas: "#0b1020" };
+
+  it("drop the box and keep a readable text color on the canvas", () => {
+    const vars = nodeVariables(presetById("default"), undefined, false, undefined, light);
+    expect(vars["--mm-node-bg"]).toBe("transparent");
+    expect(vars["--mm-node-border-width"]).toBe("0px");
+    expect(vars["--mm-node-shadow"]).toBe("none");
+    expect(vars["--mm-node-text"]).toBe("#111827");
+    expect(
+      nodeVariables(presetById("default"), undefined, false, undefined, dark)["--mm-node-text"],
+    ).toBe("#ffffff");
+  });
+
+  it("keep the user's text color only while it stays readable", () => {
+    const blue = { text: "#1d4ed8" };
+    expect(
+      nodeVariables(presetById("default"), blue, false, undefined, light)["--mm-node-text"],
+    ).toBe("#1d4ed8");
+    // Dark blue on a dark canvas would vanish: fall back to white.
+    expect(
+      nodeVariables(presetById("default"), blue, false, undefined, dark)["--mm-node-text"],
+    ).toBe("#ffffff");
+  });
+
+  it("works for the root too, ignoring the gradient", () => {
+    const vars = nodeVariables(presetById("default"), undefined, true, undefined, light);
+    expect(vars["--mm-root-bg"]).toBe("transparent");
+    expect(vars["--mm-root-text"]).toBe("#111827");
+  });
+
+  it("measures contrast like WCAG", () => {
+    expect(contrastRatio("#000000", "#ffffff")).toBeCloseTo(21);
+    expect(contrastRatio("#777777", "#777777")).toBeCloseTo(1);
+  });
+
+  it("survives import sanitizing", () => {
+    expect(sanitizeNodeAppearance({ box: "text" })).toEqual({ box: "text" });
+    expect(sanitizeNodeAppearance({ box: "circle" })).toBeUndefined();
   });
 });
