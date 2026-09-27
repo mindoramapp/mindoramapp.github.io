@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   BookOpen,
@@ -12,6 +12,7 @@ import {
   ListChecks,
   Pencil,
   Plus,
+  Upload,
   Rocket,
   Search,
   Sparkles,
@@ -19,6 +20,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Header } from "@/components/Header";
+import { parseImportedMap } from "@/lib/export";
 import {
   Dialog,
   DialogContent,
@@ -54,6 +56,7 @@ function DashboardPage() {
   const navigate = useNavigate();
   const [maps, setMaps] = useState<MindMap[]>([]);
   const [folders, setFolders] = useState<MindFolder[]>([]);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const [loadingMaps, setLoadingMaps] = useState(true);
   const [showMapModal, setShowMapModal] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -197,6 +200,27 @@ function DashboardPage() {
     setShowMapModal(false);
     toast.success("Mapa criado com sucesso.");
     navigate({ to: "/editor/$id", params: { id: map.id } });
+  };
+
+  const importMapFile = async (file: File) => {
+    if (!user) return;
+    try {
+      const imported = parseImportedMap(await file.text());
+      const map = {
+        ...createBlankMap({ id: user.id, email: user.email }, imported.title, imported.mode, {
+          folderId: selectedFolderId,
+          viewport: imported.viewport,
+        }),
+        nodes: imported.nodes,
+        edges: imported.edges,
+      };
+      await upsertMap(map);
+      toast.success("Mapa importado com sucesso.");
+      navigate({ to: "/editor/$id", params: { id: map.id } });
+    } catch (error) {
+      console.error("Falha ao importar mapa", error);
+      toast.error(error instanceof Error ? error.message : "Não foi possível importar o mapa.");
+    }
   };
 
   const createFromTemplate = async (templateId: TemplateId) => {
@@ -475,6 +499,25 @@ function DashboardPage() {
                     className="w-full rounded-xl border border-border bg-background px-10 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                   />
                 </label>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (file) void importMapFile(file);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => importInputRef.current?.click()}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
+                  title="Importar um mapa exportado em JSON"
+                >
+                  <Upload size={18} /> Importar
+                </button>
                 <button
                   type="button"
                   onClick={() => {

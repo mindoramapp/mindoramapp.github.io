@@ -4,8 +4,19 @@ import { useAuth } from "@/store/auth";
 import { Header } from "@/components/Header";
 import { MindMapEditor } from "@/components/MindMapEditor";
 import { getMap, type MindMap } from "@/store/maps";
-import { ArrowLeft, Brain, GitBranch, Network, Crosshair, Link2, Wand2, Undo2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Brain,
+  GitBranch,
+  Network,
+  Crosshair,
+  Link2,
+  Wand2,
+  Undo2,
+  Redo2,
+} from "lucide-react";
 import { OnboardingTour } from "@/components/OnboardingTour";
+import { ExportMenu } from "@/components/ExportMenu";
 import { isOnboardingDone, resetOnboarding } from "@/lib/onboarding";
 
 export const Route = createFileRoute("/editor/$id")({
@@ -30,6 +41,8 @@ function EditorPage() {
   const [connectMode, setConnectMode] = useState(false);
   const [organizeSignal, setOrganizeSignal] = useState(0);
   const [undoSignal, setUndoSignal] = useState(0);
+  const [redoSignal, setRedoSignal] = useState(0);
+  const [history, setHistory] = useState({ canUndo: false, canRedo: false });
   const [showTour, setShowTour] = useState(false);
   const tourScheduledRef = useRef(false);
 
@@ -193,11 +206,25 @@ function EditorPage() {
 
         <button
           onClick={() => setUndoSignal((signal) => signal + 1)}
-          className="px-3 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center gap-1.5"
+          disabled={!history.canUndo}
+          className="px-3 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
           title="Desfazer (Ctrl+Z)"
+          aria-label="Desfazer"
         >
           <Undo2 size={14} />
         </button>
+
+        <button
+          onClick={() => setRedoSignal((signal) => signal + 1)}
+          disabled={!history.canRedo}
+          className="px-3 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
+          title="Refazer (Ctrl+Shift+Z)"
+          aria-label="Refazer"
+        >
+          <Redo2 size={14} />
+        </button>
+
+        <ExportMenu />
 
         <button
           onClick={() => window.dispatchEvent(new Event("mm-center"))}
@@ -216,6 +243,8 @@ function EditorPage() {
           setConnectMode={setConnectMode}
           organizeSignal={organizeSignal}
           undoSignal={undoSignal}
+          redoSignal={redoSignal}
+          onHistoryChange={setHistory}
           userId={user.id}
           onShowTour={handleShowTour}
         />

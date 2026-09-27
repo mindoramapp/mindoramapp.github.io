@@ -59,6 +59,7 @@ const STEPS: TourStep[] = [
           { key: "Enter", desc: "cria um nó irmão" },
           { key: "Del", desc: "remove o nó selecionado" },
           { key: "Ctrl+Z", desc: "desfaz a última ação" },
+          { key: "Ctrl+Shift+Z", desc: "refaz o que foi desfeito" },
         ].map(({ key, desc }) => (
           <div key={key} className="flex items-center gap-2.5 text-xs">
             <kbd className="min-w-[52px] rounded-lg border border-border bg-muted px-2 py-1 text-center font-semibold text-foreground shadow-sm">

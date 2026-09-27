@@ -36,7 +36,9 @@ import { MindNode } from "./MindNode";
 import { FloatingPanel, PanelDockItem } from "./FloatingPanel";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useGraphHistory } from "@/hooks/useGraphHistory";
 import { layoutTree } from "@/lib/layout";
+import { exportMap, type ExportFormat } from "@/lib/export";
 import {
   createBlankMap,
   upsertMap,
@@ -55,6 +57,8 @@ interface Props {
   setConnectMode: (b: boolean) => void;
   organizeSignal: number;
   undoSignal: number;
+  redoSignal: number;
+  onHistoryChange?: (state: { canUndo: boolean; canRedo: boolean }) => void;
   userId?: string;
   onShowTour?: () => void;
 }
@@ -164,6 +168,8 @@ function EditorInner({
   setConnectMode,
   organizeSignal,
   undoSignal,
+  redoSignal,
+  onHistoryChange,
   userId,
   onShowTour,
 }: Props) {
@@ -197,8 +203,6 @@ function EditorInner({
     };
   });
   const { fitView } = useReactFlow();
-  const historyRef = useRef<{ nodes: Node<MindNodeData>[]; edges: Edge[] }[]>([]);
-  const skipHistory = useRef(false);
   const lastSavedViewport = useRef<ViewportState>(map.viewport);
 
   useEffect(() => {
@@ -267,27 +271,28 @@ function EditorInner({
     return () => window.clearTimeout(timer);
   }, [nodes, edges, viewport, map]);
 
-  useEffect(() => {
-    if (skipHistory.current) {
-      skipHistory.current = false;
-      return;
-    }
-    historyRef.current.push({ nodes, edges });
-    if (historyRef.current.length > 50) historyRef.current.shift();
-  }, [nodes, edges]);
+  const { undo, redo, canUndo, canRedo } = useGraphHistory(
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    map.id,
+  );
 
   useEffect(() => {
-    if (undoSignal === 0) return;
-    const history = historyRef.current;
-    if (history.length < 2) return;
+    onHistoryChange?.({ canUndo, canRedo });
+  }, [canUndo, canRedo, onHistoryChange]);
 
-    history.pop();
-    const previous = history[history.length - 1];
-    skipHistory.current = true;
-    setNodes(previous.nodes);
-    skipHistory.current = true;
-    setEdges(previous.edges);
-  }, [undoSignal, setNodes, setEdges]);
+  useEffect(() => {
+    if (undoSignal > 0) undo();
+    // Only react to new button presses, not to undo's identity changing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [undoSignal]);
+
+  useEffect(() => {
+    if (redoSignal > 0) redo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [redoSignal]);
 
   useEffect(() => {
     if (typeof document !== "undefined") {
@@ -311,6 +316,20 @@ function EditorInner({
     window.addEventListener("mm-center", centerHandler);
     return () => window.removeEventListener("mm-center", centerHandler);
   }, [fitView]);
+
+  useEffect(() => {
+    const exportHandler = (event: Event) => {
+      const { format } = (event as CustomEvent<{ format: ExportFormat }>).detail;
+      exportMap(format, map, nodes, edges)
+        .then(() => toast.success("Mapa exportado."))
+        .catch((error) => {
+          console.error("Falha ao exportar mapa", error);
+          toast.error("Não foi possível exportar o mapa.");
+        });
+    };
+    window.addEventListener("mm-export", exportHandler);
+    return () => window.removeEventListener("mm-export", exportHandler);
+  }, [map, nodes, edges]);
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -608,10 +627,14 @@ function EditorInner({
         return;
       }
 
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
-        event.preventDefault();
-        window.dispatchEvent(new Event("mm-undo"));
-        return;
+      if (event.ctrlKey || event.metaKey) {
+        const key = event.key.toLowerCase();
+        if (key === "z" || key === "y") {
+          event.preventDefault();
+          if (key === "y" || event.shiftKey) redo();
+          else undo();
+          return;
+        }
       }
 
       if (!selectedId) return;
@@ -638,7 +661,7 @@ function EditorInner({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedId, addChild, edges, setNodes, setEdges, setConnectMode]);
+  }, [selectedId, addChild, edges, setNodes, setEdges, setConnectMode, undo, redo]);
 
   const patchNode = useCallback(
     (id: string, patch: Partial<MindNodeData>) => {
@@ -957,6 +980,10 @@ function EditorInner({
                 Ctrl+Z
               </kbd>{" "}
               desfaz ·{" "}
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
+                Ctrl+Shift+Z
+              </kbd>{" "}
+              refaz ·{" "}
               <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
                 Del
               </kbd>{" "}
