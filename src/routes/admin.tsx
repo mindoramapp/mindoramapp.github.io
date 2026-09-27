@@ -1,15 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { Shield, Users, Clock3, Ticket, Mail } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Activity, Ban, Clock3, CreditCard, Shield, Ticket, Users } from "lucide-react";
 import { Header } from "@/components/Header";
 import { AdminBilling } from "@/features/billing";
-import {
-  buildAccessCodeEmail,
-  createAccessCode,
-  loadAccessCodeAudit,
-  loadAdminUsers,
-  type AccessCodeAuditRow,
-} from "@/lib/admin";
+import { InvitesPanel } from "@/features/admin/components/InvitesPanel";
+import { UsersPanel } from "@/features/admin/components/UsersPanel";
+import { fetchAdminUserStats, type AdminUserStats } from "@/lib/admin";
+import { reportActionError } from "@/lib/feedback";
 import { useAuth, type UserProfile } from "@/store/auth";
 
 export const Route = createFileRoute("/admin")({
@@ -17,39 +14,44 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-const formatSeconds = (seconds: number) => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  return `${hours}h ${minutes}m`;
-};
+type Tab = "billing" | "users" | "invites";
+const TAB_KEY = "mindora-admin-tab";
 
-const formatDebugError = (value: unknown) => {
-  if (value instanceof Error) return value.message;
-  if (typeof value === "string") return value;
-  if (value && typeof value === "object") {
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return String(value);
-    }
-  }
-  return String(value);
-};
+const formatSeconds = (seconds: number) =>
+  `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+
+function Stat({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <p className="flex items-center gap-2 text-xs text-muted-foreground">
+        {icon} {label}
+      </p>
+      <p className="mt-1.5 text-2xl font-bold tabular-nums">{value}</p>
+    </div>
+  );
+}
 
 function AdminPage() {
   const { user, initialized, init } = useAuth();
   const navigate = useNavigate();
-  const [profiles, setProfiles] = useState<UserProfile[]>([]);
-  const [audit, setAudit] = useState<AccessCodeAuditRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [expiresInHours, setExpiresInHours] = useState(24);
-  const [targetUserId, setTargetUserId] = useState("");
-  const [generatedCode, setGeneratedCode] = useState("");
-  const [generatedCodeExpiresAt, setGeneratedCodeExpiresAt] = useState("");
-  const [generatedCodeTargetEmail, setGeneratedCodeTargetEmail] = useState("");
-  const [error, setError] = useState("");
-  const [debug, setDebug] = useState("");
-  const [creating, setCreating] = useState(false);
+  const [stats, setStats] = useState<AdminUserStats | null>(null);
+  const [tab, setTab] = useState<Tab>(() => {
+    try {
+      const saved = window.localStorage.getItem(TAB_KEY);
+      return saved === "users" || saved === "invites" ? saved : "billing";
+    } catch {
+      return "billing";
+    }
+  });
+  const [inviteTarget, setInviteTarget] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     void init();
@@ -57,293 +59,119 @@ function AdminPage() {
 
   useEffect(() => {
     if (!initialized) return;
-    if (!user) {
-      navigate({ to: "/login" });
-      return;
-    }
-    if (user.role !== "superadmin") {
+    if (!user) navigate({ to: "/login" });
+    else if (user.role !== "superadmin")
       navigate({ to: user.accessGranted ? "/dashboard" : "/activate" });
-    }
   }, [initialized, navigate, user]);
 
-  useEffect(() => {
-    let cancelled = false;
+  const isAdmin = user?.role === "superadmin";
 
-    const run = async () => {
-      if (!user || user.role !== "superadmin") {
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError("");
-      setDebug("");
-
-      try {
-        const [usersResponse, auditResponse] = await Promise.all([
-          loadAdminUsers(),
-          loadAccessCodeAudit(),
-        ]);
-        if (!cancelled) {
-          setProfiles(usersResponse);
-          setAudit(auditResponse);
-        }
-      } catch (loadError) {
-        console.error("Falha ao carregar painel de superadmin", loadError);
-        if (!cancelled) setError("Nao foi possivel carregar o painel administrativo.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    void run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
-  const stats = useMemo(() => {
-    const activatedUsers = profiles.filter(
-      (profile) => profile.role === "superadmin" || Boolean(profile.access_granted_at),
-    ).length;
-    const totalUsageSeconds = profiles.reduce(
-      (sum, profile) => sum + (profile.total_usage_seconds || 0),
-      0,
-    );
-
-    return {
-      totalUsers: profiles.length,
-      activatedUsers,
-      totalUsageSeconds,
-    };
-  }, [profiles]);
-
-  const pendingProfiles = useMemo(
-    () => profiles.filter((profile) => profile.role !== "superadmin" && !profile.access_granted_at),
-    [profiles],
-  );
-
-  const generateCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setDebug("");
-
-    if (!targetUserId) {
-      setError("Selecione o usuario que vai receber o codigo.");
-      return;
-    }
-
-    setCreating(true);
-
+  const loadStats = useCallback(async () => {
     try {
-      const result = await createAccessCode(targetUserId, expiresInHours);
-      setGeneratedCode(result.accessCode);
-      setGeneratedCodeExpiresAt(result.expiresAt);
-      setGeneratedCodeTargetEmail(result.targetEmail);
-      setAudit(await loadAccessCodeAudit());
-    } catch (generateError) {
-      console.error("Falha ao gerar codigo de acesso", generateError);
-      setError("Nao foi possivel gerar o codigo agora.");
-      setDebug(formatDebugError(generateError));
-    } finally {
-      setCreating(false);
+      setStats(await fetchAdminUserStats());
+    } catch (error) {
+      reportActionError(error, "Não foi possível carregar os números do painel.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin) void loadStats();
+  }, [isAdmin, loadStats]);
+
+  const switchTab = (next: Tab) => {
+    setTab(next);
+    try {
+      window.localStorage.setItem(TAB_KEY, next);
+    } catch {
+      // Remembering the tab is only a convenience.
     }
   };
 
-  if (!initialized) return null;
-  if (!user || user.role !== "superadmin") return null;
+  if (!initialized || !user || !isAdmin) return null;
+
+  const TABS: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
+    { id: "billing", label: "Assinaturas", icon: <CreditCard size={16} /> },
+    { id: "users", label: "Usuários", icon: <Users size={16} /> },
+    { id: "invites", label: "Convites", icon: <Ticket size={16} />, badge: stats?.pending },
+  ];
 
   return (
-    <div className="min-h-dvh flex flex-col">
+    <div className="flex min-h-dvh flex-col">
       <Header />
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 space-y-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 px-4 py-8">
         <div className="flex items-center gap-3">
-          <span className="w-12 h-12 rounded-2xl bg-primary/10 text-primary grid place-items-center">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
             <Shield size={22} />
           </span>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Superadmin</h1>
-            <p className="text-muted-foreground">
-              Controle de acessos, usuarios e codigos da plataforma.
-            </p>
+            <p className="text-muted-foreground">Assinaturas, usuários e convites da plataforma.</p>
           </div>
         </div>
 
-        {error && (
-          <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-            {error}
-          </div>
-        )}
-        {import.meta.env.DEV && debug && (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-700 break-words">
-            Debug: {debug}
-          </div>
-        )}
-
-        <AdminBilling />
-
-        <section className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <p className="text-xs text-muted-foreground flex items-center gap-2">
-              <Users size={13} /> Usuarios cadastrados
-            </p>
-            <p className="text-3xl font-bold mt-2">{stats.totalUsers}</p>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <p className="text-xs text-muted-foreground flex items-center gap-2">
-              <Ticket size={13} /> Acessos liberados
-            </p>
-            <p className="text-3xl font-bold mt-2">{stats.activatedUsers}</p>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <p className="text-xs text-muted-foreground flex items-center gap-2">
-              <Clock3 size={13} /> Tempo total de uso
-            </p>
-            <p className="text-3xl font-bold mt-2">{formatSeconds(stats.totalUsageSeconds)}</p>
-          </div>
+        <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <Stat icon={<Users size={13} />} label="Usuários" value={stats?.total ?? "—"} />
+          <Stat icon={<Ticket size={13} />} label="Liberados" value={stats?.granted ?? "—"} />
+          <Stat
+            icon={<Clock3 size={13} />}
+            label="Aguardando convite"
+            value={stats?.pending ?? "—"}
+          />
+          <Stat icon={<Ban size={13} />} label="Bloqueados" value={stats?.blocked ?? "—"} />
+          <Stat
+            icon={<Activity size={13} />}
+            label="Ativos (7 dias)"
+            value={stats?.active_last_7_days ?? "—"}
+          />
+          <Stat
+            icon={<Clock3 size={13} />}
+            label="Tempo total de uso"
+            value={stats ? formatSeconds(stats.usage_seconds) : "—"}
+          />
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-lg font-semibold mb-4">Usuarios</h2>
-            {loading ? (
-              <p className="text-sm text-muted-foreground">Carregando usuarios...</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-left text-muted-foreground">
-                    <tr className="border-b border-border">
-                      <th className="py-2 pr-3 font-medium">Email</th>
-                      <th className="py-2 pr-3 font-medium">Perfil</th>
-                      <th className="py-2 pr-3 font-medium">Acesso</th>
-                      <th className="py-2 pr-3 font-medium">Tempo</th>
-                      <th className="py-2 font-medium">Ultima atividade</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {profiles.map((profile) => (
-                      <tr key={profile.user_id} className="border-b border-border/70 align-top">
-                        <td className="py-3 pr-3">
-                          <p className="font-medium">{profile.email}</p>
-                          <p className="text-xs text-muted-foreground">{profile.display_name}</p>
-                        </td>
-                        <td className="py-3 pr-3">
-                          <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs capitalize">
-                            {profile.role}
-                          </span>
-                        </td>
-                        <td className="py-3 pr-3">
-                          {profile.role === "superadmin"
-                            ? "Total"
-                            : profile.access_granted_at
-                              ? new Date(profile.access_granted_at).toLocaleString()
-                              : "Aguardando codigo"}
-                        </td>
-                        <td className="py-3 pr-3">
-                          {formatSeconds(profile.total_usage_seconds || 0)}
-                        </td>
-                        <td className="py-3">
-                          {profile.last_seen_at
-                            ? new Date(profile.last_seen_at).toLocaleString()
-                            : "Sem registro"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+        <div
+          className="flex gap-1 overflow-x-auto rounded-2xl bg-muted p-1"
+          role="tablist"
+          aria-label="Seções do painel"
+        >
+          {TABS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === item.id}
+              onClick={() => switchTab(item.id)}
+              className={`inline-flex min-h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-medium transition-colors pointer-coarse:min-h-11 ${
+                tab === item.id
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {item.icon} {item.label}
+              {item.badge ? (
+                <span className="rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground">
+                  {item.badge}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
 
-          <div className="space-y-6">
-            <section className="rounded-2xl border border-border bg-card p-5">
-              <h2 className="text-lg font-semibold mb-4">Gerar codigo hexadecimal</h2>
-              <form onSubmit={generateCode} className="space-y-4">
-                <div>
-                  <label className="text-xs text-muted-foreground">Usuario de destino</label>
-                  <select
-                    required
-                    value={targetUserId}
-                    onChange={(e) => setTargetUserId(e.target.value)}
-                    className="w-full mt-1 px-3 py-2.5 rounded-lg bg-input border border-border outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="">Selecione um usuario pendente</option>
-                    {pendingProfiles.map((profile) => (
-                      <option key={profile.user_id} value={profile.user_id}>
-                        {profile.email} - {profile.display_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Expiracao em horas</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={720}
-                    value={expiresInHours}
-                    onChange={(e) => setExpiresInHours(Number(e.target.value) || 24)}
-                    className="w-full mt-1 px-3 py-2.5 rounded-lg bg-input border border-border outline-none focus:ring-2 focus:ring-ring"
-                  />
-                </div>
-                <button
-                  disabled={creating}
-                  className="w-full py-2.5 rounded-lg bg-[image:var(--gradient-hero)] text-primary-foreground font-medium hover:opacity-90 transition-opacity disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {creating ? "Gerando..." : "Gerar codigo"}
-                </button>
-              </form>
-
-              {generatedCode && (
-                <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-4">
-                  <p className="text-xs text-muted-foreground">Codigo gerado agora</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Destino: {generatedCodeTargetEmail}
-                  </p>
-                  <p className="mt-2 font-mono text-lg break-all">{generatedCode}</p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Expira em {new Date(generatedCodeExpiresAt).toLocaleString()}
-                  </p>
-                  <a
-                    href={buildAccessCodeEmail(
-                      generatedCodeTargetEmail,
-                      generatedCode,
-                      generatedCodeExpiresAt,
-                    )}
-                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-primary/30 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
-                  >
-                    <Mail size={14} /> Enviar para o email do usuario
-                  </a>
-                </div>
-              )}
-            </section>
-
-            <section className="rounded-2xl border border-border bg-card p-5">
-              <h2 className="text-lg font-semibold mb-4">Auditoria de codigos</h2>
-              <div className="space-y-3">
-                {audit.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum codigo gerado ainda.</p>
-                ) : (
-                  audit.map((row) => (
-                    <div key={row.id} className="rounded-xl border border-border p-3 text-sm">
-                      <p className="font-medium">{row.used_at ? "Utilizado" : "Disponivel"}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Destino: {row.target_email}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Expira em {new Date(row.expires_at).toLocaleString()}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Criado em {new Date(row.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
-          </div>
-        </section>
+        {tab === "billing" && <AdminBilling />}
+        {tab === "users" && (
+          <UsersPanel
+            currentUserId={user.id}
+            onInvite={(target) => {
+              setInviteTarget(target);
+              switchTab("invites");
+            }}
+            onChanged={() => void loadStats()}
+          />
+        )}
+        {tab === "invites" && (
+          <InvitesPanel preselected={inviteTarget} onGenerated={() => void loadStats()} />
+        )}
       </main>
     </div>
   );

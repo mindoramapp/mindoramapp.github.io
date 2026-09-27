@@ -105,6 +105,21 @@
   }
 }
 
+/* Tell the browser which theme is active so native controls (select dropdowns, scrollbars, date
+   pickers, autofill) are drawn to match. Without it, dark mode showed white text on the
+   browser's white dropdown list. */
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
+select option,
+select optgroup {
+  background-color: var(--card);
+  color: var(--foreground);
+}
+
 /* ReactFlow overrides live outside @layer: ReactFlow's own stylesheet is unlayered, and an
    unlayered rule always beats a layered one — inside @layer base these were silently ignored
    (edges fell back to ReactFlow's light gray, invisible on the light theme). */
