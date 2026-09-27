@@ -38,6 +38,7 @@ import { PropertiesPanel } from "./PropertiesPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useGraphHistory } from "@/hooks/useGraphHistory";
 import { layoutTree } from "@/lib/layout";
+import { isLiteMode } from "@/lib/performance";
 import { exportMap, type ExportFormat } from "@/lib/export";
 import { reportActionError } from "@/lib/feedback";
 import { fitsLimit, limitOf, PlanLimitError, useEntitlements } from "@/features/subscriptions";
@@ -50,6 +51,8 @@ import {
 } from "@/store/maps";
 
 const nodeTypes = { mind: MindNode };
+
+const VISIBLE_ONLY_THRESHOLD = 150;
 
 interface Props {
   map: MindMap;
@@ -176,6 +179,7 @@ function EditorInner({
   onShowTour,
 }: Props) {
   const isMobile = useIsMobile();
+  const [liteMode] = useState(isLiteMode);
   const maxNodes = useEntitlements((state) =>
     state.entitlements ? limitOf(state.entitlements, "max_nodes_per_map") : null,
   );
@@ -394,14 +398,14 @@ function EditorInner({
         return {
           ...edge,
           className: edge.data?.kind === "graph" ? "graph-edge" : "tree-edge",
-          animated: edge.data?.kind === "graph" && Boolean(involved),
+          animated: edge.data?.kind === "graph" && Boolean(involved) && !liteMode,
           style: {
             opacity: selectedId && !involved ? 0.25 : 1,
             transition: "opacity 200ms ease",
           },
         };
       }),
-    [edges, selectedId],
+    [edges, selectedId, liteMode],
   );
 
   const onConnect = useCallback(
@@ -887,6 +891,8 @@ function EditorInner({
         defaultViewport={map.viewport}
         proOptions={{ hideAttribution: true }}
         deleteKeyCode={null}
+        // Large maps only render what is on screen; small ones skip the bookkeeping.
+        onlyRenderVisibleElements={nodes.length > VISIBLE_ONLY_THRESHOLD}
         nodesConnectable
         connectOnClick={false}
       >
@@ -900,7 +906,7 @@ function EditorInner({
           <MiniMap
             position="bottom-right"
             style={{ bottom: isMobile ? 72 : 16, right: 12 }}
-            className="!rounded-2xl !border !border-border !bg-card/95 !backdrop-blur-xl !shadow-[var(--shadow-soft)]"
+            className="!rounded-2xl !border !border-border !bg-card/95 !shadow-[var(--shadow-soft)]"
             maskColor="oklch(0 0 0 / 0.08)"
             nodeColor={() => "oklch(0.55 0.22 280)"}
             pannable
@@ -950,7 +956,7 @@ function EditorInner({
         <button
           type="button"
           data-panel-id="minimap-tab"
-          className="absolute bottom-4 right-3 z-20 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/95 px-3 py-2 text-xs font-medium text-foreground shadow-[var(--shadow-soft)] backdrop-blur-xl transition-colors hover:bg-muted"
+          className="absolute bottom-4 right-3 z-20 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/95 px-3 py-2 text-xs font-medium text-foreground shadow-[var(--shadow-soft)] transition-colors hover:bg-muted"
           onClick={toggleMiniMap}
           aria-label="Expandir Minimapa"
         >
@@ -1038,7 +1044,7 @@ function EditorInner({
       )}
 
       {isMobile && !mobilePanelExpanded && (
-        <div className="absolute bottom-3 left-1/2 z-20 flex max-w-[calc(100%-24px)] -translate-x-1/2 gap-2 overflow-x-auto rounded-full border border-border/80 bg-card/92 p-2 shadow-[var(--shadow-soft)] backdrop-blur-xl">
+        <div className="absolute bottom-3 left-1/2 z-20 flex max-w-[calc(100%-24px)] -translate-x-1/2 gap-2 overflow-x-auto rounded-full border border-border/80 bg-card/92 p-2 shadow-[var(--shadow-soft)]">
           {selectedNode && (
             <PanelDockItem
               label="Propriedades"

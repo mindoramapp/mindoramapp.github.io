@@ -181,10 +181,52 @@
     backdrop-filter: blur(24px);
   }
 
+  /* Soft glow drawn with a radial gradient: same look as a blurred circle, without the cost of
+     filter: blur(). The color comes from the element's text color (e.g. text-primary/20). */
   .landing-orb {
     position: absolute;
     border-radius: 9999px;
-    filter: blur(80px);
-    opacity: 0.9;
+    background: radial-gradient(closest-side, currentColor, transparent);
+    pointer-events: none;
+  }
+}
+
+/* Lite mode for low-end devices (see src/lib/performance.ts): keep the design, drop what makes
+   the GPU repaint every frame. */
+.perf-lite {
+  --shadow-soft: 0 10px 28px -18px oklch(0.3 0.05 250 / 0.3);
+}
+.perf-lite.dark {
+  --shadow-soft: 0 12px 32px -20px oklch(0 0 0 / 0.6);
+}
+.perf-lite .landing-panel,
+.perf-lite [class*="backdrop-blur"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.perf-lite .landing-panel {
+  background: var(--color-card);
+}
+.perf-lite .react-flow__edge.animated path {
+  animation: none;
+  stroke-dasharray: none;
+}
+.perf-lite .animate-pulse {
+  animation: none;
+  opacity: 0.7;
+}
+
+/* People who asked the system for less motion get none: no smooth scrolling, no entrance or
+   looping animations. Color and opacity feedback stays instant. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

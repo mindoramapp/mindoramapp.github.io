@@ -408,7 +408,7 @@ function DashboardPage() {
       <Header />
       <main className="flex-1">
         <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside className="rounded-3xl border border-border bg-card/90 p-4 shadow-[var(--shadow-soft)] backdrop-blur lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
+          <aside className="rounded-3xl border border-border bg-card/90 p-4 shadow-[var(--shadow-soft)] lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-semibold">Organização</h2>
@@ -479,7 +479,7 @@ function DashboardPage() {
             </div>
           </aside>
 
-          <section className="min-w-0 rounded-3xl border border-border bg-card/90 p-5 shadow-[var(--shadow-soft)] backdrop-blur">
+          <section className="min-w-0 rounded-3xl border border-border bg-card/90 p-5 shadow-[var(--shadow-soft)]">
             <div className="mb-6 flex flex-col gap-4 2xl:flex-row 2xl:items-end 2xl:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -621,7 +621,7 @@ function DashboardPage() {
                       key={tpl.id}
                       type="button"
                       onClick={() => void createFromTemplate(tpl.id)}
-                      className="group flex flex-col gap-4 rounded-2xl border border-border bg-card/80 p-5 text-left shadow-sm transition-all hover:border-primary/50 hover:shadow-[var(--shadow-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="group flex flex-col gap-4 rounded-2xl border border-border bg-card/80 p-5 text-left shadow-sm transition hover:border-primary/50 hover:shadow-[var(--shadow-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <div
                         className={`inline-grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br ${tpl.color} text-white shadow`}
@@ -674,7 +674,7 @@ function DashboardPage() {
                     draggable
                     onDragStart={() => setDraggedMapId(map.id)}
                     onDragEnd={() => setDraggedMapId(null)}
-                    className="group rounded-2xl border border-border bg-background/70 p-5 transition-all hover:border-primary/60 hover:shadow-[var(--shadow-soft)]"
+                    className="group rounded-2xl border border-border bg-background/70 p-5 transition hover:border-primary/60 hover:shadow-[var(--shadow-soft)]"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <button

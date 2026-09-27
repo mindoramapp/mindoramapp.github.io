@@ -81,7 +81,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
       <ContextMenuTrigger asChild>
         <div
           className={[
-            "group/node px-3 py-2 rounded-xl border transition-all select-none relative",
+            "group/node px-3 py-2 rounded-xl border transition select-none relative",
             "shadow-[var(--shadow-soft)]",
             data.isRoot
               ? "bg-[image:var(--gradient-hero)] text-primary-foreground border-transparent font-semibold"

@@ -137,7 +137,7 @@ export function OnboardingTour({ userId, onDone }: Props) {
 
   const cardClass = cn(
     "absolute z-[51] w-[380px] max-w-[calc(100vw-32px)] rounded-3xl border border-border/60 bg-card p-6 shadow-2xl",
-    "transition-all duration-300",
+    "transition duration-300",
     current.placement === "below-header"
       ? "left-1/2 -translate-x-1/2 top-20"
       : "left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2",
@@ -155,7 +155,7 @@ export function OnboardingTour({ userId, onDone }: Props) {
         <>
           {/* Spotlight via box-shadow trick */}
           <div
-            className="pointer-events-none fixed rounded-2xl ring-2 ring-primary transition-all duration-500"
+            className="pointer-events-none fixed rounded-2xl ring-2 ring-primary transition duration-500"
             style={{
               left: spotlightRect.left - 6,
               top: spotlightRect.top - 6,
@@ -166,7 +166,7 @@ export function OnboardingTour({ userId, onDone }: Props) {
           />
         </>
       ) : (
-        <div className="absolute inset-0 bg-black/65 backdrop-blur-[1.5px]" />
+        <div className="absolute inset-0 bg-black/70" />
       )}
 
       {/* Tour card */}
@@ -178,7 +178,7 @@ export function OnboardingTour({ userId, onDone }: Props) {
               <div
                 key={i}
                 className={cn(
-                  "h-1.5 rounded-full transition-all duration-300",
+                  "h-1.5 rounded-full transition duration-300",
                   i === step
                     ? "w-6 bg-primary"
                     : i < step

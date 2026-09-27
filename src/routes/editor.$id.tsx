@@ -182,13 +182,13 @@ function EditorPage() {
         <div className="ml-auto flex items-center gap-1 bg-muted rounded-lg p-1">
           <button
             onClick={() => setView("tree")}
-            className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition-all ${view === "tree" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+            className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition ${view === "tree" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
           >
             <GitBranch size={14} /> Árvore
           </button>
           <button
             onClick={() => setView("graph")}
-            className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition-all ${view === "graph" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+            className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition ${view === "graph" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
           >
             <Network size={14} /> Grafo
           </button>

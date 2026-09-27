@@ -115,8 +115,8 @@ export function ContextualTip({ userId, nodeCount, graphEdgeCount }: Props) {
       className={cn(
         "absolute bottom-24 left-1/2 z-10 -translate-x-1/2",
         "flex items-center gap-3 rounded-2xl border border-border/80 bg-card/96 px-4 py-3",
-        "shadow-[var(--shadow-soft)] backdrop-blur-xl",
-        "transition-all duration-350",
+        "shadow-[var(--shadow-soft)]",
+        "transition duration-350",
         visible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
       )}
       role="status"

@@ -12,7 +12,7 @@ export function Header({ children }: { children?: React.ReactNode }) {
   useUsageTracker(Boolean(user && (user.role === "superadmin" || user.accessGranted)));
 
   return (
-    <header className="h-14 border-b border-border bg-card/80 backdrop-blur flex items-center px-4 gap-3 z-10">
+    <header className="h-14 border-b border-border bg-card flex items-center px-4 gap-3 z-10">
       <Link to="/dashboard" className="flex items-center gap-2 font-semibold">
         <span className="w-8 h-8 rounded-lg bg-[image:var(--gradient-hero)] grid place-items-center text-primary-foreground">
           <Brain size={18} />

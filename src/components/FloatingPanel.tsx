@@ -112,7 +112,7 @@ export function FloatingPanel({
         type="button"
         data-panel-id={`${id}-tab`}
         className={cn(
-          "absolute z-20 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/95 px-3 py-2 text-xs font-medium text-foreground shadow-[var(--shadow-soft)] backdrop-blur-xl transition-colors hover:bg-muted",
+          "absolute z-20 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/95 px-3 py-2 text-xs font-medium text-foreground shadow-[var(--shadow-soft)] transition-colors hover:bg-muted",
           dragging && "select-none cursor-grabbing",
         )}
         style={{ left: position.x, top: position.y }}
@@ -134,7 +134,7 @@ export function FloatingPanel({
       ref={panelRef}
       data-panel-id={id}
       className={cn(
-        "z-20 overflow-hidden rounded-3xl border border-border/80 bg-card/95 text-card-foreground shadow-[var(--shadow-soft)] backdrop-blur-xl",
+        "z-20 overflow-hidden rounded-3xl border border-border/80 bg-card/95 text-card-foreground shadow-[var(--shadow-soft)]",
         mobile ? "fixed inset-x-3 bottom-4 max-h-[72vh]" : `absolute ${widthClassName}`,
         dragging && "select-none",
       )}
@@ -197,7 +197,7 @@ export function PanelDockItem({ label, icon, active, minimized, onClick }: Panel
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium shadow-[var(--shadow-soft)] transition-all",
+        "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium shadow-[var(--shadow-soft)] transition",
         active
           ? "border-primary/40 bg-primary text-primary-foreground"
           : minimized
