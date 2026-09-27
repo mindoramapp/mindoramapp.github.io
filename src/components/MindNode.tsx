@@ -153,7 +153,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
                 "opacity-0 group-hover/node:opacity-100 focus-visible:opacity-100",
                 // Touch screens have no hover: show it on the selected node.
                 selected
-                  ? "pointer-coarse:h-9 pointer-coarse:w-9 pointer-coarse:opacity-100"
+                  ? "pointer-coarse:-right-12 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100"
                   : "pointer-coarse:pointer-events-none",
               ].join(" ")}
             >

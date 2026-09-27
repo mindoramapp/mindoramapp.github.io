@@ -46,6 +46,7 @@ import { PropertiesPanel } from "./PropertiesPanel";
 import { requestNodeEdit } from "./nodeEditing";
 import { useIsMobile, useIsTouch } from "@/hooks/use-mobile";
 import { useGraphHistory } from "@/hooks/useGraphHistory";
+import { useEdgeAutoPan } from "@/features/editor/useEdgeAutoPan";
 import { layoutTree } from "@/lib/layout";
 import { isLiteMode } from "@/lib/performance";
 import { exportMap, type ExportFormat } from "@/lib/export";
@@ -253,7 +254,13 @@ function EditorInner({
       setPanelPositions((current) => ({ ...current, minimap: position })),
     [],
   );
-  const { fitView } = useReactFlow();
+  const { fitView, getViewport: getFlowViewport, setViewport: setFlowViewport } = useReactFlow();
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const autoPan = useEdgeAutoPan(canvasRef, {
+    getViewport: getFlowViewport,
+    setViewport: setFlowViewport,
+    setNodes,
+  });
   const handledOrganizeSignal = useRef(0);
   // Latest graph for event-driven actions that must not re-run whenever the graph changes.
   const nodesRef = useRef(nodes);
@@ -993,7 +1000,10 @@ function EditorInner({
   );
 
   return (
-    <div className={`relative h-full w-full ${connectMode ? "cursor-crosshair" : ""}`}>
+    <div
+      ref={canvasRef}
+      className={`relative h-full w-full ${connectMode ? "cursor-crosshair" : ""}`}
+    >
       <ReactFlow
         nodes={styledNodes}
         edges={styledEdges}
@@ -1010,6 +1020,10 @@ function EditorInner({
         }}
         onMoveEnd={(_, nextViewport) => persistViewport(nextViewport)}
         onEdgeClick={(_, edge) => setEdgePendingDelete(edge)}
+        // Our edge auto-pan scales speed with the distance to the edge (ReactFlow's is fixed).
+        autoPanOnNodeDrag={false}
+        onNodeDrag={autoPan.onNodeDrag}
+        onNodeDragStop={autoPan.onNodeDragStop}
         nodeTypes={nodeTypes}
         defaultViewport={map.viewport}
         // The saved viewport is usually framed on a desktop and can leave the map off screen on
