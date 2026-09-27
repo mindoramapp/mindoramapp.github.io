@@ -92,6 +92,27 @@ describe("authorization", () => {
     expect(await t.as(user.id, "update plans set price_cents = 0 returning 1")).toHaveLength(0);
   });
 
+  it("does not let users look up other people's plan or invite status", async () => {
+    const alice = await t.createUser({ plan: "gold" });
+    const bob = await t.createUser();
+
+    expect(await errorOf(t.as(bob.id, "select effective_plan($1)", [alice.id]))).toMatch(
+      /permission denied/,
+    );
+    expect(await errorOf(t.as(bob.id, "select plan_limit($1, 'max_maps')", [alice.id]))).toMatch(
+      /permission denied/,
+    );
+    expect(await t.as(bob.id, "select has_app_access($1) as v", [alice.id])).toEqual([
+      { v: false },
+    ]);
+    expect(await t.as(bob.id, "select has_app_access() as v")).toEqual([{ v: true }]);
+
+    const admin = await t.createUser({ role: "superadmin" });
+    expect(await t.as(admin.id, "select has_app_access($1) as v", [alice.id])).toEqual([
+      { v: true },
+    ]);
+  });
+
   it("publishes plans to anonymous visitors", async () => {
     await t.db.exec("set role anon;");
     const plans = (await t.db.query<{ id: string }>("select id from plans order by sort_order"))
