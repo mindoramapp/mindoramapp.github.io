@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { MotionConfig, motion } from "framer-motion";
 import { isLiteMode } from "@/lib/performance";
+import { InstallAppButton } from "@/features/pwa/InstallInvitation";
 import { useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -302,11 +303,13 @@ export function LandingPage() {
               type="button"
               onClick={() => scrollToId("top")}
               className="flex items-center gap-3 text-left"
+              aria-label="MindoraMap — início"
             >
               <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[image:var(--gradient-hero)] text-primary-foreground shadow-[var(--shadow-soft)]">
                 <Network size={20} />
               </span>
-              <div>
+              {/* Narrow phones keep only the logo so every header action fits. */}
+              <div className="hidden min-[420px]:block">
                 <div className="text-base font-semibold tracking-tight">MindoraMap</div>
                 <div className="hidden text-xs text-muted-foreground sm:block">
                   Mapas mentais inteligentes
@@ -327,7 +330,8 @@ export function LandingPage() {
               ))}
             </nav>
 
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+              <InstallAppButton />
               <ThemeToggle />
               {appDestination ? (
                 <Link

@@ -19,6 +19,7 @@ import {
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { ExportMenu } from "@/components/ExportMenu";
 import { EditorMoreMenu } from "@/components/EditorMoreMenu";
+import { PanelsMenu } from "@/components/PanelsMenu";
 import { useEntitlements } from "@/features/subscriptions";
 import { isOnboardingDone, resetOnboarding } from "@/lib/onboarding";
 
@@ -247,6 +248,7 @@ function EditorPage() {
           >
             <GraduationCap size={14} /> <span className="hidden xl:inline">Revisar</span>
           </button>
+          <PanelsMenu />
           <button
             onClick={() => window.dispatchEvent(new Event("mm-center"))}
             className="px-3 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center justify-center gap-1.5 pointer-coarse:min-h-11 pointer-coarse:min-w-11"

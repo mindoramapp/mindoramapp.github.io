@@ -20,6 +20,14 @@ celular deitado), o editor mostra só desfazer/refazer e o menu "Mais" no topo, 
 inferior com "+ Filho" e "+ Irmão" (também em tablets, por serem telas de toque). Os painéis
 viram gaveta inferior (em pé) ou lateral (deitado), e o mapa é enquadrado ao abrir.
 
+**App instalável (PWA):** manifesto e service worker em `public/`. O app abre sem internet
+(o "casco" fica em cache; dados do Supabase nunca são cacheados). Na primeira visita, um
+convite oferece a instalação (diálogo nativo no Chrome/Edge/Android, passo a passo no iPhone);
+"Agora não" é lembrado por 3 semanas, e o botão "Instalar app" fica no topo da landing.
+
+**Painéis do editor:** arrastáveis abertos ou recolhidos, grudam nas bordas e cantos, podem ser
+fechados e reabertos pelo menu "Painéis" da barra; posição e visibilidade são lembradas.
+
 **Desempenho:** aparelhos com pouca memória ou poucos núcleos, economia de dados, 2G ou
 "reduzir movimento" ativam o modo leve (`<html class="perf-lite">`): sem desfoque de fundo,
 sombras menores e sem animações contínuas. Para testar, defina

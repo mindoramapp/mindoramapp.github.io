@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute } from "@tanstack/react-router";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { InstallInvitation } from "@/features/pwa/InstallInvitation";
 import { supabase } from "@/lib/supabase";
 
 const AUTH_FEEDBACK_KEY = "mindora-auth-feedback";
@@ -176,6 +177,7 @@ function RootComponent() {
     <>
       <Outlet />
       <Toaster richColors position="top-right" />
+      <InstallInvitation />
     </>
   );
 }

@@ -5,7 +5,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/store/auth";
 import { useUsageTracker } from "@/hooks/useUsageTracker";
 import { useTheme } from "@/hooks/useTheme";
-import { LogOut, Brain, Home, Moon, Shield, Sun } from "lucide-react";
+import { LogOut, Brain, Download, Home, Moon, Shield, Sun } from "lucide-react";
+import { useInstallPrompt } from "@/features/pwa/installPrompt";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const ICON_BUTTON =
@@ -95,6 +96,7 @@ function AccountMenu({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { theme, toggle } = useTheme();
+  const installMode = useInstallPrompt((state) => (state.installed ? null : state.mode));
 
   useEffect(() => {
     if (!open) return;
@@ -137,6 +139,19 @@ function AccountMenu({
             {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             {theme === "dark" ? "Tema claro" : "Tema escuro"}
           </button>
+          {installMode && (
+            <button
+              type="button"
+              role="menuitem"
+              className={MENU_ITEM}
+              onClick={() => {
+                setOpen(false);
+                window.dispatchEvent(new Event("mindora:install-invite"));
+              }}
+            >
+              <Download size={16} /> Instalar app
+            </button>
+          )}
           {isAdmin && (
             <Link to="/admin" role="menuitem" className={MENU_ITEM} onClick={() => setOpen(false)}>
               <Shield size={16} /> Painel admin

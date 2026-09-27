@@ -4,10 +4,13 @@ import { RouterProvider } from "@tanstack/react-router";
 import { getRouter } from "./router";
 import { initializeTheme } from "./lib/theme";
 import { initPerformanceMode } from "./lib/performance";
+import { initInstallPrompt, registerServiceWorker } from "./features/pwa/installPrompt";
 import "./styles.css";
 
 initializeTheme();
 initPerformanceMode();
+initInstallPrompt();
+registerServiceWorker();
 
 const router = getRouter();
 const rootElement = document.getElementById("root");

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import ReactFlow, {
   Background,
@@ -23,6 +23,7 @@ import {
   RotateCcw,
   SlidersHorizontal,
   Plus,
+  Minus,
 } from "lucide-react";
 import { ContextualTip } from "./ContextualTip";
 import {
@@ -34,7 +35,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { MindNode } from "./MindNode";
-import { FloatingPanel, PanelDockItem } from "./FloatingPanel";
+import { FloatingPanel, PanelDockItem, type PanelPosition } from "./FloatingPanel";
+import { useEditorPanels } from "@/features/editor/panelsStore";
+import {
+  defaultPanelLayout,
+  loadPanelLayout,
+  savePanelLayout,
+} from "@/features/editor/panelLayout";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { useIsMobile, useIsTouch } from "@/hooks/use-mobile";
 import { useGraphHistory } from "@/hooks/useGraphHistory";
@@ -54,6 +61,12 @@ import {
 const nodeTypes = { mind: MindNode };
 
 const VISIBLE_ONLY_THRESHOLD = 150;
+
+type Visibility = boolean | ((current: boolean) => boolean);
+// Panel visibility lives in a shared store (the toolbar's "Painéis" menu toggles it too).
+const setShowInspector = (value: Visibility) => useEditorPanels.getState().set("inspector", value);
+const setShowHelp = (value: Visibility) => useEditorPanels.getState().set("help", value);
+const setShowMiniMap = (value: Visibility) => useEditorPanels.getState().set("minimap", value);
 
 interface Props {
   map: MindMap;
@@ -191,28 +204,44 @@ function EditorInner({
   const [pendingSource, setPendingSource] = useState<string | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [viewport, setViewport] = useState<ViewportState>(map.viewport);
-  const [showInspector, setShowInspector] = useState(true);
-  const [inspectorMinimized, setInspectorMinimized] = useState(false);
-  const [showMiniMap, setShowMiniMap] = useState(!isMobile);
-  const [miniMapMinimized, setMiniMapMinimized] = useState(isMobile);
-  const [showHelp, setShowHelp] = useState(false);
-  const [helpMinimized, setHelpMinimized] = useState(true);
+  // Panel visibility and positions are remembered per device (see panelLayout.ts).
+  const [initialLayout] = useState(loadPanelLayout);
+  useLayoutEffect(() => {
+    useEditorPanels.getState().hydrate({
+      inspector: initialLayout.inspector.show,
+      help: initialLayout.help.show,
+      minimap: initialLayout.minimap.show,
+    });
+  }, [initialLayout]);
+  const showInspector = useEditorPanels((state) => state.visible.inspector);
+  const showHelp = useEditorPanels((state) => state.visible.help);
+  const showMiniMap = useEditorPanels((state) => state.visible.minimap);
+  const panelsResetSignal = useEditorPanels((state) => state.resetSignal);
+  const [inspectorMinimized, setInspectorMinimized] = useState(initialLayout.inspector.minimized);
+  const [miniMapMinimized, setMiniMapMinimized] = useState(
+    isMobile || initialLayout.minimap.minimized,
+  );
+  const [helpMinimized, setHelpMinimized] = useState(initialLayout.help.minimized);
   const [edgePendingDelete, setEdgePendingDelete] = useState<Edge | null>(null);
-  const [panelPositions, setPanelPositions] = useState(() => {
-    if (typeof window === "undefined") {
-      return {
-        inspector: { x: 0, y: 0 },
-        minimap: { x: 0, y: 0 },
-        help: { x: 0, y: 0 },
-      };
-    }
-    const width = window.innerWidth;
-    return {
-      inspector: { x: Math.max(16, width - 380), y: 88 },
-      minimap: { x: 16, y: Math.max(104, window.innerHeight - 300) },
-      help: { x: 16, y: 88 },
-    };
+  const [panelPositions, setPanelPositions] = useState({
+    inspector: initialLayout.inspector.position,
+    minimap: initialLayout.minimap.position,
+    help: initialLayout.help.position,
   });
+  const moveInspector = useCallback(
+    (position: PanelPosition) =>
+      setPanelPositions((current) => ({ ...current, inspector: position })),
+    [],
+  );
+  const moveHelp = useCallback(
+    (position: PanelPosition) => setPanelPositions((current) => ({ ...current, help: position })),
+    [],
+  );
+  const moveMiniMap = useCallback(
+    (position: PanelPosition) =>
+      setPanelPositions((current) => ({ ...current, minimap: position })),
+    [],
+  );
   const { fitView } = useReactFlow();
   const lastSavedViewport = useRef<ViewportState>(map.viewport);
 
@@ -230,48 +259,51 @@ function EditorInner({
   }, [map.id, setNodes, setEdges]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const width = window.innerWidth;
-    setPanelPositions({
-      inspector: { x: Math.max(16, width - 380), y: 88 },
-      minimap: { x: 16, y: Math.max(104, window.innerHeight - 300) },
-      help: { x: 16, y: 88 },
-    });
-  }, [map.id]);
-
-  // Re-clamp panel positions on window resize
-  useEffect(() => {
-    const onResize = () => {
-      setPanelPositions((current) => {
-        const clamp = (pos: { x: number; y: number }, w: number, h: number) => ({
-          x: Math.min(Math.max(16, pos.x), Math.max(16, window.innerWidth - w - 16)),
-          y: Math.min(Math.max(16, pos.y), Math.max(16, window.innerHeight - h - 16)),
-        });
-        return {
-          inspector: clamp(current.inspector, 340, 200),
-          minimap: clamp(current.minimap, 60, 40),
-          help: clamp(current.help, 290, 200),
-        };
-      });
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  useEffect(() => {
     if (isMobile) {
       setShowMiniMap(true);
       setMiniMapMinimized(true);
       setShowHelp(true);
       setHelpMinimized(true);
       setInspectorMinimized(true);
+      setShowInspector(true);
       return;
     }
-
-    setShowMiniMap(true);
-    setShowHelp(true);
   }, [isMobile]);
+
+  useEffect(() => {
+    if (isMobile) return;
+    savePanelLayout({
+      inspector: {
+        show: showInspector,
+        minimized: inspectorMinimized,
+        position: panelPositions.inspector,
+      },
+      help: { show: showHelp, minimized: helpMinimized, position: panelPositions.help },
+      minimap: { show: showMiniMap, minimized: miniMapMinimized, position: panelPositions.minimap },
+    });
+  }, [
+    isMobile,
+    showInspector,
+    inspectorMinimized,
+    showHelp,
+    helpMinimized,
+    showMiniMap,
+    miniMapMinimized,
+    panelPositions,
+  ]);
+
+  useEffect(() => {
+    if (panelsResetSignal === 0) return;
+    const layout = defaultPanelLayout();
+    setInspectorMinimized(false);
+    setHelpMinimized(true);
+    setMiniMapMinimized(true);
+    setPanelPositions({
+      inspector: layout.inspector.position,
+      help: layout.help.position,
+      minimap: layout.minimap.position,
+    });
+  }, [panelsResetSignal]);
 
   // Warn once per failure streak, not on every retry.
   const saveFailureNotified = useRef(false);
@@ -967,9 +999,8 @@ function EditorInner({
           widthClassName="w-[340px]"
           onToggle={toggleInspector}
           onMinimize={() => setInspectorMinimized(true)}
-          onPositionChange={(position) =>
-            setPanelPositions((current) => ({ ...current, inspector: position }))
-          }
+          onClose={() => setShowInspector(false)}
+          onPositionChange={moveInspector}
         >
           <PropertiesPanel
             node={selectedNode}
@@ -981,18 +1012,31 @@ function EditorInner({
       )}
 
       {showMiniMap && miniMapMinimized && !isMobile && (
+        <FloatingPanel
+          id="minimap"
+          title="Minimapa"
+          icon={<MiniMapIcon size={16} />}
+          open
+          minimized
+          mobile={false}
+          position={panelPositions.minimap}
+          onToggle={toggleMiniMap}
+          onMinimize={() => setMiniMapMinimized(true)}
+          onClose={() => setShowMiniMap(false)}
+          onPositionChange={moveMiniMap}
+        >
+          {null}
+        </FloatingPanel>
+      )}
+
+      {showMiniMap && !miniMapMinimized && !isMobile && (
         <button
           type="button"
-          data-panel-id="minimap-tab"
-          className="absolute bottom-4 right-3 z-20 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/95 px-3 py-2 text-xs font-medium text-foreground shadow-[var(--shadow-soft)] transition-colors hover:bg-muted"
-          onClick={toggleMiniMap}
-          aria-label="Expandir Minimapa"
+          onClick={() => setMiniMapMinimized(true)}
+          className="absolute bottom-[174px] right-3 z-20 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-[var(--shadow-soft)] hover:bg-muted hover:text-foreground pointer-coarse:min-h-11"
+          aria-label="Minimizar minimapa"
         >
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-primary">
-            <MiniMapIcon size={16} />
-          </span>
-          <span>Minimapa</span>
-          <PanelBottomOpen size={14} className="text-muted-foreground" />
+          <Minus size={12} /> Minimapa
         </button>
       )}
 
@@ -1008,9 +1052,8 @@ function EditorInner({
           widthClassName="w-[290px]"
           onToggle={toggleHelp}
           onMinimize={() => setHelpMinimized(true)}
-          onPositionChange={(position) =>
-            setPanelPositions((current) => ({ ...current, help: position }))
-          }
+          onClose={() => setShowHelp(false)}
+          onPositionChange={moveHelp}
         >
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>

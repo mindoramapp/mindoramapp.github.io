@@ -85,7 +85,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
             "shadow-[var(--shadow-soft)]",
             data.isRoot
               ? "bg-[image:var(--gradient-hero)] text-primary-foreground border-transparent font-semibold"
-              : "bg-card text-card-foreground border-border hover:border-primary/50",
+              : "bg-card text-card-foreground border-[var(--node-border)] hover:border-primary/50",
             selected ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : "",
           ].join(" ")}
           style={{ minWidth: 140, maxWidth: 260 }}

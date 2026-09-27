@@ -56,6 +56,7 @@
   --input: oklch(0.95 0.01 252);
   --ring: oklch(0.58 0.17 258);
   --tree: oklch(0.58 0.17 258);
+  --node-border: oklch(0.83 0.014 255);
   --graph: oklch(0.71 0.16 195);
   --gradient-hero: linear-gradient(135deg, oklch(0.58 0.17 258), oklch(0.68 0.15 205));
   --shadow-soft: 0 22px 60px -30px oklch(0.3 0.05 250 / 0.28);
@@ -82,6 +83,7 @@
   --input: oklch(1 0 0 / 14%);
   --ring: oklch(0.72 0.16 252);
   --tree: oklch(0.72 0.16 252);
+  --node-border: oklch(1 0 0 / 16%);
   --graph: oklch(0.76 0.14 195);
   --shadow-soft: 0 30px 80px -42px oklch(0 0 0 / 0.6);
 }
@@ -101,57 +103,61 @@
       background-color 220ms ease,
       color 220ms ease;
   }
-  .react-flow__edge.tree-edge .react-flow__edge-path {
-    stroke: var(--tree);
-    stroke-width: 2;
-  }
-  .react-flow__edge.graph-edge .react-flow__edge-path {
-    stroke: var(--graph);
-    stroke-width: 2;
-  }
-  .mind-handle {
-    width: 14px !important;
-    height: 14px !important;
-    border: 0 !important;
-    background: transparent !important;
-    transition: opacity 160ms ease;
-  }
-  .mind-handle::after {
-    content: "";
-    position: absolute;
-    inset: 50%;
-    width: 8px;
-    height: 8px;
-    transform: translate(-50%, -50%);
-    border-radius: 9999px;
-    background: var(--primary);
-  }
-  .mind-handle-left {
-    left: -10px !important;
-    transform: translateY(-50%);
-  }
-  .mind-handle-right {
-    right: -10px !important;
-    left: auto !important;
-    transform: translateY(-50%);
-  }
-  .mind-handle-top {
-    top: -10px !important;
-    transform: translateX(-50%);
-  }
-  .mind-handle-bottom {
-    top: auto !important;
-    bottom: -10px !important;
-    transform: translateX(-50%);
-  }
-  .react-flow__attribution {
-    background: transparent !important;
-  }
-  .react-flow__controls button {
-    background: var(--card) !important;
-    color: var(--foreground) !important;
-    border-color: var(--border) !important;
-  }
+}
+
+/* ReactFlow overrides live outside @layer: ReactFlow's own stylesheet is unlayered, and an
+   unlayered rule always beats a layered one — inside @layer base these were silently ignored
+   (edges fell back to ReactFlow's light gray, invisible on the light theme). */
+.react-flow__edge.tree-edge .react-flow__edge-path {
+  stroke: var(--tree);
+  stroke-width: 2;
+}
+.react-flow__edge.graph-edge .react-flow__edge-path {
+  stroke: var(--graph);
+  stroke-width: 2;
+}
+.mind-handle {
+  width: 14px !important;
+  height: 14px !important;
+  border: 0 !important;
+  background: transparent !important;
+  transition: opacity 160ms ease;
+}
+.mind-handle::after {
+  content: "";
+  position: absolute;
+  inset: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: var(--primary);
+}
+.mind-handle-left {
+  left: -10px !important;
+  transform: translateY(-50%);
+}
+.mind-handle-right {
+  right: -10px !important;
+  left: auto !important;
+  transform: translateY(-50%);
+}
+.mind-handle-top {
+  top: -10px !important;
+  transform: translateX(-50%);
+}
+.mind-handle-bottom {
+  top: auto !important;
+  bottom: -10px !important;
+  transform: translateX(-50%);
+}
+.react-flow__attribution {
+  background: transparent !important;
+}
+.react-flow__controls button {
+  background: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
 }
 
 @layer utilities {
