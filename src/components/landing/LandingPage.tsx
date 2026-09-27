@@ -288,7 +288,7 @@ export function LandingPage() {
 
   return (
     <MotionConfig reducedMotion={lite ? "always" : "user"}>
-      <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
+      <div className="min-h-dvh overflow-x-hidden bg-background text-foreground">
         <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
           <div className="landing-orb left-[-18%] top-[2%] h-[26rem] w-[26rem] text-primary/25" />
           <div className="landing-orb right-[-16%] top-[20%] h-[28rem] w-[28rem] text-cyan-400/15" />
@@ -308,7 +308,9 @@ export function LandingPage() {
               </span>
               <div>
                 <div className="text-base font-semibold tracking-tight">MindoraMap</div>
-                <div className="text-xs text-muted-foreground">Mapas mentais inteligentes</div>
+                <div className="hidden text-xs text-muted-foreground sm:block">
+                  Mapas mentais inteligentes
+                </div>
               </div>
             </button>
 
@@ -318,7 +320,7 @@ export function LandingPage() {
                   key={item.id}
                   type="button"
                   onClick={() => scrollToId(item.id)}
-                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground pointer-coarse:py-3"
                 >
                   {item.label}
                 </button>
@@ -326,11 +328,11 @@ export function LandingPage() {
             </nav>
 
             <div className="flex items-center gap-2">
-              <ThemeToggle className="hidden sm:inline-flex" />
+              <ThemeToggle />
               {appDestination ? (
                 <Link
                   to={appDestination}
-                  className="inline-flex items-center gap-2 rounded-full bg-[image:var(--gradient-hero)] px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-opacity hover:opacity-95"
+                  className="inline-flex items-center gap-2 rounded-full bg-[image:var(--gradient-hero)] px-4 py-2 text-sm font-semibold pointer-coarse:min-h-11 text-primary-foreground shadow-[var(--shadow-soft)] transition-opacity hover:opacity-95"
                 >
                   Ir para o painel
                   <ChevronRight size={16} />
@@ -339,13 +341,13 @@ export function LandingPage() {
                 <>
                   <Link
                     to="/login"
-                    className="hidden rounded-full px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted sm:inline-flex"
+                    className="hidden rounded-full px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted sm:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
                   >
                     Login
                   </Link>
                   <Link
                     to="/register"
-                    className="inline-flex items-center gap-2 rounded-full bg-[image:var(--gradient-hero)] px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-opacity hover:opacity-95"
+                    className="inline-flex items-center gap-2 rounded-full bg-[image:var(--gradient-hero)] px-4 py-2 text-sm font-semibold pointer-coarse:min-h-11 text-primary-foreground shadow-[var(--shadow-soft)] transition-opacity hover:opacity-95"
                   >
                     Cadastro
                     <ChevronRight size={16} />

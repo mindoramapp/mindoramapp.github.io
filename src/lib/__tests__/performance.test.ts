@@ -17,7 +17,9 @@ describe("shouldUseLiteMode", () => {
 
   it("respects the system's reduced motion / transparency preferences", () => {
     const reduced = (q: string) => q.includes("reduced-motion");
-    expect(shouldUseLiteMode({ deviceMemory: 8, hardwareConcurrency: 8 }, reduced, null)).toBe(true);
+    expect(shouldUseLiteMode({ deviceMemory: 8, hardwareConcurrency: 8 }, reduced, null)).toBe(
+      true,
+    );
   });
 
   it("lets the user force either mode", () => {

@@ -15,6 +15,16 @@ JSON, e importação de JSON pelo dashboard.
 revisão espaçada. Tecla Espaço revela a resposta; 1, 2 e 3 avaliam. O progresso fica em
 `review_cards`, e o domínio do mapa aparece em %.
 
+**Celular e tablet:** em telas compactas (até 767 px de largura, ou até 560 px de altura no
+celular deitado), o editor mostra só desfazer/refazer e o menu "Mais" no topo, e uma barra
+inferior com "+ Filho" e "+ Irmão" (também em tablets, por serem telas de toque). Os painéis
+viram gaveta inferior (em pé) ou lateral (deitado), e o mapa é enquadrado ao abrir.
+
+**Desempenho:** aparelhos com pouca memória ou poucos núcleos, economia de dados, 2G ou
+"reduzir movimento" ativam o modo leve (`<html class="perf-lite">`): sem desfoque de fundo,
+sombras menores e sem animações contínuas. Para testar, defina
+`localStorage["mindora-perf"] = "lite"` (ou `"full"`) e recarregue.
+
 ## Desenvolvimento
 
 ```bash

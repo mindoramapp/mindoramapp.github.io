@@ -64,7 +64,7 @@ function LoginPage() {
   if (!initialized) return null;
 
   return (
-    <div className="relative min-h-screen grid place-items-center px-4 bg-[radial-gradient(ellipse_at_top,oklch(0.58_0.17_258/0.15),transparent_60%)]">
+    <div className="relative min-h-dvh grid place-items-center px-4 bg-[radial-gradient(ellipse_at_top,oklch(0.58_0.17_258/0.15),transparent_60%)]">
       <div className="absolute right-4 top-4">
         <ThemeToggle compact />
       </div>
@@ -72,7 +72,7 @@ function LoginPage() {
         <div className="mb-5">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground pointer-coarse:min-h-11"
           >
             <ArrowLeft size={16} />
             Voltar para a página inicial
@@ -131,7 +131,10 @@ function LoginPage() {
         </form>
         <p className="text-sm text-muted-foreground text-center mt-4">
           Primeiro acesso?{" "}
-          <Link to="/register" className="text-primary hover:underline">
+          <Link
+            to="/register"
+            className="text-primary hover:underline pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
+          >
             Criar conta
           </Link>
         </p>

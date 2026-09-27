@@ -18,8 +18,11 @@ export function ThemeToggle({
       aria-label={label}
       title={label}
       className={[
-        "group inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/80 text-foreground backdrop-blur transition duration-300 hover:border-primary/40 hover:bg-card",
-        compact ? "h-10 w-10 justify-center" : "px-3 py-2",
+        "group inline-flex items-center gap-2 pointer-coarse:min-h-11 pointer-coarse:min-w-11 rounded-full border border-border/70 bg-card/80 text-foreground backdrop-blur transition duration-300 hover:border-primary/40 hover:bg-card",
+        // Non-compact shows its label from sm up and stays icon-only on phones.
+        compact
+          ? "h-10 w-10 justify-center"
+          : "h-10 w-10 justify-center sm:h-auto sm:w-auto sm:px-3 sm:py-2",
         className,
       ].join(" ")}
     >
@@ -34,7 +37,9 @@ export function ThemeToggle({
         />
       </span>
       {!compact && (
-        <span className="text-sm font-medium">{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+        <span className="hidden text-sm font-medium sm:inline">
+          {theme === "dark" ? "Tema claro" : "Tema escuro"}
+        </span>
       )}
     </button>
   );

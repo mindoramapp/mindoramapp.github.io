@@ -59,6 +59,7 @@ function DashboardPage() {
   const [maps, setMaps] = useState<MindMap[]>([]);
   const [folders, setFolders] = useState<MindFolder[]>([]);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const [organizationOpen, setOrganizationOpen] = useState(false);
   const refreshEntitlements = useEntitlements((state) => state.refresh);
   const [loadingMaps, setLoadingMaps] = useState(true);
   const [showMapModal, setShowMapModal] = useState(false);
@@ -404,78 +405,94 @@ function DashboardPage() {
   if (user.role !== "superadmin" && !user.accessGranted) return null;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-dvh flex flex-col">
       <Header />
       <main className="flex-1">
         <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="rounded-3xl border border-border bg-card/90 p-4 shadow-[var(--shadow-soft)] lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold">Organização</h2>
-                <p className="text-xs text-muted-foreground">Pastas, favoritos e acesso rápido.</p>
-              </div>
+            <div className="flex items-center justify-between gap-2 lg:mb-4">
+              {/* Phones: the whole panel collapses to this row so maps come first. */}
+              <button
+                type="button"
+                onClick={() => setOrganizationOpen((open) => !open)}
+                className="flex min-h-11 flex-1 items-center gap-2 text-left lg:pointer-events-none lg:min-h-0"
+                aria-expanded={organizationOpen}
+              >
+                <div>
+                  <h2 className="text-sm font-semibold">Organização</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Pastas, favoritos e acesso rápido.
+                  </p>
+                </div>
+                <ChevronDown
+                  size={16}
+                  className={`ml-auto text-muted-foreground transition-transform lg:hidden ${organizationOpen ? "rotate-180" : ""}`}
+                />
+              </button>
               <button
                 type="button"
                 onClick={openCreateFolderModal}
-                className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted pointer-coarse:min-h-11"
               >
                 <Plus size={12} /> Pasta
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setSelectedFolderId(null)}
-              className={`mb-2 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors ${
-                selectedFolderId === null ? "bg-primary/10 text-primary" : "hover:bg-muted"
-              }`}
-            >
-              <Folder size={16} /> Todos os mapas
-            </button>
+            <div className={organizationOpen ? "mt-4 lg:mt-0" : "hidden lg:block"}>
+              <button
+                type="button"
+                onClick={() => setSelectedFolderId(null)}
+                className={`mb-2 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors pointer-coarse:min-h-11 ${
+                  selectedFolderId === null ? "bg-primary/10 text-primary" : "hover:bg-muted"
+                }`}
+              >
+                <Folder size={16} /> Todos os mapas
+              </button>
 
-            <div
-              className="mb-3 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
-              onDragOver={(event) => {
-                if (!draggedMapId) return;
-                event.preventDefault();
-              }}
-              onDrop={(event) => {
-                event.preventDefault();
-                if (!draggedMapId) return;
-                const droppedMap = maps.find((entry) => entry.id === draggedMapId);
-                setDraggedMapId(null);
-                if (!droppedMap) return;
-                void moveMapHandler(droppedMap, null);
-              }}
-            >
-              Arraste mapas aqui para mover para a raiz
-            </div>
+              <div
+                className="mb-3 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
+                onDragOver={(event) => {
+                  if (!draggedMapId) return;
+                  event.preventDefault();
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  if (!draggedMapId) return;
+                  const droppedMap = maps.find((entry) => entry.id === draggedMapId);
+                  setDraggedMapId(null);
+                  if (!droppedMap) return;
+                  void moveMapHandler(droppedMap, null);
+                }}
+              >
+                Arraste mapas aqui para mover para a raiz
+              </div>
 
-            <div className="space-y-1">{renderFolderTree()}</div>
+              <div className="space-y-1">{renderFolderTree()}</div>
 
-            <div className="mt-6 border-t border-border pt-4">
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Favoritos
-              </h3>
-              {favoriteMaps.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  Marque mapas importantes para acessá-los aqui.
-                </p>
-              ) : (
-                <div className="space-y-1">
-                  {favoriteMaps.slice(0, 5).map((map) => (
-                    <button
-                      key={map.id}
-                      type="button"
-                      onClick={() => navigate({ to: "/editor/$id", params: { id: map.id } })}
-                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
-                    >
-                      <Star size={14} className="fill-current text-amber-500" />
-                      <span className="truncate">{map.title}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="mt-6 border-t border-border pt-4">
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Favoritos
+                </h3>
+                {favoriteMaps.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Marque mapas importantes para acessá-los aqui.
+                  </p>
+                ) : (
+                  <div className="space-y-1">
+                    {favoriteMaps.slice(0, 5).map((map) => (
+                      <button
+                        key={map.id}
+                        type="button"
+                        onClick={() => navigate({ to: "/editor/$id", params: { id: map.id } })}
+                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
+                      >
+                        <Star size={14} className="fill-current text-amber-500" />
+                        <span className="truncate">{map.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </aside>
 
@@ -486,7 +503,7 @@ function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedFolderId(null)}
-                    className="hover:text-foreground"
+                    className="hover:text-foreground pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
                   >
                     Início
                   </button>
@@ -496,7 +513,7 @@ function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => setSelectedFolderId(folder.id)}
-                        className="hover:text-foreground"
+                        className="hover:text-foreground pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
                       >
                         {folder.name}
                       </button>
@@ -515,9 +532,11 @@ function DashboardPage() {
                 </p>
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                <PlanUsageBadge />
-                <label className="relative block min-w-[260px]">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                <div className="col-span-2 sm:contents">
+                  <PlanUsageBadge />
+                </div>
+                <label className="relative col-span-2 block min-w-0 sm:min-w-[260px]">
                   <Search
                     className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                     size={16}
@@ -691,7 +710,7 @@ function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => void toggleFavorite(map)}
-                        className={`rounded-full p-2 transition-colors ${map.isFavorite ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"}`}
+                        className={`rounded-full p-2 pointer-coarse:p-3 transition-colors ${map.isFavorite ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"}`}
                         title={map.isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                       >
                         <Star size={16} className={map.isFavorite ? "fill-current" : ""} />
@@ -702,7 +721,7 @@ function DashboardPage() {
                       <select
                         value={map.folderId || ""}
                         onChange={(event) => void moveMapHandler(map, event.target.value || null)}
-                        className="flex-1 rounded-lg border border-border bg-card px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-ring"
+                        className="min-w-0 flex-1 rounded-lg border border-border bg-card px-3 py-2 text-xs outline-none pointer-coarse:min-h-11 pointer-coarse:text-sm focus:ring-2 focus:ring-ring"
                       >
                         <option value="">Sem pasta</option>
                         {folders.map((folder) => (
@@ -714,7 +733,7 @@ function DashboardPage() {
                       <button
                         type="button"
                         onClick={() => setConfirmDeleteMap(map)}
-                        className="grid h-9 w-9 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition-colors pointer-coarse:h-11 pointer-coarse:w-11 hover:border-destructive/40 hover:text-destructive"
                         aria-label="Excluir mapa"
                       >
                         <Trash2 size={16} />

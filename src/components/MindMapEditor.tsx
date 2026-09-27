@@ -22,6 +22,7 @@ import {
   PanelRightOpen,
   RotateCcw,
   SlidersHorizontal,
+  Plus,
 } from "lucide-react";
 import { ContextualTip } from "./ContextualTip";
 import {
@@ -35,7 +36,7 @@ import {
 import { MindNode } from "./MindNode";
 import { FloatingPanel, PanelDockItem } from "./FloatingPanel";
 import { PropertiesPanel } from "./PropertiesPanel";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsTouch } from "@/hooks/use-mobile";
 import { useGraphHistory } from "@/hooks/useGraphHistory";
 import { layoutTree } from "@/lib/layout";
 import { isLiteMode } from "@/lib/performance";
@@ -179,6 +180,7 @@ function EditorInner({
   onShowTour,
 }: Props) {
   const isMobile = useIsMobile();
+  const isTouch = useIsTouch();
   const [liteMode] = useState(isLiteMode);
   const maxNodes = useEntitlements((state) =>
     state.entitlements ? limitOf(state.entitlements, "max_nodes_per_map") : null,
@@ -263,7 +265,7 @@ function EditorInner({
       setMiniMapMinimized(true);
       setShowHelp(true);
       setHelpMinimized(true);
-      setInspectorMinimized(false);
+      setInspectorMinimized(true);
       return;
     }
 
@@ -870,6 +872,28 @@ function EditorInner({
       (showMiniMap && !miniMapMinimized) ||
       (showHelp && !helpMinimized));
 
+  // Phones and tablets have no Tab/Enter: node creation lives in the thumb zone.
+  const nodeCreateButtons = selectedNode && (
+    <>
+      <button
+        type="button"
+        onClick={() => addChild(selectedNode.id, false)}
+        className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground"
+      >
+        <Plus size={16} /> Filho
+      </button>
+      {!selectedNode.data.isRoot && (
+        <button
+          type="button"
+          onClick={() => addChild(selectedNode.id, true)}
+          className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-border px-4 text-sm font-medium"
+        >
+          <Plus size={16} /> Irmão
+        </button>
+      )}
+    </>
+  );
+
   return (
     <div className={`relative h-full w-full ${connectMode ? "cursor-crosshair" : ""}`}>
       <ReactFlow
@@ -889,6 +913,10 @@ function EditorInner({
         onEdgeClick={(_, edge) => setEdgePendingDelete(edge)}
         nodeTypes={nodeTypes}
         defaultViewport={map.viewport}
+        // The saved viewport is usually framed on a desktop and can leave the map off screen on
+        // a phone; compact screens frame the whole map once nodes are measured.
+        fitView={isMobile || isTouch}
+        fitViewOptions={{ padding: 0.25, maxZoom: 1.1 }}
         proOptions={{ hideAttribution: true }}
         deleteKeyCode={null}
         // Large maps only render what is on screen; small ones skip the bookkeeping.
@@ -1043,8 +1071,22 @@ function EditorInner({
         </FloatingPanel>
       )}
 
+      {/* Tablets and other touch screens that aren't compact: same node creation, own bar. */}
+      {isTouch && !isMobile && selectedNode && (
+        <div className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border/80 bg-card/95 p-2 shadow-[var(--shadow-soft)]">
+          {nodeCreateButtons}
+        </div>
+      )}
+
       {isMobile && !mobilePanelExpanded && (
-        <div className="absolute bottom-3 left-1/2 z-20 flex max-w-[calc(100%-24px)] -translate-x-1/2 gap-2 overflow-x-auto rounded-full border border-border/80 bg-card/92 p-2 shadow-[var(--shadow-soft)]">
+        <div className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-20 flex max-w-[calc(100%-24px)] -translate-x-1/2 items-center gap-2 overflow-x-auto rounded-full border border-border/80 bg-card/95 p-2 shadow-[var(--shadow-soft)]">
+          {/* Phones have no Tab/Enter: node creation lives in the thumb zone. */}
+          {selectedNode && (
+            <>
+              {nodeCreateButtons}
+              <span className="h-6 w-px shrink-0 bg-border" aria-hidden />
+            </>
+          )}
           {selectedNode && (
             <PanelDockItem
               label="Propriedades"

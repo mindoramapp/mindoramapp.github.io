@@ -113,7 +113,7 @@ export function ContextualTip({ userId, nodeCount, graphEdgeCount }: Props) {
   return (
     <div
       className={cn(
-        "absolute bottom-24 left-1/2 z-10 -translate-x-1/2",
+        "absolute bottom-24 left-1/2 z-10 w-max max-w-[min(28rem,calc(100%-1.5rem))] -translate-x-1/2",
         "flex items-center gap-3 rounded-2xl border border-border/80 bg-card/96 px-4 py-3",
         "shadow-[var(--shadow-soft)]",
         "transition duration-350",
@@ -129,7 +129,7 @@ export function ContextualTip({ userId, nodeCount, graphEdgeCount }: Props) {
       <button
         type="button"
         onClick={() => dismiss(activeTip.id)}
-        className="shrink-0 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className="shrink-0 rounded-full p-1 pointer-coarse:p-3.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         aria-label="Fechar dica"
       >
         <X size={12} />

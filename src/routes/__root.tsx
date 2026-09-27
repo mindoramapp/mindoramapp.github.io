@@ -13,7 +13,7 @@ const setAuthFeedback = (message: string) => {
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Pagina nao encontrada</h2>
@@ -146,7 +146,7 @@ function RootComponent() {
 
   if (processingAuth) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="flex min-h-dvh items-center justify-center bg-background px-4">
         <div className="max-w-md text-center">
           <h1 className="text-2xl font-semibold text-foreground">Confirmando acesso</h1>
           <p className="mt-2 text-sm text-muted-foreground">Estamos validando seu link de email.</p>
@@ -157,7 +157,7 @@ function RootComponent() {
 
   if (authMessage) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="flex min-h-dvh items-center justify-center bg-background px-4">
         <div className="max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-[var(--shadow-soft)]">
           <h1 className="text-2xl font-semibold text-foreground">Conta confirmada</h1>
           <p className="mt-3 text-sm text-muted-foreground">{authMessage}</p>

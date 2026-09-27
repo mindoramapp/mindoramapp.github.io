@@ -135,7 +135,10 @@ export function FloatingPanel({
       data-panel-id={id}
       className={cn(
         "z-20 overflow-hidden rounded-3xl border border-border/80 bg-card/95 text-card-foreground shadow-[var(--shadow-soft)]",
-        mobile ? "fixed inset-x-3 bottom-4 max-h-[72vh]" : `absolute ${widthClassName}`,
+        mobile
+          ? // Portrait: bottom sheet. Landscape phones (short screens): side sheet on the right.
+            "fixed inset-x-3 bottom-[max(1rem,env(safe-area-inset-bottom))] max-h-[72dvh] [@media(max-height:560px)]:inset-x-auto [@media(max-height:560px)]:bottom-3 [@media(max-height:560px)]:right-3 [@media(max-height:560px)]:top-3 [@media(max-height:560px)]:w-80 [@media(max-height:560px)]:max-h-none"
+          : `absolute ${widthClassName}`,
         dragging && "select-none",
       )}
       style={mobile ? undefined : { left: position.x, top: position.y }}
@@ -175,7 +178,12 @@ export function FloatingPanel({
       </div>
 
       <div
-        className={cn("overflow-auto", mobile ? "max-h-[calc(72vh-65px)] p-4" : "max-h-[65vh] p-4")}
+        className={cn(
+          "overflow-auto",
+          mobile
+            ? "max-h-[calc(72dvh-65px)] p-4 [@media(max-height:560px)]:max-h-[calc(100dvh-5.5rem)]"
+            : "max-h-[65vh] p-4",
+        )}
       >
         {children}
       </div>
@@ -197,7 +205,7 @@ export function PanelDockItem({ label, icon, active, minimized, onClick }: Panel
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium shadow-[var(--shadow-soft)] transition",
+        "inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium shadow-[var(--shadow-soft)] transition pointer-coarse:min-h-11 pointer-coarse:min-w-11 justify-center",
         active
           ? "border-primary/40 bg-primary text-primary-foreground"
           : minimized
@@ -206,7 +214,7 @@ export function PanelDockItem({ label, icon, active, minimized, onClick }: Panel
       )}
     >
       {active ? <PanelBottomOpen size={14} /> : icon}
-      <span>{label}</span>
+      <span className="max-[430px]:sr-only">{label}</span>
     </button>
   );
 }

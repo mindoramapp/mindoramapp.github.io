@@ -230,3 +230,11 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Unlayered so it beats ReactFlow's own stylesheet: zoom controls sized for fingers. */
+@media (pointer: coarse) {
+  .react-flow__controls .react-flow__controls-button {
+    width: 44px;
+    height: 44px;
+  }
+}

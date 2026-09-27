@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { ExportMenu } from "@/components/ExportMenu";
+import { EditorMoreMenu } from "@/components/EditorMoreMenu";
 import { useEntitlements } from "@/features/subscriptions";
 import { isOnboardingDone, resetOnboarding } from "@/lib/onboarding";
 
@@ -127,7 +128,7 @@ function EditorPage() {
 
   if (loadingMap || !map) {
     return (
-      <div className="h-screen flex flex-col">
+      <div className="h-dvh flex flex-col">
         <Header>
           <div className="h-4 w-44 animate-pulse rounded-full bg-muted" />
         </Header>
@@ -163,92 +164,110 @@ function EditorPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-dvh flex flex-col">
       <Header>
-        <h1 className="font-semibold truncate">{map.title}</h1>
+        <h1 className="min-w-0 truncate font-semibold">{map.title}</h1>
         {map.parentMapId && (
           <button
             onClick={() => navigate({ to: "/editor/$id", params: { id: map.parentMapId! } })}
-            className="px-3 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center gap-1.5"
+            className="shrink-0 px-2 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center gap-1.5 pointer-coarse:min-h-11"
             title="Voltar ao mapa anterior"
+            aria-label="Voltar ao mapa anterior"
           >
-            <ArrowLeft size={14} /> Voltar
+            <ArrowLeft size={14} /> <span className="hidden md:inline">Voltar</span>
           </button>
         )}
-        <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
+        <span className="hidden xl:inline shrink-0 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
           {MODE_LABEL[map.mode] || "Brainstorm"}
         </span>
 
-        <div className="ml-auto flex items-center gap-1 bg-muted rounded-lg p-1">
+        {/* Wide screens: full toolbar. Labels collapse to icons below xl. */}
+        <div className="ml-auto hidden lg:flex items-center gap-1 bg-muted rounded-lg p-1">
           <button
             onClick={() => setView("tree")}
-            className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition ${view === "tree" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+            className={`px-3 py-1.5 rounded-md text-sm flex items-center justify-center gap-1.5 transition pointer-coarse:min-h-11 pointer-coarse:min-w-11 ${view === "tree" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+            title="Visão em árvore"
           >
-            <GitBranch size={14} /> Árvore
+            <GitBranch size={14} /> <span className="hidden xl:inline">Árvore</span>
           </button>
           <button
             onClick={() => setView("graph")}
-            className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition ${view === "graph" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+            className={`px-3 py-1.5 rounded-md text-sm flex items-center justify-center gap-1.5 transition pointer-coarse:min-h-11 pointer-coarse:min-w-11 ${view === "graph" ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+            title="Visão em grafo"
           >
-            <Network size={14} /> Grafo
+            <Network size={14} /> <span className="hidden xl:inline">Grafo</span>
           </button>
         </div>
 
         <button
           onClick={() => setConnectMode(!connectMode)}
-          className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors ${
+          className={`hidden lg:flex px-3 py-1.5 rounded-lg text-sm items-center justify-center gap-1.5 transition-colors pointer-coarse:min-h-11 pointer-coarse:min-w-11 ${
             connectMode ? "bg-primary text-primary-foreground" : "hover:bg-muted"
           }`}
           title="Modo conexão (Esc para sair)"
         >
-          <Link2 size={14} /> Conectar
+          <Link2 size={14} /> <span className="hidden xl:inline">Conectar</span>
         </button>
 
         <button
           onClick={() => setOrganizeSignal((signal) => signal + 1)}
-          className="px-3 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center gap-1.5"
+          className="hidden lg:flex px-3 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center justify-center gap-1.5 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
           title="Organizar automaticamente"
         >
-          <Wand2 size={14} /> Organizar
+          <Wand2 size={14} /> <span className="hidden xl:inline">Organizar</span>
         </button>
 
-        <button
-          onClick={() => setUndoSignal((signal) => signal + 1)}
-          disabled={!history.canUndo}
-          className="px-3 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
-          title="Desfazer (Ctrl+Z)"
-          aria-label="Desfazer"
-        >
-          <Undo2 size={14} />
-        </button>
+        <div className="ml-auto lg:ml-0 flex shrink-0 items-center gap-0.5">
+          <button
+            onClick={() => setUndoSignal((signal) => signal + 1)}
+            disabled={!history.canUndo}
+            className="grid h-9 w-9 place-items-center rounded-lg hover:bg-muted pointer-coarse:h-11 pointer-coarse:w-11 disabled:opacity-40 disabled:pointer-events-none"
+            title="Desfazer (Ctrl+Z)"
+            aria-label="Desfazer"
+          >
+            <Undo2 size={16} />
+          </button>
+          <button
+            onClick={() => setRedoSignal((signal) => signal + 1)}
+            disabled={!history.canRedo}
+            className="grid h-9 w-9 place-items-center rounded-lg hover:bg-muted pointer-coarse:h-11 pointer-coarse:w-11 disabled:opacity-40 disabled:pointer-events-none"
+            title="Refazer (Ctrl+Shift+Z)"
+            aria-label="Refazer"
+          >
+            <Redo2 size={16} />
+          </button>
+        </div>
 
-        <button
-          onClick={() => setRedoSignal((signal) => signal + 1)}
-          disabled={!history.canRedo}
-          className="px-3 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
-          title="Refazer (Ctrl+Shift+Z)"
-          aria-label="Refazer"
-        >
-          <Redo2 size={14} />
-        </button>
+        <div className="hidden lg:flex items-center gap-1">
+          <ExportMenu />
+          <button
+            onClick={() => navigate({ to: "/review/$id", params: { id: map.id } })}
+            className="px-3 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center justify-center gap-1.5 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+            title="Revisar este mapa com cartões"
+          >
+            <GraduationCap size={14} /> <span className="hidden xl:inline">Revisar</span>
+          </button>
+          <button
+            onClick={() => window.dispatchEvent(new Event("mm-center"))}
+            className="px-3 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center justify-center gap-1.5 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+            title="Centralizar mapa"
+            aria-label="Centralizar mapa"
+          >
+            <Crosshair size={14} />
+          </button>
+        </div>
 
-        <ExportMenu />
-
-        <button
-          onClick={() => navigate({ to: "/review/$id", params: { id: map.id } })}
-          className="px-3 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center gap-1.5"
-          title="Revisar este mapa com cartões"
-        >
-          <GraduationCap size={14} /> Revisar
-        </button>
-
-        <button
-          onClick={() => window.dispatchEvent(new Event("mm-center"))}
-          className="px-3 py-1.5 rounded-lg hover:bg-muted text-sm flex items-center gap-1.5"
-          title="Centralizar mapa"
-        >
-          <Crosshair size={14} />
-        </button>
+        {/* Phones and portrait tablets: the rest lives in one touch-friendly menu. */}
+        <div className="lg:hidden">
+          <EditorMoreMenu
+            view={view}
+            onViewChange={setView}
+            connectMode={connectMode}
+            onToggleConnect={() => setConnectMode(!connectMode)}
+            onOrganize={() => setOrganizeSignal((signal) => signal + 1)}
+            onReview={() => navigate({ to: "/review/$id", params: { id: map.id } })}
+          />
+        </div>
       </Header>
       <div className="flex-1 relative">
         <MindMapEditor

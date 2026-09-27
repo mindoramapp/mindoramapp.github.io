@@ -47,7 +47,7 @@ function ReviewPage() {
   if (!user) return null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-dvh flex-col bg-background">
       <Header>
         <h1 className="truncate font-semibold">{data ? data.map.title : "Revisão"}</h1>
       </Header>

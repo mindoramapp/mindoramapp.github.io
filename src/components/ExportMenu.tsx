@@ -49,7 +49,7 @@ export function ExportMenu() {
     <div ref={containerRef} className="relative">
       <button
         onClick={() => setOpen((value) => !value)}
-        className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors ${
+        className={`px-3 py-1.5 rounded-lg text-sm flex items-center justify-center gap-1.5 transition-colors pointer-coarse:min-h-11 pointer-coarse:min-w-11 ${
           open ? "bg-muted" : "hover:bg-muted"
         }`}
         title="Exportar mapa"

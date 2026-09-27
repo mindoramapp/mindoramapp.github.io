@@ -57,7 +57,7 @@ function ActivatePage() {
   if (!user || user.role === "superadmin" || user.accessGranted) return null;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-dvh flex flex-col">
       <Header />
       <main className="flex-1 grid place-items-center px-4">
         <form

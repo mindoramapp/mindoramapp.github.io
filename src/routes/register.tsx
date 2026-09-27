@@ -71,7 +71,7 @@ function RegisterPage() {
   if (!initialized) return null;
 
   return (
-    <div className="relative min-h-screen grid place-items-center px-4 bg-[radial-gradient(ellipse_at_top,oklch(0.58_0.17_258/0.15),transparent_60%)]">
+    <div className="relative min-h-dvh grid place-items-center px-4 bg-[radial-gradient(ellipse_at_top,oklch(0.58_0.17_258/0.15),transparent_60%)]">
       <div className="absolute right-4 top-4">
         <ThemeToggle compact />
       </div>
@@ -79,7 +79,7 @@ function RegisterPage() {
         <div className="mb-5">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground pointer-coarse:min-h-11"
           >
             <ArrowLeft size={16} />
             Voltar para a página inicial
@@ -143,7 +143,7 @@ function RegisterPage() {
               onClick={() => setShowPassword((current) => !current)}
               aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
               aria-pressed={showPassword}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+              className="absolute right-1 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground transition-colors hover:text-foreground"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -167,7 +167,10 @@ function RegisterPage() {
         </form>
         <p className="text-sm text-muted-foreground text-center mt-4">
           Já tem conta?{" "}
-          <Link to="/login" className="text-primary hover:underline">
+          <Link
+            to="/login"
+            className="text-primary hover:underline pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
+          >
             Entrar
           </Link>
         </p>
