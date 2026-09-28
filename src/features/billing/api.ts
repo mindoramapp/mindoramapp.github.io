@@ -1,3 +1,4 @@
+import { isMissingDatabaseObject } from "@/lib/feedback";
 import { supabase } from "@/lib/supabase";
 import type {
   BillingOverviewRow,
@@ -20,13 +21,23 @@ const unwrap = <T>({ data, error }: { data: unknown; error: unknown }): T => {
 
 export const fetchMyBilling = async () => unwrap<MyBilling>(await client().rpc("get_my_billing"));
 
-export const fetchBillingSettings = async (): Promise<BillingSettings | null> =>
-  unwrap<BillingSettings | null>(
+export const fetchBillingSettings = async (): Promise<BillingSettings | null> => {
+  const full = await client()
+    .from("billing_settings")
+    .select("pix_key, receiver_name, receiver_city, bank_name, whatsapp")
+    .maybeSingle();
+  if (!full.error) return full.data as BillingSettings | null;
+  // Before the WhatsApp migration runs the new columns don't exist: keep payments working with
+  // the original fields instead of failing the whole plans page.
+  if (!isMissingDatabaseObject(full.error)) throw full.error;
+  const basic = unwrap<Omit<BillingSettings, "bank_name" | "whatsapp"> | null>(
     await client()
       .from("billing_settings")
-      .select("pix_key, receiver_name, receiver_city, bank_name, whatsapp")
+      .select("pix_key, receiver_name, receiver_city")
       .maybeSingle(),
   );
+  return basic && { ...basic, bank_name: "", whatsapp: "" };
+};
 
 export const createPixRequest = async (planId: string) =>
   unwrap<PaymentRequest>(await client().rpc("create_pix_request", { p_plan_id: planId }).single());

@@ -9,7 +9,7 @@ import { asPlanLimitError, limitOf, useEntitlements } from "@/features/subscript
  */
 export const isMissingDatabaseObject = (error: unknown) => {
   const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
-  return ["PGRST202", "PGRST205", "42883", "42P01"].includes(code);
+  return ["PGRST202", "PGRST204", "PGRST205", "42883", "42P01", "42703"].includes(code);
 };
 
 export const reportActionError = (error: unknown, fallbackMessage: string) => {
