@@ -78,13 +78,23 @@ export const rejectPix = async (requestId: string, note: string) =>
 export const endSubscription = async (userId: string) =>
   unwrap<null>(await client().rpc("admin_end_subscription", { p_user_id: userId }));
 
-export const saveBillingSettings = async (settings: BillingSettings) =>
+export const saveBillingSettings = async (settings: BillingSettings) => {
+  const stamp = { updated_at: new Date().toISOString() };
+  const { error } = await client()
+    .from("billing_settings")
+    .update({ ...settings, ...stamp })
+    .eq("id", true);
+  if (!error) return;
+  // Before the WhatsApp migration: save the original fields so the PIX key can still be set.
+  if (!isMissingDatabaseObject(error)) throw error;
+  const { bank_name: _bank, whatsapp: _whatsapp, ...basic } = settings;
   unwrap<null>(
     await client()
       .from("billing_settings")
-      .update({ ...settings, updated_at: new Date().toISOString() })
+      .update({ ...basic, ...stamp })
       .eq("id", true),
   );
+};
 
 export const createPlanCodes = async (options: {
   planId: string;
