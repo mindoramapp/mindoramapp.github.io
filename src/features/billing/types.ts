@@ -27,6 +27,29 @@ export interface BillingSettings {
   pix_key: string;
   receiver_name: string;
   receiver_city: string;
+  /** Shown next to the receiver's name only. */
+  bank_name: string;
+  /** Country + area code + number, digits only (e.g. 5571999999999); empty hides WhatsApp. */
+  whatsapp: string;
+}
+
+export interface RedeemResult {
+  ok: boolean;
+  rate_limited?: boolean;
+  plan_id?: string;
+  period_end?: string;
+}
+
+export interface PlanCode {
+  code: string;
+  plan_id: string;
+  status: "active" | "revoked";
+  uses_limit: number | null;
+  uses_count: number;
+  expires_at: string | null;
+  note: string | null;
+  created_at: string;
+  used_by: string | null;
 }
 
 export interface BillingOverviewRow {

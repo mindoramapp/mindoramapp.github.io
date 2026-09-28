@@ -1,5 +1,12 @@
 import { supabase } from "@/lib/supabase";
-import type { BillingOverviewRow, BillingSettings, MyBilling, PaymentRequest } from "./types";
+import type {
+  BillingOverviewRow,
+  BillingSettings,
+  MyBilling,
+  PaymentRequest,
+  PlanCode,
+  RedeemResult,
+} from "./types";
 
 const client = () => {
   if (!supabase) throw new Error("Supabase não configurado.");
@@ -17,7 +24,7 @@ export const fetchBillingSettings = async (): Promise<BillingSettings | null> =>
   unwrap<BillingSettings | null>(
     await client()
       .from("billing_settings")
-      .select("pix_key, receiver_name, receiver_city")
+      .select("pix_key, receiver_name, receiver_city, bank_name, whatsapp")
       .maybeSingle(),
   );
 
@@ -33,6 +40,10 @@ export const reportPixPaid = async (requestId: string, payerNote: string) =>
 
 export const cancelPixRequest = async (requestId: string) =>
   unwrap<null>(await client().rpc("cancel_pix_request", { p_request_id: requestId }));
+
+/** Checks and uses a plan code in one step on the server; answers only whether it worked. */
+export const redeemPlanCode = async (code: string) =>
+  unwrap<RedeemResult>(await client().rpc("redeem_plan_code", { p_code: code }));
 
 // ─── Admin ───────────────────────────────────────────────────────────────────────────────────
 
@@ -63,3 +74,26 @@ export const saveBillingSettings = async (settings: BillingSettings) =>
       .update({ ...settings, updated_at: new Date().toISOString() })
       .eq("id", true),
   );
+
+export const createPlanCodes = async (options: {
+  planId: string;
+  quantity: number;
+  usesLimit: number | null;
+  validDays: number | null;
+  note: string;
+}) =>
+  unwrap<PlanCode[]>(
+    await client().rpc("admin_create_plan_codes", {
+      p_plan_id: options.planId,
+      p_quantity: options.quantity,
+      p_uses_limit: options.usesLimit,
+      p_valid_days: options.validDays,
+      p_note: options.note,
+    }),
+  );
+
+export const listPlanCodes = async () =>
+  unwrap<PlanCode[]>(await client().rpc("admin_list_plan_codes", { p_limit: 200 }));
+
+export const revokePlanCode = async (code: string) =>
+  unwrap<PlanCode>(await client().rpc("admin_revoke_plan_code", { p_code: code }).single());

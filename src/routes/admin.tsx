@@ -6,12 +6,13 @@ import {
   Clock3,
   CreditCard,
   DatabaseZap,
+  KeyRound,
   Shield,
   Ticket,
   Users,
 } from "lucide-react";
 import { Header } from "@/components/Header";
-import { AdminBilling } from "@/features/billing";
+import { AdminBilling, PlanCodesPanel } from "@/features/billing";
 import { InvitesPanel } from "@/features/admin/components/InvitesPanel";
 import { UsersPanel } from "@/features/admin/components/UsersPanel";
 import { fetchAdminUserStats, type AdminUserStats } from "@/lib/admin";
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type Tab = "billing" | "users" | "invites";
+type Tab = "billing" | "codes" | "users" | "invites";
 const TAB_KEY = "mindora-admin-tab";
 
 const formatSeconds = (seconds: number) =>
@@ -56,7 +57,7 @@ function AdminPage() {
   const [tab, setTab] = useState<Tab>(() => {
     try {
       const saved = window.localStorage.getItem(TAB_KEY);
-      return saved === "users" || saved === "invites" ? saved : "billing";
+      return saved === "users" || saved === "invites" || saved === "codes" ? saved : "billing";
     } catch {
       return "billing";
     }
@@ -103,6 +104,7 @@ function AdminPage() {
 
   const TABS: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: "billing", label: "Assinaturas", icon: <CreditCard size={16} /> },
+    { id: "codes", label: "Códigos de plano", icon: <KeyRound size={16} /> },
     { id: "users", label: "Usuários", icon: <Users size={16} /> },
     { id: "invites", label: "Convites", icon: <Ticket size={16} />, badge: stats?.pending },
   ];
@@ -191,6 +193,7 @@ function AdminPage() {
         </div>
 
         {tab === "billing" && <AdminBilling />}
+        {tab === "codes" && <PlanCodesPanel />}
         {tab === "users" && (
           <UsersPanel
             currentUserId={user.id}

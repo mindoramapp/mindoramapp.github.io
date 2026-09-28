@@ -16,15 +16,20 @@ export function crc16(payload: string): string {
   return crc.toString(16).toUpperCase().padStart(4, "0");
 }
 
-/** Banks reject accents and some symbols in name/city; keep plain ASCII letters, digits, spaces. */
-const plain = (value: string, max: number) =>
+/**
+ * Banks reject accents and symbols in name/city: plain uppercase ASCII letters, digits and
+ * spaces ("João Ação" → "JOAO ACAO").
+ */
+export const plain = (value: string, max: number) =>
   value
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^A-Za-z0-9 ]/g, "")
     .replace(/\s+/g, " ")
     .trim()
-    .slice(0, max);
+    .toUpperCase()
+    .slice(0, max)
+    .trim();
 
 export interface PixCharge {
   key: string;

@@ -25,6 +25,7 @@ import {
   formatDateTime,
   formatMoney,
   planLabel,
+  pixKeyWarning,
   planPeriodLabel,
   RENEWAL_WARNING_DAYS,
 } from "../format";
@@ -94,6 +95,8 @@ export function AdminBilling() {
     pix_key: "",
     receiver_name: "",
     receiver_city: "",
+    bank_name: "",
+    whatsapp: "",
   });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("pending");
@@ -152,6 +155,8 @@ export function AdminBilling() {
         pix_key: settings.pix_key.trim(),
         receiver_name: settings.receiver_name.trim(),
         receiver_city: settings.receiver_city.trim(),
+        bank_name: settings.bank_name.trim(),
+        whatsapp: settings.whatsapp.replace(/\D/g, ""),
       });
       toast.success("Dados do Pix salvos.");
     }, "Não foi possível salvar os dados do Pix.");
@@ -212,20 +217,20 @@ export function AdminBilling() {
 
       <form
         onSubmit={saveSettings}
-        className="grid gap-3 rounded-xl border border-border/70 bg-background/60 p-4 sm:grid-cols-[2fr_1.2fr_1fr_auto] sm:items-end"
+        className="grid gap-3 rounded-xl border border-border/70 bg-background/60 p-4 sm:grid-cols-2 lg:grid-cols-3"
       >
         <label className="text-xs text-muted-foreground">
-          Chave Pix (e-mail, telefone +55…, CPF/CNPJ ou aleatória)
+          Chave Pix (aleatória ou e-mail)
           <input
             value={settings.pix_key}
             maxLength={77}
             onChange={(event) => setSettings({ ...settings, pix_key: event.target.value })}
-            placeholder="seu@email.com"
+            placeholder="b26ee480-c458-…"
             className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
           />
         </label>
         <label className="text-xs text-muted-foreground">
-          Nome do recebedor (até 25)
+          Nome do titular (até 25)
           <input
             value={settings.receiver_name}
             maxLength={25}
@@ -235,7 +240,28 @@ export function AdminBilling() {
           />
         </label>
         <label className="text-xs text-muted-foreground">
-          Cidade (até 15)
+          Banco (só para exibir)
+          <input
+            value={settings.bank_name}
+            maxLength={40}
+            onChange={(event) => setSettings({ ...settings, bank_name: event.target.value })}
+            placeholder="Mercado Pago"
+            className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
+          />
+        </label>
+        <label className="text-xs text-muted-foreground">
+          WhatsApp para comprovantes (DDI + DDD + número)
+          <input
+            value={settings.whatsapp}
+            maxLength={20}
+            onChange={(event) => setSettings({ ...settings, whatsapp: event.target.value })}
+            placeholder="5571999999999"
+            inputMode="tel"
+            className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
+          />
+        </label>
+        <label className="text-xs text-muted-foreground">
+          Cidade (opcional, até 15)
           <input
             value={settings.receiver_city}
             maxLength={15}
@@ -244,12 +270,22 @@ export function AdminBilling() {
             className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground"
           />
         </label>
-        <button
-          type="submit"
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"
-        >
-          <Save size={15} /> Salvar Pix
-        </button>
+        <div className="flex items-end">
+          <button
+            type="submit"
+            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"
+          >
+            <Save size={15} /> Salvar Pix
+          </button>
+        </div>
+        {pixKeyWarning(settings.pix_key) && (
+          <p
+            role="alert"
+            className="text-xs text-amber-700 dark:text-amber-400 sm:col-span-2 lg:col-span-3"
+          >
+            {pixKeyWarning(settings.pix_key)}
+          </p>
+        )}
       </form>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

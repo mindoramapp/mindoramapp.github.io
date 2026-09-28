@@ -11,6 +11,7 @@ import {
   formatDate,
   formatMoney,
   PixCheckoutDialog,
+  RedeemCodeForm,
   RenewalBanner,
   type BillingSettings,
   type MyBilling,
@@ -305,6 +306,13 @@ function PlansPage() {
           })}
         </section>
 
+        <section className="mx-auto w-full max-w-md rounded-2xl border border-border bg-card p-4">
+          <RedeemCodeForm onRedeemed={() => void runAction(load, "Não foi possível atualizar.")} />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Pagou e enviou o comprovante pelo WhatsApp? Digite aqui o código que você recebeu.
+          </p>
+        </section>
+
         <p className="text-center text-xs text-muted-foreground">
           A liberação acontece depois da conferência do Pix, normalmente em até 24 horas. Ao fim do
           período você volta ao Free sem perder nenhum mapa.
@@ -315,6 +323,9 @@ function PlansPage() {
         request={checkout}
         planName={checkout ? planName(checkout.plan_id) : ""}
         settings={settings}
+        plans={plans.filter((plan) => plan.price_cents > 0)}
+        switchingTo={creatingFor}
+        onSwitchPlan={(plan) => void choose(plan)}
         onClose={() => setCheckout(null)}
         onChanged={() => void runAction(load, "Não foi possível atualizar o pedido.")}
       />

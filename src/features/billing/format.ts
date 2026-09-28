@@ -69,3 +69,21 @@ export function renewalState(
   }
   return { kind: "none" };
 }
+
+/** wa.me link with the message already typed. */
+export const whatsappLink = (number: string, message: string) =>
+  `https://wa.me/${number.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
+
+export const paymentMessage = (planName: string, amountCents: number, orderCode?: string) =>
+  `Olá! Realizei o pagamento do Mindora ${planName} – ${formatMoney(amountCents)}` +
+  `${orderCode ? ` (pedido ${orderCode})` : ""}. Aguardo meu código de acesso. Obrigado!`;
+
+/**
+ * A PIX key made only of digits is a CPF, CNPJ or phone number: it shows personal data to every
+ * payer, so the admin is nudged towards the random key or an e-mail.
+ */
+export function pixKeyWarning(key: string): string | null {
+  const value = key.trim();
+  if (!/^\+?[\d\s()./-]+$/.test(value) || value.replace(/\D/g, "").length < 10) return null;
+  return "Parece um CPF ou telefone. A chave aparece em texto aberto para quem for pagar: prefira a chave aleatória ou um e-mail.";
+}
