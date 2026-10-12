@@ -291,6 +291,14 @@ export function LandingPage() {
     <MotionConfig reducedMotion={lite ? "always" : "user"}>
       <div className="min-h-dvh overflow-x-hidden bg-background text-foreground">
         <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+          <img
+            src={`${import.meta.env.BASE_URL}hero-network-bg.jpg`}
+            alt=""
+            aria-hidden="true"
+            className={`fixed inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+              theme === "dark" ? "opacity-15" : "opacity-[0.06]"
+            } blur-[1px]`}
+          />
           <div className="landing-orb left-[-18%] top-[2%] h-[26rem] w-[26rem] text-primary/25" />
           <div className="landing-orb right-[-16%] top-[20%] h-[28rem] w-[28rem] text-cyan-400/15" />
           <div className="landing-orb bottom-[-16%] left-[18%] h-[30rem] w-[30rem] text-emerald-400/15" />
@@ -365,29 +373,35 @@ export function LandingPage() {
         <main id="top">
           <section className="relative isolate overflow-hidden">
             <div className="absolute inset-0 -z-20">
-              {showHeroVideo ? (
+              <img
+                src={`${import.meta.env.BASE_URL}hero-network-bg.jpg`}
+                alt=""
+                aria-hidden="true"
+                className={`h-full w-full object-cover transition-opacity duration-700 ${
+                  theme === "dark" ? "opacity-75" : "opacity-35 saturate-150"
+                }`}
+              />
+              {showHeroVideo && (
                 <video
                   autoPlay
                   muted
                   loop
                   playsInline
                   preload="metadata"
-                  className="h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-cover mix-blend-screen opacity-60"
                 >
                   <source src={`${import.meta.env.BASE_URL}mindora-hero.mp4`} type="video/mp4" />
                 </video>
-              ) : (
-                <div className="h-full w-full bg-[image:var(--gradient-hero)] opacity-[0.07]" />
               )}
             </div>
             <div
               className={`absolute inset-0 -z-10 ${
                 theme === "dark"
-                  ? "bg-[linear-gradient(180deg,rgba(9,12,19,0.30)_0%,rgba(9,12,19,0.72)_38%,rgba(9,12,19,0.96)_100%)]"
-                  : "bg-[linear-gradient(180deg,rgba(248,249,252,0.18)_0%,rgba(248,249,252,0.52)_34%,rgba(248,249,252,0.88)_100%)]"
+                  ? "bg-[linear-gradient(180deg,rgba(9,12,19,0.40)_0%,rgba(9,12,19,0.78)_40%,rgba(9,12,19,0.98)_100%)]"
+                  : "bg-[linear-gradient(180deg,rgba(248,249,252,0.30)_0%,rgba(248,249,252,0.65)_36%,rgba(248,249,252,0.94)_100%)]"
               }`}
             />
-            <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(110,114,255,0.24),transparent_28%),radial-gradient(circle_at_80%_16%,rgba(34,211,238,0.15),transparent_24%)]" />
+            <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(110,114,255,0.20),transparent_35%),radial-gradient(circle_at_80%_16%,rgba(34,211,238,0.14),transparent_28%)]" />
 
             <div className="mx-auto grid min-h-[calc(100vh-4.75rem)] max-w-7xl gap-12 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[minmax(0,1.15fr)_420px] lg:px-8 lg:py-20">
               <div className="flex flex-col justify-center">
@@ -783,6 +797,14 @@ export function LandingPage() {
           <section className="mx-auto max-w-7xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
             <Reveal>
               <div className="landing-panel relative overflow-hidden rounded-[36px] p-8 sm:p-10 lg:p-14">
+                <img
+                  src={`${import.meta.env.BASE_URL}cta-constellation-bg.jpg`}
+                  alt=""
+                  aria-hidden="true"
+                  className={`pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+                    theme === "dark" ? "opacity-35" : "opacity-15"
+                  }`}
+                />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(124,92,255,0.22),transparent_34%),radial-gradient(circle_at_80%_20%,rgba(34,211,238,0.18),transparent_28%)]" />
                 <div className="relative z-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                   <div>
