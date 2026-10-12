@@ -495,35 +495,63 @@ export function LandingPage() {
             </div>
           </section>
 
-          <section id="beneficios" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-            <Reveal className="mx-auto max-w-3xl text-center">
-              <SectionLabel>Benefícios</SectionLabel>
-              <h2 className="mt-5 text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">
-                Da ideia bruta ao mapa estratégico com clareza incomum.
-              </h2>
-              <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
-                Menos caos, mais contexto. O MindoraMap une pensamento visual, organização e
-                tecnologia para ampliar o seu raciocínio.
-              </p>
-            </Reveal>
+          <section id="beneficios" className="relative isolate overflow-hidden py-24">
+            {/* Background looping animation */}
+            <div className="pointer-events-none absolute inset-0 -z-20 overflow-hidden">
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                className={`h-full w-full object-cover transition-opacity duration-700 ${
+                  theme === "dark" ? "opacity-45" : "opacity-25"
+                }`}
+              >
+                <source src={`${import.meta.env.BASE_URL}mapa_mind_one.mp4`} type="video/mp4" />
+              </video>
+            </div>
 
-            <div className="mt-14 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {benefits.map((benefit, index) => {
-                const Icon = benefit.icon;
-                return (
-                  <Reveal key={benefit.title} delay={index * 0.05}>
-                    <div className="landing-panel h-full rounded-[28px] p-6 transition-transform duration-300 hover:-translate-y-1">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <Icon size={20} />
+            {/* Seamless edge fade into page background */}
+            <div
+              className={`pointer-events-none absolute inset-0 -z-10 ${
+                theme === "dark"
+                  ? "bg-[radial-gradient(ellipse_at_center,rgba(9,12,19,0.5)_0%,rgba(9,12,19,0.85)_70%,var(--color-background)_100%)]"
+                  : "bg-[radial-gradient(ellipse_at_center,rgba(248,249,252,0.4)_0%,rgba(248,249,252,0.85)_70%,var(--color-background)_100%)]"
+              }`}
+            />
+            <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-background via-transparent to-background" />
+
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <Reveal className="mx-auto max-w-3xl text-center">
+                <SectionLabel>Benefícios</SectionLabel>
+                <h2 className="mt-5 text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">
+                  Da ideia bruta ao mapa estratégico com clareza incomum.
+                </h2>
+                <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
+                  Menos caos, mais contexto. O MindoraMap une pensamento visual, organização e
+                  tecnologia para ampliar o seu raciocínio.
+                </p>
+              </Reveal>
+
+              <div className="mt-14 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {benefits.map((benefit, index) => {
+                  const Icon = benefit.icon;
+                  return (
+                    <Reveal key={benefit.title} delay={index * 0.05}>
+                      <div className="landing-panel h-full rounded-[28px] p-6 transition-transform duration-300 hover:-translate-y-1">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                          <Icon size={20} />
+                        </div>
+                        <h3 className="mt-5 text-xl font-semibold">{benefit.title}</h3>
+                        <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                          {benefit.description}
+                        </p>
                       </div>
-                      <h3 className="mt-5 text-xl font-semibold">{benefit.title}</h3>
-                      <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                        {benefit.description}
-                      </p>
-                    </div>
-                  </Reveal>
-                );
-              })}
+                    </Reveal>
+                  );
+                })}
+              </div>
             </div>
           </section>
 
