@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/store/auth";
 import { ArrowLeft, Brain, LockKeyhole, Mail } from "lucide-react";
 
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
+  const { theme } = useTheme();
   const { user, initialized, configured, configError, debugMessage, login, init } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -73,20 +75,28 @@ function LoginPage() {
           loop
           playsInline
           preload="auto"
-          className="h-full w-full object-cover"
+          className={`h-full w-full object-cover transition-opacity duration-700 ${
+            theme === "dark" ? "opacity-60" : "opacity-80 contrast-110 saturate-110"
+          }`}
         >
           <source src={`${import.meta.env.BASE_URL}mapa_mind_one.mp4`} type="video/mp4" />
         </video>
       </div>
 
-      {/* Atmospheric overlay to maintain contrast and legibility */}
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-background/70 backdrop-blur-sm" />
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,oklch(0.58_0.17_258/0.25),transparent_70%)]" />
+      {/* Atmospheric overlay to maintain contrast without hiding the animation */}
+      <div
+        className={`pointer-events-none absolute inset-0 -z-10 ${
+          theme === "dark"
+            ? "bg-slate-950/60"
+            : "bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(248,249,252,0.30)_50%,rgba(248,249,252,0.60)_100%)]"
+        }`}
+      />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,oklch(0.58_0.17_258/0.20),transparent_70%)]" />
 
       <div className="absolute right-4 top-4 z-10">
         <ThemeToggle compact />
       </div>
-      <div className="relative z-10 w-full max-w-sm bg-card/85 backdrop-blur-md border border-border/80 rounded-2xl p-8 shadow-[var(--shadow-soft)]">
+      <div className="relative z-10 w-full max-w-sm bg-card/90 backdrop-blur-xl border border-border/80 rounded-2xl p-8 shadow-2xl">
         <div className="mb-5">
           <Link
             to="/"

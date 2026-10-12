@@ -296,7 +296,7 @@ export function LandingPage() {
             alt=""
             aria-hidden="true"
             className={`fixed inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-              theme === "dark" ? "opacity-15" : "opacity-[0.06]"
+              theme === "dark" ? "opacity-15" : "opacity-[0.18] contrast-125 saturate-125"
             } blur-[1px]`}
           />
           <div className="landing-orb left-[-18%] top-[2%] h-[26rem] w-[26rem] text-primary/25" />
@@ -378,7 +378,7 @@ export function LandingPage() {
                 alt=""
                 aria-hidden="true"
                 className={`h-full w-full object-cover transition-opacity duration-700 ${
-                  theme === "dark" ? "opacity-75" : "opacity-35 saturate-150"
+                  theme === "dark" ? "opacity-75" : "opacity-65 contrast-120 saturate-125"
                 }`}
               />
               {showHeroVideo && (
@@ -388,7 +388,9 @@ export function LandingPage() {
                   loop
                   playsInline
                   preload="metadata"
-                  className="absolute inset-0 h-full w-full object-cover mix-blend-screen opacity-60"
+                  className={`absolute inset-0 h-full w-full object-cover ${
+                    theme === "dark" ? "mix-blend-screen opacity-60" : "opacity-50"
+                  }`}
                 >
                   <source src={`${import.meta.env.BASE_URL}mindora-hero.mp4`} type="video/mp4" />
                 </video>
@@ -398,7 +400,7 @@ export function LandingPage() {
               className={`absolute inset-0 -z-10 ${
                 theme === "dark"
                   ? "bg-[linear-gradient(180deg,rgba(9,12,19,0.40)_0%,rgba(9,12,19,0.78)_40%,rgba(9,12,19,0.98)_100%)]"
-                  : "bg-[linear-gradient(180deg,rgba(248,249,252,0.30)_0%,rgba(248,249,252,0.65)_36%,rgba(248,249,252,0.94)_100%)]"
+                  : "bg-[linear-gradient(180deg,rgba(248,249,252,0.15)_0%,rgba(248,249,252,0.45)_40%,rgba(248,249,252,0.92)_100%)]"
               }`}
             />
             <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(110,114,255,0.20),transparent_35%),radial-gradient(circle_at_80%_16%,rgba(34,211,238,0.14),transparent_28%)]" />
@@ -505,7 +507,7 @@ export function LandingPage() {
                 playsInline
                 preload="auto"
                 className={`h-full w-full object-cover transition-opacity duration-700 ${
-                  theme === "dark" ? "opacity-45" : "opacity-25"
+                  theme === "dark" ? "opacity-55" : "opacity-80 contrast-110 saturate-115"
                 }`}
               >
                 <source src={`${import.meta.env.BASE_URL}mapa_mind_one.mp4`} type="video/mp4" />
@@ -516,11 +518,17 @@ export function LandingPage() {
             <div
               className={`pointer-events-none absolute inset-0 -z-10 ${
                 theme === "dark"
-                  ? "bg-[radial-gradient(ellipse_at_center,rgba(9,12,19,0.5)_0%,rgba(9,12,19,0.85)_70%,var(--color-background)_100%)]"
-                  : "bg-[radial-gradient(ellipse_at_center,rgba(248,249,252,0.4)_0%,rgba(248,249,252,0.85)_70%,var(--color-background)_100%)]"
+                  ? "bg-[radial-gradient(ellipse_at_center,rgba(9,12,19,0.35)_0%,rgba(9,12,19,0.85)_70%,var(--color-background)_100%)]"
+                  : "bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(248,249,252,0.25)_45%,rgba(248,249,252,0.85)_80%,var(--color-background)_100%)]"
               }`}
             />
-            <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-background via-transparent to-background" />
+            <div
+              className={`pointer-events-none absolute inset-0 -z-10 ${
+                theme === "dark"
+                  ? "bg-gradient-to-b from-background via-transparent to-background"
+                  : "bg-gradient-to-b from-background/90 via-transparent to-background/90"
+              }`}
+            />
 
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               <Reveal className="mx-auto max-w-3xl text-center">
@@ -830,7 +838,7 @@ export function LandingPage() {
                   alt=""
                   aria-hidden="true"
                   className={`pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-                    theme === "dark" ? "opacity-35" : "opacity-15"
+                    theme === "dark" ? "opacity-35" : "opacity-30 contrast-120 saturate-110"
                   }`}
                 />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(124,92,255,0.22),transparent_34%),radial-gradient(circle_at_80%_20%,rgba(34,211,238,0.18),transparent_28%)]" />
