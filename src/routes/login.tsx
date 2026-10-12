@@ -64,11 +64,29 @@ function LoginPage() {
   if (!initialized) return null;
 
   return (
-    <div className="relative min-h-dvh grid place-items-center px-4 bg-[radial-gradient(ellipse_at_top,oklch(0.58_0.17_258/0.15),transparent_60%)]">
-      <div className="absolute right-4 top-4">
+    <div className="relative isolate min-h-dvh grid place-items-center px-4 overflow-hidden">
+      {/* Background looping animation */}
+      <div className="pointer-events-none absolute inset-0 -z-20 overflow-hidden">
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          className="h-full w-full object-cover"
+        >
+          <source src={`${import.meta.env.BASE_URL}mapa_mind_one.mp4`} type="video/mp4" />
+        </video>
+      </div>
+
+      {/* Atmospheric overlay to maintain contrast and legibility */}
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-background/70 backdrop-blur-sm" />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,oklch(0.58_0.17_258/0.25),transparent_70%)]" />
+
+      <div className="absolute right-4 top-4 z-10">
         <ThemeToggle compact />
       </div>
-      <div className="w-full max-w-sm bg-card border border-border rounded-2xl p-8 shadow-[var(--shadow-soft)]">
+      <div className="relative z-10 w-full max-w-sm bg-card/85 backdrop-blur-md border border-border/80 rounded-2xl p-8 shadow-[var(--shadow-soft)]">
         <div className="mb-5">
           <Link
             to="/"
