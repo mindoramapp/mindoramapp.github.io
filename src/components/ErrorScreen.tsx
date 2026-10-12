@@ -1,7 +1,16 @@
+import type { ErrorComponentProps } from "@tanstack/react-router";
 import { Link, useRouter } from "@tanstack/react-router";
 
-export function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+export function DefaultErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
+  const errorMessage =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : error != null
+          ? String(error)
+          : "";
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4">
@@ -26,9 +35,9 @@ export function DefaultErrorComponent({ error, reset }: { error: Error; reset: (
         <p className="mt-2 text-sm text-muted-foreground">
           Ocorreu um erro inesperado. Tente novamente.
         </p>
-        {import.meta.env.DEV && error.message && (
+        {import.meta.env.DEV && errorMessage && (
           <pre className="mt-4 max-h-40 overflow-auto rounded-md bg-muted p-3 text-left font-mono text-xs text-destructive">
-            {error.message}
+            {errorMessage}
           </pre>
         )}
         <div className="mt-6 flex items-center justify-center gap-3">
