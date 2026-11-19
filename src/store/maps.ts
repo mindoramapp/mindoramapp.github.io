@@ -20,6 +20,8 @@ export interface MindNodeData {
   linkedMapId?: string;
   /** Free text the learner keeps about this topic (notes, explanations, reminders). */
   note?: string;
+  /** Children hidden (branch folded); saved with the map like everything else. */
+  collapsed?: boolean;
   /** Individual look of this node; overrides the map theme. */
   appearance?: NodeAppearance;
   /** Global theme of the map (stored on the root node so it saves, undoes and exports with it). */

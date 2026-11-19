@@ -69,6 +69,17 @@ import {
   type ThemePresetId,
 } from "@/features/editor/themes";
 import { layoutTree } from "@/lib/layout";
+import {
+  collapsedAncestors,
+  collapseState,
+  countOutline,
+  parseOutline,
+  searchNodes,
+  type BranchInfo,
+  type OutlineItem,
+} from "@/features/editor/branches";
+import { BranchInfoContext } from "@/features/editor/branchContext";
+import { MapSearch } from "@/features/editor/components/MapSearch";
 import { isLiteMode } from "@/lib/performance";
 import { exportMap, type ExportFormat } from "@/lib/export";
 import { reportActionError } from "@/lib/feedback";
@@ -92,6 +103,27 @@ const EDGE_TYPES = { wavy: WavyEdge, bracket: BracketEdge };
  * Properties panel kept focus and swallowed keyboard shortcuts (F2, Tab, Del…). Clicking the map
  * means "done typing".
  */
+/** Lays out only what is on screen: a folded branch takes no room until it opens again. */
+function layoutVisible(
+  nodes: Node<MindNodeData>[],
+  edges: Edge[],
+  orientation: "horizontal" | "vertical",
+) {
+  const { hidden } = collapseState(nodes, edges);
+  if (!hidden.size) return layoutTree(nodes, edges, orientation);
+  const laidOut = layoutTree(
+    nodes.filter((node) => !hidden.has(node.id)),
+    edges.filter((edge) => !hidden.has(edge.source) && !hidden.has(edge.target)),
+    orientation,
+  );
+  const nodeById = new Map(laidOut.nodes.map((node) => [node.id, node]));
+  const edgeById = new Map(laidOut.edges.map((edge) => [edge.id, edge]));
+  return {
+    nodes: nodes.map((node) => nodeById.get(node.id) ?? node),
+    edges: edges.map((edge) => edgeById.get(edge.id) ?? edge),
+  };
+}
+
 function leaveTextField() {
   const active = document.activeElement as HTMLElement | null;
   if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) active.blur();
@@ -316,7 +348,12 @@ function EditorInner({
       setPanelPositions((current) => ({ ...current, minimap: position })),
     [],
   );
-  const { fitView, getViewport: getFlowViewport, setViewport: setFlowViewport } = useReactFlow();
+  const {
+    fitView,
+    getViewport: getFlowViewport,
+    setViewport: setFlowViewport,
+    setCenter,
+  } = useReactFlow();
   const canvasRef = useRef<HTMLDivElement>(null);
   const autoPan = useEdgeAutoPan(canvasRef, {
     getViewport: getFlowViewport,
@@ -481,7 +518,7 @@ function EditorInner({
     // every later edit silently re-organized the whole map.
     if (organizeSignal === 0 || organizeSignal === handledOrganizeSignal.current) return;
     handledOrganizeSignal.current = organizeSignal;
-    const laidOut = layoutTree(nodesRef.current, edgesRef.current, orientation);
+    const laidOut = layoutVisible(nodesRef.current, edgesRef.current, orientation);
     setNodes(laidOut.nodes);
     setEdges(laidOut.edges);
     window.setTimeout(() => fitView({ padding: 0.2, duration: 350 }), 50);
@@ -494,13 +531,140 @@ function EditorInner({
     [nodes],
   );
 
+  // Folded branches: what they hide and how many topics each one holds. The counts go to the
+  // nodes through a context that only changes when the tree itself changes, not on every drag.
+  const collapse = useMemo(() => collapseState(nodes, edges), [nodes, edges]);
+  const hiddenKey = useMemo(() => [...collapse.hidden].sort().join(","), [collapse]);
+  const branchInfoKey = useMemo(
+    () =>
+      [...collapse.info]
+        .map(([id, info]) => `${id}:${info.children}:${info.descendants}`)
+        .join("|"),
+    [collapse],
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- recomputed only when the key changes
+  const branchInfo = useMemo<ReadonlyMap<string, BranchInfo>>(() => collapse.info, [branchInfoKey]);
+
+  /** Opens the folded branches above a node so it can be seen (search, selection). */
+  const revealNode = useCallback(
+    (id: string) => {
+      const ancestors = new Set(collapsedAncestors(id, nodesRef.current, edgesRef.current));
+      if (!ancestors.size) return;
+      setNodes((current) =>
+        current.map((node) => {
+          if (!ancestors.has(node.id)) return node;
+          const data = { ...node.data };
+          delete data.collapsed;
+          return { ...node, data };
+        }),
+      );
+    },
+    [setNodes],
+  );
+
+  const setCollapsed = useCallback(
+    (id: string, collapsed: boolean) => {
+      if (!collapse.info.get(id)?.children) return;
+      setNodes((current) =>
+        current.map((node) => {
+          if (node.id !== id || Boolean(node.data.collapsed) === collapsed) return node;
+          const data: MindNodeData = { ...node.data, collapsed };
+          if (!collapsed) delete data.collapsed;
+          return { ...node, data };
+        }),
+      );
+      // The selection must stay visible: folding a branch around it selects the branch.
+      if (collapsed && selectedId && selectedId !== id) {
+        const { hidden } = collapseState(
+          nodesRef.current.map((node) =>
+            node.id === id ? { ...node, data: { ...node.data, collapsed: true } } : node,
+          ),
+          edgesRef.current,
+        );
+        if (hidden.has(selectedId)) setSelectedId(id);
+      }
+    },
+    [collapse, selectedId, setNodes],
+  );
+
+  // Search (Ctrl+F or the magnifier in the toolbar).
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchIndex, setSearchIndex] = useState(-1);
+  const [searchFocusSignal, setSearchFocusSignal] = useState(0);
+  const searchMatches = useMemo(
+    () => (searchOpen ? searchNodes(nodes, searchQuery) : []),
+    [searchOpen, nodes, searchQuery],
+  );
+  const searchMatchSet = useMemo(
+    () => (searchOpen && searchQuery.trim() ? new Set(searchMatches) : null),
+    [searchOpen, searchQuery, searchMatches],
+  );
+
+  const openSearch = useCallback(() => {
+    setSearchOpen(true);
+    setSearchFocusSignal((signal) => signal + 1);
+  }, []);
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    setSearchQuery("");
+    setSearchIndex(-1);
+  }, []);
+
+  const goToNode = useCallback(
+    (id: string) => {
+      revealNode(id);
+      setSelectedEdgeId(null);
+      setSelectedId(id);
+      // After the branch opens and the tree settles, frame the topic without zooming out.
+      window.setTimeout(() => {
+        const node = nodesRef.current.find((item) => item.id === id);
+        if (!node) return;
+        const x = node.position.x + (node.width ?? 160) / 2;
+        const y = node.position.y + (node.height ?? 40) / 2;
+        setCenter(x, y, { zoom: Math.max(getFlowViewport().zoom, 0.9), duration: 350 });
+      }, 80);
+    },
+    [revealNode, setCenter, getFlowViewport],
+  );
+
+  const stepSearch = useCallback(
+    (direction: 1 | -1) => {
+      if (!searchMatches.length) return;
+      const next =
+        searchIndex < 0
+          ? direction === 1
+            ? 0
+            : searchMatches.length - 1
+          : (searchIndex + direction + searchMatches.length) % searchMatches.length;
+      setSearchIndex(next);
+      goToNode(searchMatches[next]);
+    },
+    [searchMatches, searchIndex, goToNode],
+  );
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        openSearch();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("mm-search", openSearch);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("mm-search", openSearch);
+    };
+  }, [openSearch]);
+
   useEffect(() => {
     if (mode !== "tree") return;
-    const laidOut = layoutTree(nodesRef.current, edges, orientation);
+    const laidOut = layoutVisible(nodesRef.current, edges, orientation);
     setNodes(laidOut.nodes);
     // Only when a handle actually changed; otherwise this effect would re-trigger itself.
     if (laidOut.edges.some((edge, index) => edge !== edges[index])) setEdges(laidOut.edges);
-  }, [mode, orientation, edges, nodeSizesKey, setNodes, setEdges]);
+  }, [mode, orientation, edges, nodeSizesKey, hiddenKey, setNodes, setEdges]);
 
   useEffect(() => {
     const centerHandler = () => fitView({ padding: 0.2, duration: 350 });
@@ -608,8 +772,12 @@ function EditorInner({
     () =>
       nodes.map((node) => {
         const plain = (node.data.appearance?.box ?? nodeStyle) === "text";
+        const faded = searchMatchSet
+          ? !searchMatchSet.has(node.id)
+          : Boolean(connectedSet && !connectedSet.has(node.id));
         return {
           ...node,
+          hidden: collapse.hidden.has(node.id),
           className: plain ? (node.data.isRoot ? "mm-plain mm-root" : "mm-plain") : undefined,
           style: {
             ...node.style,
@@ -620,12 +788,12 @@ function EditorInner({
               branches.get(node.id),
               plain ? { canvas } : undefined,
             ),
-            opacity: connectedSet && !connectedSet.has(node.id) ? dimNode : 1,
+            opacity: faded ? dimNode : 1,
             transition: "opacity 200ms ease",
           },
         };
       }),
-    [nodes, connectedSet, preset, branches, nodeStyle, canvas, dimNode],
+    [nodes, connectedSet, searchMatchSet, collapse, preset, branches, nodeStyle, canvas, dimNode],
   );
 
   const styledEdges = useMemo(
@@ -638,6 +806,7 @@ function EditorInner({
         const themed = edgeStyle(preset, appearance, kind, branches.get(edge.target));
         return {
           ...edge,
+          hidden: collapse.hidden.has(edge.source) || collapse.hidden.has(edge.target),
           // With brackets, cross-links are firm too: right angles with rounded corners.
           type:
             appearance?.line === "wavy"
@@ -656,12 +825,26 @@ function EditorInner({
               filter: "drop-shadow(0 0 3px var(--primary))",
               strokeWidth: Number(themed.strokeWidth ?? 2) + 1,
             }),
-            opacity: (selectedId && !involved) || (selectedEdgeId && !isSelected) ? dimEdge : 1,
+            opacity:
+              searchMatchSet || (selectedId && !involved) || (selectedEdgeId && !isSelected)
+                ? dimEdge
+                : 1,
             transition: "opacity 200ms ease",
           },
         };
       }),
-    [edges, selectedId, selectedEdgeId, liteMode, preset, branches, edgeShape, dimEdge],
+    [
+      edges,
+      selectedId,
+      selectedEdgeId,
+      searchMatchSet,
+      collapse,
+      liteMode,
+      preset,
+      branches,
+      edgeShape,
+      dimEdge,
+    ],
   );
 
   const selectedEdge = edges.find((edge) => edge.id === selectedEdgeId) ?? null;
@@ -901,7 +1084,16 @@ function EditorInner({
         },
       };
 
-      setNodes((currentNodes) => [...currentNodes, newNode]);
+      // A new child of a folded branch opens the branch, or it would vanish right away.
+      setNodes((currentNodes) => [
+        ...currentNodes.map((node) => {
+          if (node.id !== targetParent || !node.data.collapsed) return node;
+          const data = { ...node.data };
+          delete data.collapsed;
+          return { ...node, data };
+        }),
+        newNode,
+      ]);
       setEdges((currentEdges) => [
         ...currentEdges,
         {
@@ -981,8 +1173,15 @@ function EditorInner({
           | "connect"
           | "toggle-box"
           | "create-linked-map"
+          | "toggle-collapse"
           | "delete";
       };
+
+      if (action === "toggle-collapse") {
+        const node = nodes.find((item) => item.id === id);
+        if (node) setCollapsed(id, !node.data.collapsed);
+        return;
+      }
 
       if (action === "notes") {
         openNotes(id);
@@ -1083,6 +1282,7 @@ function EditorInner({
     map.ownerEmail,
     map.ownerId,
     nodes,
+    setCollapsed,
     setConnectMode,
     setEdges,
     setNodes,
@@ -1121,6 +1321,12 @@ function EditorInner({
       if (event.key === "F2") {
         event.preventDefault();
         requestNodeEdit(selectedId);
+      } else if (event.key === "-" && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        setCollapsed(selectedId, true);
+      } else if ((event.key === "+" || event.key === "=") && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        setCollapsed(selectedId, false);
       } else if (event.key === "Enter") {
         event.preventDefault();
         addChild(selectedId, true);
@@ -1148,6 +1354,7 @@ function EditorInner({
     selectedEdgeId,
     deleteEdge,
     addChild,
+    setCollapsed,
     edges,
     setNodes,
     setEdges,
@@ -1155,6 +1362,109 @@ function EditorInner({
     undo,
     redo,
   ]);
+
+  // Pasting a list (from notes, a document or ChatGPT) onto the map turns each line into a
+  // topic under the selected one; indentation makes sub-topics. One undo removes it all.
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, [contenteditable='true']")) return;
+      const text = event.clipboardData?.getData("text/plain") ?? "";
+      const items = parseOutline(text);
+      if (!items.length) return;
+      const current = nodesRef.current;
+      const parentId =
+        (selectedId && current.some((node) => node.id === selectedId) && selectedId) ||
+        current.find((node) => node.data.isRoot)?.id;
+      const parent = current.find((node) => node.id === parentId);
+      if (!parent) return;
+      event.preventDefault();
+      const total = countOutline(items);
+      if (!fitsLimit(maxNodes, current.length, total)) {
+        reportActionError(new PlanLimitError("max_nodes_per_map"), "");
+        return;
+      }
+
+      const side = orientation === "vertical" ? "bottom" : "right";
+      const handles = getTreeHandleIds(side);
+      const kind = map.mode === "project" ? "checklist" : "text";
+      const newNodes: Node<MindNodeData>[] = [];
+      const newEdges: Edge[] = [];
+      const add = (list: OutlineItem[], parentNodeId: string) => {
+        for (const item of list) {
+          const id = crypto.randomUUID();
+          const url = /^https?:\/\/\S+$/i.test(item.label) ? item.label : undefined;
+          newNodes.push({
+            id,
+            type: "mind",
+            position: { ...parent.position },
+            data: url ? { label: item.label, kind: "link", url } : { label: item.label, kind },
+          });
+          newEdges.push({
+            id: `e-${parentNodeId}-${id}`,
+            source: parentNodeId,
+            target: id,
+            sourceHandle: handles.sourceHandle,
+            targetHandle: handles.targetHandle,
+            data: { kind: "tree", treeSide: side },
+          });
+          add(item.children, id);
+        }
+      };
+      add(items, parent.id);
+
+      // Lay the pasted block out as a small tree next to its parent, then slide it along the
+      // cross axis past any topic already there (free maps keep these positions; tree maps are
+      // re-laid out right after anyway).
+      const block = layoutTree([parent, ...newNodes], newEdges, orientation).nodes;
+      const laidParent = block.find((node) => node.id === parent.id) ?? parent;
+      const dx = parent.position.x - laidParent.position.x;
+      const dy = parent.position.y - laidParent.position.y;
+      let placed = block
+        .filter((node) => node.id !== parent.id)
+        .map((node) => ({
+          ...node,
+          position: { x: node.position.x + dx, y: node.position.y + dy },
+        }));
+      const { hidden } = collapseState(current, edgesRef.current);
+      const others = current.filter((node) => node.id !== parent.id && !hidden.has(node.id));
+      const overlaps = () =>
+        placed.some((mine) =>
+          others.some(
+            (other) =>
+              mine.position.x < other.position.x + (other.width ?? 180) + 16 &&
+              other.position.x < mine.position.x + 180 + 16 &&
+              mine.position.y < other.position.y + (other.height ?? 44) + 12 &&
+              other.position.y < mine.position.y + 44 + 12,
+          ),
+        );
+      for (let step = 0; step < 200 && overlaps(); step++) {
+        placed = placed.map((node) => ({
+          ...node,
+          position:
+            orientation === "vertical"
+              ? { x: node.position.x + 60, y: node.position.y }
+              : { x: node.position.x, y: node.position.y + 30 },
+        }));
+      }
+      newNodes.splice(0, newNodes.length, ...placed);
+
+      setNodes((nodesNow) => [
+        ...nodesNow.map((node) => {
+          if (node.id !== parent.id || !node.data.collapsed) return node;
+          const data = { ...node.data };
+          delete data.collapsed;
+          return { ...node, data };
+        }),
+        ...newNodes,
+      ]);
+      setEdges((edgesNow) => [...edgesNow, ...newEdges]);
+      setSelectedId(newNodes[0].id);
+      toast.success(total === 1 ? "1 tópico colado." : `${total} tópicos colados. Ctrl+Z desfaz.`);
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [selectedId, orientation, map.mode, maxNodes, setNodes, setEdges]);
 
   const patchNode = useCallback(
     (id: string, patch: Partial<MindNodeData>) => {
@@ -1372,74 +1682,91 @@ function EditorInner({
           : undefined
       }
     >
-      <ReactFlow
-        nodes={styledNodes}
-        edges={styledEdges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onNodeClick={onNodeClick}
-        onNodeMouseEnter={(_, node) => setHoverId(node.id)}
-        onNodeMouseLeave={() => setHoverId(null)}
-        onPaneClick={() => {
-          leaveTextField();
-          setSelectedEdgeId(null);
-          setSelectedId(null);
-          setPendingSource(null);
-        }}
-        onMoveEnd={(_, nextViewport) => persistViewport(nextViewport)}
-        onEdgeClick={(_, edge) => {
-          // Clicking a line selects it and opens its appearance (it used to jump straight to a
-          // "remove connection" dialog, easy to trigger by accident).
-          setSelectedId(null);
-          setSelectedEdgeId(edge.id);
-          useThemePanel.getState().show("edge");
-        }}
-        // Our edge auto-pan scales speed with the distance to the edge (ReactFlow's is fixed).
-        autoPanOnNodeDrag={false}
-        onNodeDrag={autoPan.onNodeDrag}
-        onNodeDragStop={autoPan.onNodeDragStop}
-        nodeTypes={nodeTypes}
-        edgeTypes={EDGE_TYPES}
-        defaultViewport={map.viewport}
-        // The saved viewport is usually framed on a desktop and can leave the map off screen on
-        // a phone; compact screens frame the whole map once nodes are measured.
-        fitView={isMobile || isTouch}
-        fitViewOptions={{ padding: 0.25, maxZoom: 1.1 }}
-        proOptions={{ hideAttribution: true }}
-        deleteKeyCode={null}
-        // Large maps only render what is on screen; small ones skip the bookkeeping.
-        onlyRenderVisibleElements={nodes.length > VISIBLE_ONLY_THRESHOLD}
-        nodesConnectable
-        connectOnClick={false}
-        onConnectStart={onConnectStart}
-        // The line drawn while dragging a connection matches the map's line shape.
-        connectionLineType={
-          edgeShape === "bracket" ? ConnectionLineType.SmoothStep : ConnectionLineType.Bezier
-        }
-        connectionLineStyle={{ stroke: "var(--primary)", strokeWidth: 2 }}
-        onConnectEnd={onConnectEnd}
-        // Snap to a handle from farther away than ReactFlow's default 20px.
-        connectionRadius={40}
-      >
-        <Background gap={24} size={1} color={preset.dots ?? "oklch(0.7 0.02 270 / 0.25)"} />
-        <Controls
-          position="bottom-left"
-          className={isMobile ? "!hidden" : "!shadow-none !mb-20 !ml-3"}
-          showInteractive={false}
-        />
-        {showMiniMap && !miniMapMinimized && (
-          <MiniMap
-            position="bottom-right"
-            style={{ bottom: isMobile ? 72 : 16, right: 12 }}
-            className="!rounded-2xl !border !border-border !bg-card/95 !shadow-[var(--shadow-soft)]"
-            maskColor="oklch(0 0 0 / 0.08)"
-            nodeColor={() => "oklch(0.55 0.22 280)"}
-            pannable
-            zoomable
+      <BranchInfoContext.Provider value={branchInfo}>
+        <ReactFlow
+          nodes={styledNodes}
+          edges={styledEdges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeClick={onNodeClick}
+          onNodeMouseEnter={(_, node) => setHoverId(node.id)}
+          onNodeMouseLeave={() => setHoverId(null)}
+          onPaneClick={() => {
+            leaveTextField();
+            setSelectedEdgeId(null);
+            setSelectedId(null);
+            setPendingSource(null);
+          }}
+          onMoveEnd={(_, nextViewport) => persistViewport(nextViewport)}
+          onEdgeClick={(_, edge) => {
+            // Clicking a line selects it and opens its appearance (it used to jump straight to a
+            // "remove connection" dialog, easy to trigger by accident).
+            setSelectedId(null);
+            setSelectedEdgeId(edge.id);
+            useThemePanel.getState().show("edge");
+          }}
+          // Our edge auto-pan scales speed with the distance to the edge (ReactFlow's is fixed).
+          autoPanOnNodeDrag={false}
+          onNodeDrag={autoPan.onNodeDrag}
+          onNodeDragStop={autoPan.onNodeDragStop}
+          nodeTypes={nodeTypes}
+          edgeTypes={EDGE_TYPES}
+          defaultViewport={map.viewport}
+          // The saved viewport is usually framed on a desktop and can leave the map off screen on
+          // a phone; compact screens frame the whole map once nodes are measured.
+          fitView={isMobile || isTouch}
+          fitViewOptions={{ padding: 0.25, maxZoom: 1.1 }}
+          proOptions={{ hideAttribution: true }}
+          deleteKeyCode={null}
+          // Large maps only render what is on screen; small ones skip the bookkeeping.
+          onlyRenderVisibleElements={nodes.length > VISIBLE_ONLY_THRESHOLD}
+          nodesConnectable
+          connectOnClick={false}
+          onConnectStart={onConnectStart}
+          // The line drawn while dragging a connection matches the map's line shape.
+          connectionLineType={
+            edgeShape === "bracket" ? ConnectionLineType.SmoothStep : ConnectionLineType.Bezier
+          }
+          connectionLineStyle={{ stroke: "var(--primary)", strokeWidth: 2 }}
+          onConnectEnd={onConnectEnd}
+          // Snap to a handle from farther away than ReactFlow's default 20px.
+          connectionRadius={40}
+        >
+          <Background gap={24} size={1} color={preset.dots ?? "oklch(0.7 0.02 270 / 0.25)"} />
+          <Controls
+            position="bottom-left"
+            className={isMobile ? "!hidden" : "!shadow-none !mb-20 !ml-3"}
+            showInteractive={false}
           />
-        )}
-      </ReactFlow>
+          {showMiniMap && !miniMapMinimized && (
+            <MiniMap
+              position="bottom-right"
+              style={{ bottom: isMobile ? 72 : 16, right: 12 }}
+              className="!rounded-2xl !border !border-border !bg-card/95 !shadow-[var(--shadow-soft)]"
+              maskColor="oklch(0 0 0 / 0.08)"
+              nodeColor={() => "oklch(0.55 0.22 280)"}
+              pannable
+              zoomable
+            />
+          )}
+        </ReactFlow>
+      </BranchInfoContext.Provider>
+
+      {searchOpen && (
+        <MapSearch
+          query={searchQuery}
+          onQuery={(query) => {
+            setSearchQuery(query);
+            setSearchIndex(-1);
+          }}
+          total={searchMatches.length}
+          index={searchIndex}
+          onStep={stepSearch}
+          onClose={closeSearch}
+          focusSignal={searchFocusSignal}
+        />
+      )}
 
       {connectMode && (
         <div className="pointer-events-none absolute left-1/2 top-16 z-10 -translate-x-1/2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-[var(--shadow-soft)]">
@@ -1539,7 +1866,21 @@ function EditorInner({
               <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
                 Enter
               </kbd>{" "}
-              cria irmão
+              cria irmão ·{" "}
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">−</kbd>{" "}
+              /{" "}
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">+</kbd>{" "}
+              recolhe e abre o ramo
+            </p>
+            <p>
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
+                Ctrl+F
+              </kbd>{" "}
+              busca no mapa ·{" "}
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
+                Ctrl+V
+              </kbd>{" "}
+              cola uma lista como ramos
             </p>
             <p>
               <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">

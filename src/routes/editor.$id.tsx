@@ -20,6 +20,7 @@ import {
   Redo2,
   GraduationCap,
   Palette,
+  Search,
 } from "lucide-react";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { EditorMoreMenu } from "@/components/EditorMoreMenu";
@@ -356,6 +357,14 @@ function EditorPage() {
             <Wand2 size={14} /> <span className="hidden lg:inline">Organizar</span>
           </button>
           <AppearanceButton />
+          <button
+            onClick={() => window.dispatchEvent(new Event("mm-search"))}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-muted pointer-coarse:h-11 pointer-coarse:w-11"
+            title="Buscar no mapa (Ctrl+F)"
+            aria-label="Buscar no mapa"
+          >
+            <Search size={15} />
+          </button>
         </div>
         <MindMapEditor
           map={map}

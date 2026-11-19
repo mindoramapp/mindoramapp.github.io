@@ -5,12 +5,12 @@ Funciona no celular, instala como app (PWA) e abre sem internet.
 
 **▶ Abrir:** [mindoramapp.github.io](https://mindoramapp.github.io/) · cadastro aberto e gratuito.
 
-| Destaques técnicos | |
-|---|---|
-| Front-end | React 19, TanStack Router com rotas por arquivo, ReactFlow, Zustand, Tailwind CSS 4 |
-| Back-end | Supabase (Auth + Postgres com RLS e migrações versionadas) |
-| Offline | Service worker com o "casco" em cache; dados nunca cacheados; salvamento local quando cai a rede |
-| Qualidade | TypeScript, ESLint, Vitest e deploy automático pelo GitHub Actions a cada push na `main` |
+| Destaques técnicos |                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| Front-end          | React 19, TanStack Router com rotas por arquivo, ReactFlow, Zustand, Tailwind CSS 4              |
+| Back-end           | Supabase (Auth + Postgres com RLS e migrações versionadas)                                       |
+| Offline            | Service worker com o "casco" em cache; dados nunca cacheados; salvamento local quando cai a rede |
+| Qualidade          | TypeScript, ESLint, Vitest e deploy automático pelo GitHub Actions a cada push na `main`         |
 
 ## Stack
 
@@ -22,7 +22,9 @@ Zustand · Tailwind CSS 4 · Supabase (auth + banco).
 - **Editor:** uma barra flutuante com desfazer/refazer (Ctrl+Z / Ctrl+Shift+Z), Árvore/Grafo,
   Conectar, Organizar e Aparência. No topo ficam o nome do mapa (clique para renomear), o estado
   do salvamento ("Salvando…", "Salvo" ou "guardado neste aparelho"), "Revisar" e o menu "⋯" com
-  exportação (PNG, SVG, Markdown, JSON), painéis, centralizar e "Atalhos e ajuda".
+  exportação (PNG, SVG, Markdown, JSON), painéis, centralizar e "Atalhos e ajuda". A lupa (ou
+  Ctrl+F) busca no mapa; a seta em cada tópico recolhe o ramo (teclas − e +); colar uma lista
+  com recuo (Ctrl+V) cria os ramos de uma vez. Próximos passos em `docs/PLANO_MINDMEISTER.md`.
 - **Conta:** planos, tema, instalar app, painel admin e sair ficam no menu da conta (avatar).
 - **Meus mapas:** "Novo mapa" abre um único diálogo com nome opcional, modelo (Em branco,
   Brainstorm, Estudo, Projeto) e "Importar arquivo". Cada cartão tem a estrela e o menu "⋯"
@@ -33,8 +35,8 @@ Zustand · Tailwind CSS 4 · Supabase (auth + banco).
   e reenvia a confirmação (60 s entre tentativas); o login oferece o mesmo reenvio quando o
   e-mail ainda não foi confirmado.
 - **Acesso:** "Esqueci minha senha" no login envia o e-mail de recuperação; o link abre
-  `#/reset-password`. A URL do site precisa estar em *Authentication → URL Configuration →
-  Redirect URLs* no Supabase.
+  `#/reset-password`. A URL do site precisa estar em _Authentication → URL Configuration →
+  Redirect URLs_ no Supabase.
 
 **Modo revisão** (botão "Revisar" no editor): cada ramo do mapa vira um cartão de estudo, com
 revisão espaçada. Tecla Espaço revela a resposta; 1, 2 e 3 avaliam. O progresso fica em
@@ -102,12 +104,12 @@ nem de acesso ao seu projeto.
 
 Planos ativos (valores da tabela `plans` em 01/11/2026):
 
-| Plano | `id` | Preço | Mapas | Balões por mapa | Pastas | Revisão |
-| --- | --- | --- | --- | --- | --- | --- |
-| Free | `free` | grátis | 5 | 100 | 2 | 1 mapa |
-| Estudante | `plus` | R$ 9,90 por 30 dias | 30 | 300 | 15 | todos |
-| Estudante semestral | `plus_semester` | R$ 49,90 por 183 dias | 30 | 300 | 15 | todos |
-| Pro | `pro` | R$ 19,90 por 30 dias | ilimitados | 1.000 | ilimitadas | todos |
+| Plano               | `id`            | Preço                 | Mapas      | Balões por mapa | Pastas     | Revisão |
+| ------------------- | --------------- | --------------------- | ---------- | --------------- | ---------- | ------- |
+| Free                | `free`          | grátis                | 5          | 100             | 2          | 1 mapa  |
+| Estudante           | `plus`          | R$ 9,90 por 30 dias   | 30         | 300             | 15         | todos   |
+| Estudante semestral | `plus_semester` | R$ 49,90 por 183 dias | 30         | 300             | 15         | todos   |
+| Pro                 | `pro`           | R$ 19,90 por 30 dias  | ilimitados | 1.000           | ilimitadas | todos   |
 
 Todos exportam em PNG e SVG. Preços e limites ficam na tabela `plans` e podem ser alterados sem
 deploy, então confira a página **Planos** antes de citar valores em divulgação.

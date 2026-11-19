@@ -1,7 +1,18 @@
 // Custom mind map node - supports text, checklist, code, link
-import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
-import { CheckSquare, Square, Code2, Link as LinkIcon, Plus, StickyNote, Type } from "lucide-react";
+import {
+  CheckSquare,
+  ChevronDown,
+  ChevronRight,
+  Square,
+  Code2,
+  Link as LinkIcon,
+  Plus,
+  StickyNote,
+  Type,
+} from "lucide-react";
+import { BranchInfoContext } from "@/features/editor/branchContext";
 import type { MindNodeData, NodeKind } from "@/store/maps";
 import { isSafeNodeUrl } from "@/lib/security";
 import { consumePendingEdit, focusWhenReady, START_EDIT_EVENT } from "./nodeEditing";
@@ -93,6 +104,8 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
   const [value, setValue] = useState(data.label);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const kind = data.kind || "text";
+  const branch = useContext(BranchInfoContext).get(id);
+  const collapsed = Boolean(data.collapsed && branch?.children);
 
   useEffect(() => {
     setValue(data.label);
@@ -148,6 +161,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
       | "connect"
       | "toggle-box"
       | "create-linked-map"
+      | "toggle-collapse"
       | "delete",
   ) => {
     window.dispatchEvent(new CustomEvent("mm-node-action", { detail: { id, action } }));
@@ -344,6 +358,40 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
                 <StickyNote size={13} className={data.isRoot ? "opacity-80" : "text-primary"} />
               </button>
             )}
+            {branch && branch.children > 0 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  requestAction("toggle-collapse");
+                }}
+                onMouseDown={(e) => e.preventDefault()}
+                onDoubleClick={(e) => e.stopPropagation()}
+                aria-expanded={!collapsed}
+                aria-label={
+                  collapsed
+                    ? `Abrir ramo (${branch.descendants} ${branch.descendants === 1 ? "tópico" : "tópicos"})`
+                    : "Recolher ramo"
+                }
+                title={collapsed ? "Abrir ramo (+)" : "Recolher ramo (−)"}
+                className={[
+                  "nodrag nopan inline-flex shrink-0 items-center gap-0.5 rounded-full text-[11px] font-semibold tabular-nums transition-opacity",
+                  "pointer-coarse:min-h-8 pointer-coarse:min-w-8 pointer-coarse:justify-center",
+                  collapsed
+                    ? "bg-primary px-1.5 py-0.5 text-primary-foreground"
+                    : `p-0.5 hover:bg-black/5 focus-visible:opacity-70 ${selected ? "opacity-70" : "opacity-0 group-hover/node:opacity-70 pointer-coarse:opacity-70"}`,
+                ].join(" ")}
+              >
+                {collapsed ? (
+                  <>
+                    <ChevronRight size={12} strokeWidth={2.5} />
+                    {branch.descendants}
+                  </>
+                ) : (
+                  <ChevronDown size={13} />
+                )}
+              </button>
+            )}
           </div>
         </div>
       </ContextMenuTrigger>
@@ -353,6 +401,11 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
         <ContextMenuItem onClick={() => requestAction("notes")}>Anotações</ContextMenuItem>
         <ContextMenuItem onClick={() => requestAction("add-child")}>Criar filho</ContextMenuItem>
         <ContextMenuItem onClick={() => requestAction("add-sibling")}>Criar irmão</ContextMenuItem>
+        {branch && branch.children > 0 && (
+          <ContextMenuItem onClick={() => requestAction("toggle-collapse")}>
+            {collapsed ? "Abrir ramo (+)" : "Recolher ramo (−)"}
+          </ContextMenuItem>
+        )}
         <ContextMenuItem onClick={() => requestAction("connect")}>Iniciar conexão</ContextMenuItem>
         <ContextMenuItem onClick={() => requestAction("toggle-box")}>
           Alternar balão / só texto
