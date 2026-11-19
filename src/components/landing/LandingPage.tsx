@@ -6,6 +6,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "@fontsource/fraunces/latin-400.css";
 import "@fontsource/fraunces/latin-600.css";
 import { MindPortrait } from "./MindPortrait";
+import passo1 from "@/assets/landing/passo1-novo-mapa.webp";
+import passo2 from "@/assets/landing/passo2-ramos.webp";
+import passo3 from "@/assets/landing/passo3-revisao.webp";
+import vitrineComputador from "@/assets/landing/vitrine-computador.webp";
+import vitrineCelular from "@/assets/landing/vitrine-celular.webp";
 import {
   ArrowRight,
   ChevronRight,
@@ -30,18 +35,25 @@ const sectionFade = {
   },
 };
 
+// Real screenshots of the app (demo account), taken by divulgacao/ferramentas/capturar_telas.mjs.
 const steps = [
   {
     title: "Escreva a ideia central",
     body: "Comece em branco ou por um modelo de estudo, brainstorm ou projeto.",
+    image: passo1,
+    alt: "Diálogo Novo mapa do Mindora com o nome Revolução Francesa e o modelo Estudo escolhido.",
   },
   {
     title: "Puxe os ramos",
     body: "Tab cria um filho, Enter cria um irmão. No celular, um toque em “+ Filho”.",
+    image: passo2,
+    alt: "Mapa Fotossíntese com os ramos O que é, Onde acontece e Fases, e Fases com dois sub-ramos.",
   },
   {
     title: "Revise e compartilhe",
     body: "Estude o mapa com cartões de revisão ou exporte em imagem ou texto.",
+    image: passo3,
+    alt: "Cartão de revisão Fotossíntese mostrando os cinco subtópicos e os botões Não lembrei, Com dificuldade e Lembrei.",
   },
 ];
 
@@ -310,6 +322,45 @@ export function LandingPage() {
             </div>
           </section>
 
+          {/* Showcase: the real app on a laptop and on a phone (demo account screenshots). */}
+          <section id="vitrine" className="mx-auto max-w-6xl px-4 pb-6 pt-16 sm:px-6 lg:px-8">
+            <Reveal className="mx-auto max-w-3xl text-center">
+              <SectionLabel>O app de verdade</SectionLabel>
+              <h2 className="font-display-serif mt-5 text-3xl font-semibold sm:text-5xl">
+                Seu conteúdo, <span className="title-accent">em um mapa só</span>.
+              </h2>
+              <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
+                Fotossíntese inteira numa tela: no computador para montar, no celular para revisar.
+              </p>
+            </Reveal>
+            <Reveal delay={0.08} className="relative mx-auto mt-12 max-w-5xl pb-10 sm:pb-16">
+              <div className="rounded-[22px] border border-border/70 bg-[#0b0f19] p-2 shadow-[var(--shadow-soft)] sm:p-3">
+                <img
+                  src={vitrineComputador}
+                  alt="Editor do Mindora no computador com o mapa Fotossíntese (Enem) organizado em árvore: O que é, Onde acontece, Fases, Equação e Fatores."
+                  width={1600}
+                  height={1000}
+                  loading="lazy"
+                  decoding="async"
+                  className="block w-full rounded-[14px]"
+                />
+              </div>
+              {/* Laptop base. */}
+              <div className="mx-auto h-3 w-[104%] -translate-x-[2%] rounded-b-[18px] bg-gradient-to-b from-[#2a3350] to-[#121726] sm:h-4" />
+              <div className="absolute -bottom-2 right-2 w-[24%] min-w-[96px] max-w-[210px] rounded-[26px] border border-border/70 bg-[#0b0f19] p-1.5 shadow-[0_30px_60px_-20px_rgba(6,9,15,0.7)] sm:right-6 sm:rounded-[34px] sm:p-2">
+                <img
+                  src={vitrineCelular}
+                  alt="O mesmo mapa no celular, com a barra de ferramentas e o botão + Filho."
+                  width={600}
+                  height={1298}
+                  loading="lazy"
+                  decoding="async"
+                  className="block w-full rounded-[20px] sm:rounded-[26px]"
+                />
+              </div>
+            </Reveal>
+          </section>
+
           <section id="como-funciona" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
             <Reveal className="mx-auto max-w-3xl text-center">
               <SectionLabel>Como funciona</SectionLabel>
@@ -321,12 +372,23 @@ export function LandingPage() {
             <div className="mt-12 grid gap-5 md:grid-cols-3">
               {steps.map((step, index) => (
                 <Reveal key={step.title} delay={index * 0.06}>
-                  <div className="landing-panel h-full rounded-[28px] p-6">
-                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-primary/10 text-sm font-semibold text-primary">
-                      {index + 1}
-                    </span>
-                    <h3 className="mt-5 text-xl font-semibold">{step.title}</h3>
-                    <p className="mt-3 text-sm leading-7 text-muted-foreground">{step.body}</p>
+                  <div className="landing-panel h-full overflow-hidden rounded-[28px]">
+                    <img
+                      src={step.image}
+                      alt={step.alt}
+                      width={960}
+                      height={600}
+                      loading="lazy"
+                      decoding="async"
+                      className="aspect-[16/10] w-full border-b border-border/60 object-cover object-left-top"
+                    />
+                    <div className="p-6">
+                      <span className="grid h-10 w-10 place-items-center rounded-2xl bg-primary/10 text-sm font-semibold text-primary">
+                        {index + 1}
+                      </span>
+                      <h3 className="mt-5 text-xl font-semibold">{step.title}</h3>
+                      <p className="mt-3 text-sm leading-7 text-muted-foreground">{step.body}</p>
+                    </div>
                   </div>
                 </Reveal>
               ))}
