@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { MotionConfig, motion } from "framer-motion";
 import { isLiteMode } from "@/lib/performance";
 import { InstallAppButton } from "@/features/pwa/InstallInvitation";
@@ -11,6 +11,9 @@ import passo2 from "@/assets/landing/passo2-ramos.webp";
 import passo3 from "@/assets/landing/passo3-revisao.webp";
 import vitrineComputador from "@/assets/landing/vitrine-computador.webp";
 import vitrineCelular from "@/assets/landing/vitrine-celular.webp";
+// Mood images generated with Gemini from the prompts in divulgacao/referencias/PROMPTS_GEMINI.md.
+import revisaoEstudante from "@/assets/landing/revisao-estudante.webp";
+import ceuNoturno from "@/assets/landing/ceu-noturno.webp";
 import {
   ArrowRight,
   ChevronRight,
@@ -136,7 +139,6 @@ function useAppDestination() {
 
 export function LandingPage() {
   const { theme } = useTheme();
-  const navigate = useNavigate();
   const appDestination = useAppDestination();
   const [lite] = useState(isLiteMode);
   const heroRef = useRef<HTMLElement>(null);
@@ -395,6 +397,51 @@ export function LandingPage() {
             </div>
           </section>
 
+          {/* The differentiator, in the hero's art direction: review mode. */}
+          <section id="modo-revisao" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+            <Reveal>
+              <div className="relative isolate overflow-hidden rounded-[32px] border border-white/10 bg-[#0B1230] text-[#F3F5FF] shadow-[var(--shadow-soft)] lg:min-h-[540px]">
+                <img
+                  src={revisaoEstudante}
+                  alt="A estudante de óculos olha para o celular, de onde sobem cartões de estudo luminosos ligados por linhas de luz."
+                  width={1024}
+                  height={576}
+                  loading="lazy"
+                  decoding="async"
+                  className="block h-56 w-full object-cover object-[72%_center] sm:h-80 lg:absolute lg:inset-0 lg:-z-10 lg:h-full"
+                />
+                <div className="pointer-events-none absolute inset-0 -z-10 hidden bg-[linear-gradient(90deg,#0B1230_0%,rgba(11,18,48,0.94)_32%,rgba(11,18,48,0.35)_58%,transparent_78%)] lg:block" />
+                <div className="relative p-8 sm:p-10 lg:max-w-[50%] lg:py-20 lg:pl-14">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#C9D6FF]/80">
+                    Modo Revisão
+                  </p>
+                  <h2 className="font-display-serif mt-4 text-3xl font-semibold sm:text-5xl">
+                    Seu mapa vira <span className="dusk-accent">cartão de revisão</span>.
+                  </h2>
+                  <ul className="mt-6 space-y-3 text-sm leading-6 text-[#C9D6FF] sm:text-base">
+                    {[
+                      "Cada ramo do mapa vira um cartão, sem você digitar nada de novo.",
+                      "Espaço mostra a resposta; 1, 2 ou 3 dizem o quanto você lembrou.",
+                      "O app marca a próxima revisão e mostra o quanto do mapa você já domina.",
+                    ].map((item) => (
+                      <li key={item} className="flex gap-3">
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#FFA27A]" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    to={appDestination ?? "/register"}
+                    className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#FFA27A] px-6 py-3 text-sm font-semibold text-[#141a3a] transition hover:bg-[#ffb391] pointer-coarse:min-h-11"
+                  >
+                    {appDestination ? "Revisar meus mapas" : "Experimentar grátis"}
+                    <ArrowRight size={16} />
+                  </Link>
+                </div>
+              </div>
+            </Reveal>
+          </section>
+
           <section id="recursos" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
             <Reveal className="mx-auto max-w-3xl text-center">
               <SectionLabel>Recursos</SectionLabel>
@@ -419,68 +466,66 @@ export function LandingPage() {
               })}
             </div>
           </section>
-
-          <section className="mx-auto max-w-7xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
-            <Reveal>
-              <div className="landing-panel relative overflow-hidden rounded-[36px] p-8 sm:p-10 lg:p-14">
-                <img
-                  src={`${import.meta.env.BASE_URL}cta-constellation-bg.jpg`}
-                  alt=""
-                  aria-hidden="true"
-                  className={`pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-                    theme === "dark" ? "opacity-35" : "opacity-25 invert hue-rotate-180"
-                  }`}
-                />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(124,92,255,0.22),transparent_34%),radial-gradient(circle_at_80%_20%,rgba(34,211,238,0.18),transparent_28%)]" />
-                <div className="relative z-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-                  <div>
-                    <SectionLabel>Pronto para começar</SectionLabel>
-                    <h2 className="font-display-serif mt-5 max-w-3xl text-3xl font-semibold sm:text-5xl">
-                      Crie sua conta e monte o primeiro mapa{" "}
-                      <span className="title-accent">hoje</span>.
-                    </h2>
-                    <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
-                      É grátis para começar, no plano Free. Crie a conta, confirme o e-mail e
-                      pronto: você já monta o primeiro mapa.
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-                    <Link
-                      to={appDestination ?? "/register"}
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-[image:var(--gradient-hero)] px-6 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition-opacity hover:opacity-95"
-                    >
-                      {appDestination ? "Abrir meus mapas" : "Criar conta"}
-                      <ArrowRight size={16} />
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => navigate({ to: "/login" })}
-                      className="inline-flex items-center justify-center rounded-full border border-border/70 bg-background/60 px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-card"
-                    >
-                      Já tenho conta
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-          </section>
         </main>
 
-        <footer className="border-t border-border/60 bg-background/80 backdrop-blur">
-          <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[image:var(--gradient-hero)] text-primary-foreground">
-                <Network size={18} />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Mindora</div>
-                <div className="text-xs text-muted-foreground">
-                  Mapas mentais para estudar e planejar
+        {/* Night falls at the end of the page: the call to action and the footer under the moon. */}
+        <footer className="relative isolate overflow-hidden text-[#F3F5FF]">
+          <img
+            src={ceuNoturno}
+            alt=""
+            aria-hidden="true"
+            width={1024}
+            height={439}
+            loading="lazy"
+            decoding="async"
+            className="pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover object-[60%_bottom]"
+          />
+          <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,var(--color-background)_0%,rgba(6,9,15,0.15)_30%,transparent_60%,rgba(6,9,15,0.55)_100%)]" />
+          <div className="mx-auto max-w-7xl px-4 pb-8 pt-40 sm:px-6 sm:pt-48 lg:px-8">
+            <Reveal className="max-w-2xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#C9D6FF]/80">
+                Pronto para começar
+              </p>
+              <h2 className="font-display-serif mt-4 text-3xl font-semibold sm:text-5xl">
+                Crie sua conta e monte o primeiro mapa <span className="dusk-accent">hoje</span>.
+              </h2>
+              <p className="mt-4 text-base leading-7 text-[#C9D6FF]">
+                É grátis para começar, no plano Free. Crie a conta, confirme o e-mail e pronto: você
+                já monta o primeiro mapa.
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  to={appDestination ?? "/register"}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#FFA27A] px-6 py-3 text-sm font-semibold text-[#141a3a] transition hover:bg-[#ffb391] pointer-coarse:min-h-11"
+                >
+                  {appDestination ? "Abrir meus mapas" : "Criar conta grátis"}
+                  <ArrowRight size={16} />
+                </Link>
+                {!appDestination && (
+                  <Link
+                    to="/login"
+                    className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10 pointer-coarse:min-h-11"
+                  >
+                    Já tenho conta
+                  </Link>
+                )}
+              </div>
+            </Reveal>
+
+            <div className="mt-24 flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between sm:mt-32">
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[image:var(--gradient-hero)] text-primary-foreground">
+                  <Network size={18} />
+                </span>
+                <div>
+                  <div className="text-sm font-semibold">Mindora</div>
+                  <div className="text-xs text-[#C9D6FF]/80">
+                    Mapas mentais para estudar e planejar
+                  </div>
                 </div>
               </div>
+              <ThemeToggle />
             </div>
-            <ThemeToggle />
           </div>
         </footer>
       </div>
