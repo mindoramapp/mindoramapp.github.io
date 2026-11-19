@@ -1,7 +1,8 @@
 // Export/import of mind maps: image (PNG/SVG), Markdown outline and Mindora JSON
 import { getRectOfNodes, getTransformForBounds, type Edge, type Node } from "reactflow";
 import type { MapMode, MindMap, MindNodeData, ViewportState } from "@/store/maps";
-import { sanitizeNodeUrl } from "@/lib/security";
+import { isSafeNodeImage, sanitizeNodeUrl } from "@/lib/security";
+import { isNodeIcon } from "@/features/editor/nodeIcons";
 import {
   isEdgeShape,
   isNodeBox,
@@ -81,7 +82,8 @@ const escapeMarkdown = (text: string) =>
   text.replace(/[\\`*_{}[\]()#+!|>~-]/g, "\\$&").replace(/</g, "&lt;");
 
 const markdownLine = (data: MindNodeData) => {
-  const label = escapeMarkdown((data.label || "Sem título").replace(/\s+/g, " ").trim());
+  const text = escapeMarkdown((data.label || "Sem título").replace(/\s+/g, " ").trim());
+  const label = isNodeIcon(data.icon) ? `${data.icon} ${text}` : text;
   if (data.kind === "checklist") return `[${data.checked ? "x" : " "}] ${label}`;
   if (data.kind === "code") return `\`${(data.label || "").replace(/[`\n]/g, "'")}\``;
   if (data.kind === "link" && data.url && /^https?:/i.test(data.url))
@@ -234,6 +236,9 @@ const importNodeData = (data: Record<string, unknown>): MindNodeData => {
   if (clean.isRoot && isPresetId(data.mapTheme)) clean.mapTheme = data.mapTheme;
   if (clean.isRoot && isEdgeShape(data.edgeShape)) clean.edgeShape = data.edgeShape;
   if (clean.isRoot && isNodeBox(data.nodeStyle)) clean.nodeStyle = data.nodeStyle;
+  if (data.collapsed === true) clean.collapsed = true;
+  if (isNodeIcon(data.icon)) clean.icon = data.icon;
+  if (isSafeNodeImage(data.image)) clean.image = data.image;
   if (typeof data.note === "string" && data.note.trim())
     clean.note = data.note.slice(0, MAX_NOTE_LENGTH);
   // Linked maps belong to the exporting account; the reference is never carried over.

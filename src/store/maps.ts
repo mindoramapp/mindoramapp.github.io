@@ -22,6 +22,10 @@ export interface MindNodeData {
   note?: string;
   /** Children hidden (branch folded); saved with the map like everything else. */
   collapsed?: boolean;
+  /** Emoji shown before the text (one of NODE_ICONS). */
+  icon?: string;
+  /** Small picture above the text, as a base64 data URL (see nodeImage.ts). */
+  image?: string;
   /** Individual look of this node; overrides the map theme. */
   appearance?: NodeAppearance;
   /** Global theme of the map (stored on the root node so it saves, undoes and exports with it). */

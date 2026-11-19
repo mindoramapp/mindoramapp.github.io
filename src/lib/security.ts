@@ -39,3 +39,12 @@ export const isSafeNodeUrl = (value?: string | null): value is string => {
   if (!value) return false;
   return sanitizeNodeUrl(value) === value;
 };
+
+/** Largest picture kept inside a map (a data URL, about 150 KB of image). */
+export const NODE_IMAGE_MAX_CHARS = 200_000;
+
+/** Only raster pictures embedded as base64 data URLs (no SVG, no remote addresses). */
+export const isSafeNodeImage = (value: unknown): value is string =>
+  typeof value === "string" &&
+  value.length <= NODE_IMAGE_MAX_CHARS &&
+  /^data:image\/(?:webp|jpeg|png|gif);base64,[A-Za-z0-9+/]+={0,2}$/.test(value);

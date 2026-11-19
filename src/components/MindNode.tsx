@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 import { BranchInfoContext } from "@/features/editor/branchContext";
 import type { MindNodeData, NodeKind } from "@/store/maps";
-import { isSafeNodeUrl } from "@/lib/security";
+import { isSafeNodeImage, isSafeNodeUrl } from "@/lib/security";
+import { isNodeIcon } from "@/features/editor/nodeIcons";
 import { consumePendingEdit, focusWhenReady, START_EDIT_EVENT } from "./nodeEditing";
 import {
   ContextMenu,
@@ -106,6 +107,8 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
   const kind = data.kind || "text";
   const branch = useContext(BranchInfoContext).get(id);
   const collapsed = Boolean(data.collapsed && branch?.children);
+  const icon = isNodeIcon(data.icon) ? data.icon : null;
+  const image = isSafeNodeImage(data.image) ? data.image : null;
 
   useEffect(() => {
     setValue(data.label);
@@ -162,6 +165,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
       | "toggle-box"
       | "create-linked-map"
       | "toggle-collapse"
+      | "pick-image"
       | "delete",
   ) => {
     window.dispatchEvent(new CustomEvent("mm-node-action", { detail: { id, action } }));
@@ -264,13 +268,27 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
               </button>
             ))}
 
+          {image && (
+            <img
+              src={image}
+              alt=""
+              draggable={false}
+              className="mb-2 block max-h-40 w-56 max-w-full rounded-lg object-cover"
+            />
+          )}
           <div className="flex items-center gap-2">
-            <span
-              className={`mm-kind-icon ${data.isRoot ? "opacity-90" : "opacity-60"}`}
-              data-kind={kind}
-            >
-              {KIND_ICON[kind]}
-            </span>
+            {icon ? (
+              <span className="mm-node-icon shrink-0 text-base leading-none" aria-hidden>
+                {icon}
+              </span>
+            ) : (
+              <span
+                className={`mm-kind-icon ${data.isRoot ? "opacity-90" : "opacity-60"}`}
+                data-kind={kind}
+              >
+                {KIND_ICON[kind]}
+              </span>
+            )}
 
             {kind === "checklist" && !data.isRoot && (
               <button
@@ -399,6 +417,9 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
       <ContextMenuContent className="w-52">
         <ContextMenuItem onClick={() => requestAction("edit")}>Renomear (F2)</ContextMenuItem>
         <ContextMenuItem onClick={() => requestAction("notes")}>Anotações</ContextMenuItem>
+        <ContextMenuItem onClick={() => requestAction("pick-image")}>
+          {image ? "Trocar imagem" : "Adicionar imagem"}
+        </ContextMenuItem>
         <ContextMenuItem onClick={() => requestAction("add-child")}>Criar filho</ContextMenuItem>
         <ContextMenuItem onClick={() => requestAction("add-sibling")}>Criar irmão</ContextMenuItem>
         {branch && branch.children > 0 && (

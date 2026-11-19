@@ -80,6 +80,7 @@ import {
 } from "@/features/editor/branches";
 import { BranchInfoContext } from "@/features/editor/branchContext";
 import { MapSearch } from "@/features/editor/components/MapSearch";
+import { fileToNodeImage, imageFromTransfer, NodeImageError } from "@/features/editor/nodeImage";
 import { isLiteMode } from "@/lib/performance";
 import { exportMap, type ExportFormat } from "@/lib/export";
 import { reportActionError } from "@/lib/feedback";
@@ -1161,6 +1162,36 @@ function EditorInner({
     return () => window.removeEventListener("mm-node-add-child", handler);
   }, [addChild]);
 
+  // Pictures on topics: picked from a file, pasted (Ctrl+V) or dropped onto a topic.
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const imageTargetRef = useRef<string | null>(null);
+  const attachImage = useCallback(
+    async (id: string, file: Blob) => {
+      try {
+        const image = await fileToNodeImage(file);
+        setNodes((current) =>
+          current.map((node) =>
+            node.id === id ? { ...node, data: { ...node.data, image } } : node,
+          ),
+        );
+      } catch (error) {
+        if (error instanceof NodeImageError) toast.error(error.message);
+        else reportActionError(error, "Não foi possível usar essa imagem.");
+      }
+    },
+    [setNodes],
+  );
+  const pickImageFor = useCallback((id: string) => {
+    imageTargetRef.current = id;
+    imageInputRef.current?.click();
+  }, []);
+  useEffect(() => {
+    const handler = (event: Event) =>
+      pickImageFor((event as CustomEvent<{ id: string }>).detail.id);
+    window.addEventListener("mm-node-pick-image", handler);
+    return () => window.removeEventListener("mm-node-pick-image", handler);
+  }, [pickImageFor]);
+
   useEffect(() => {
     const handler = (event: Event) => {
       const { id, action } = (event as CustomEvent).detail as {
@@ -1174,8 +1205,15 @@ function EditorInner({
           | "toggle-box"
           | "create-linked-map"
           | "toggle-collapse"
+          | "pick-image"
           | "delete";
       };
+
+      if (action === "pick-image") {
+        setSelectedId(id);
+        pickImageFor(id);
+        return;
+      }
 
       if (action === "toggle-collapse") {
         const node = nodes.find((item) => item.id === id);
@@ -1283,6 +1321,7 @@ function EditorInner({
     map.ownerId,
     nodes,
     setCollapsed,
+    pickImageFor,
     setConnectMode,
     setEdges,
     setNodes,
@@ -1369,10 +1408,21 @@ function EditorInner({
     const onPaste = (event: ClipboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, [contenteditable='true']")) return;
+      const current = nodesRef.current;
+      const pastedImage = imageFromTransfer(event.clipboardData);
+      if (pastedImage) {
+        // A copied picture goes on the selected topic, or on the central idea.
+        const targetId =
+          (selectedId && current.some((node) => node.id === selectedId) && selectedId) ||
+          current.find((node) => node.data.isRoot)?.id;
+        if (!targetId) return;
+        event.preventDefault();
+        void attachImage(targetId, pastedImage);
+        return;
+      }
       const text = event.clipboardData?.getData("text/plain") ?? "";
       const items = parseOutline(text);
       if (!items.length) return;
-      const current = nodesRef.current;
       const parentId =
         (selectedId && current.some((node) => node.id === selectedId) && selectedId) ||
         current.find((node) => node.data.isRoot)?.id;
@@ -1464,7 +1514,7 @@ function EditorInner({
     };
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
-  }, [selectedId, orientation, map.mode, maxNodes, setNodes, setEdges]);
+  }, [selectedId, orientation, map.mode, maxNodes, attachImage, setNodes, setEdges]);
 
   const patchNode = useCallback(
     (id: string, patch: Partial<MindNodeData>) => {
@@ -1675,6 +1725,24 @@ function EditorInner({
   return (
     <div
       ref={canvasRef}
+      onDragOver={(event) => {
+        if (Array.from(event.dataTransfer.types).includes("Files")) event.preventDefault();
+      }}
+      onDrop={(event) => {
+        const file = imageFromTransfer(event.dataTransfer);
+        if (!file) return;
+        event.preventDefault();
+        const nodeElement = (
+          document.elementFromPoint(event.clientX, event.clientY) as HTMLElement | null
+        )?.closest<HTMLElement>(".react-flow__node");
+        const id = nodeElement?.dataset.id ?? selectedId;
+        if (!id) {
+          toast.info("Solte a imagem em cima de um tópico.");
+          return;
+        }
+        setSelectedId(id);
+        void attachImage(id, file);
+      }}
       className={`relative h-full w-full ${connectMode ? "cursor-crosshair" : ""} ${connecting ? "mm-connecting" : ""}`}
       style={
         preset.canvas
@@ -1753,6 +1821,21 @@ function EditorInner({
         </ReactFlow>
       </BranchInfoContext.Provider>
 
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        className="hidden"
+        aria-hidden
+        tabIndex={-1}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          const id = imageTargetRef.current;
+          event.target.value = "";
+          if (file && id) void attachImage(id, file);
+        }}
+      />
+
       {searchOpen && (
         <MapSearch
           query={searchQuery}
@@ -1801,6 +1884,7 @@ function EditorInner({
             onPatch={patchNode}
             onDelete={deleteNode}
             onKeywordConnect={keywordConnect}
+            onPickImage={pickImageFor}
           />
         </FloatingPanel>
       )}
@@ -1880,7 +1964,7 @@ function EditorInner({
               <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
                 Ctrl+V
               </kbd>{" "}
-              cola uma lista como ramos
+              cola uma lista como ramos, ou uma imagem no tópico
             </p>
             <p>
               <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">

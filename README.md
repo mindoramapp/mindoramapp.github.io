@@ -24,7 +24,8 @@ Zustand · Tailwind CSS 4 · Supabase (auth + banco).
   do salvamento ("Salvando…", "Salvo" ou "guardado neste aparelho"), "Revisar" e o menu "⋯" com
   exportação (PNG, SVG, Markdown, JSON), painéis, centralizar e "Atalhos e ajuda". A lupa (ou
   Ctrl+F) busca no mapa; a seta em cada tópico recolhe o ramo (teclas − e +); colar uma lista
-  com recuo (Ctrl+V) cria os ramos de uma vez. Próximos passos em `docs/PLANO_MINDMEISTER.md`.
+  com recuo (Ctrl+V) cria os ramos de uma vez. O painel Propriedades dá ícone e imagem ao
+  tópico (a imagem também entra colando ou arrastando o arquivo para o tópico). Próximos passos em `docs/PLANO_MINDMEISTER.md`.
 - **Conta:** planos, tema, instalar app, painel admin e sair ficam no menu da conta (avatar).
 - **Meus mapas:** "Novo mapa" abre um único diálogo com nome opcional, modelo (Em branco,
   Brainstorm, Estudo, Projeto) e "Importar arquivo". Cada cartão tem a estrela e o menu "⋯"

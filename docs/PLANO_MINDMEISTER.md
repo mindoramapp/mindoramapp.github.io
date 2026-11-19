@@ -34,7 +34,10 @@ Ordem por facilidade de uso ganha dividida pelo esforço.
    apaga o resto, abre ramos recolhidos e centraliza o resultado.
    2b. ✅ **Colar uma lista** (Ctrl+V com o mapa em foco): cada linha vira um tópico, o recuo vira
    sub-tópico, links viram tópicos de link; um Ctrl+Z desfaz tudo.
-3. **Ícones e emojis** no tópico, e **imagem** no tópico (URL ou upload).
+3. ✅ **Ícones e imagens no tópico**: paleta de 24 ícones no painel (o ícone toma o lugar do
+   símbolo do tipo); imagem por "Adicionar imagem", menu de contexto, Ctrl+V ou arrastando o
+   arquivo para o tópico. A imagem é reduzida para até 480 px em WebP e fica dentro do mapa (sem
+   migração, funciona offline, entra no desfazer e na exportação).
 4. **Formatação do texto**: negrito, itálico, tachado, quebra de linha.
 5. **Layout de mapa com dois lados** (ramos à esquerda e à direita da raiz) e **organograma**
    (de cima para baixo), além do de um lado só.

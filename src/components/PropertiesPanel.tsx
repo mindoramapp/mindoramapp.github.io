@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { focusWhenReady } from "./nodeEditing";
 import type { MindNodeData, NodeKind } from "@/store/maps";
 import {
@@ -10,8 +10,11 @@ import {
   StickyNote,
   Trash2,
   Sparkles,
+  ImagePlus,
+  Smile,
 } from "lucide-react";
-import { sanitizeNodeUrl } from "@/lib/security";
+import { isSafeNodeImage, sanitizeNodeUrl } from "@/lib/security";
+import { NODE_ICONS } from "@/features/editor/nodeIcons";
 
 interface Props {
   node: { id: string; data: MindNodeData } | null;
@@ -20,6 +23,8 @@ interface Props {
   onPatch: (id: string, patch: Partial<MindNodeData>) => void;
   onDelete: (id: string) => void;
   onKeywordConnect: (id: string, scope: "one" | "all") => void;
+  /** Opens the file picker for this topic's picture. */
+  onPickImage: (id: string) => void;
 }
 
 const KINDS: { id: NodeKind; label: string; icon: React.ReactNode }[] = [
@@ -38,7 +43,9 @@ export function PropertiesPanel({
   onPatch,
   onDelete,
   onKeywordConnect,
+  onPickImage,
 }: Props) {
+  const [allIcons, setAllIcons] = useState(false);
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const nodeId = node?.id;
 
@@ -77,6 +84,82 @@ export function PropertiesPanel({
           onChange={(event) => onPatch(id, { label: event.target.value })}
           className="mt-1 w-full rounded-xl border border-border bg-input px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
         />
+      </div>
+
+      <div>
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Smile size={12} /> Ícone
+        </p>
+        <div className="mt-2 grid grid-cols-6 gap-1" role="group" aria-label="Ícone do tópico">
+          {(allIcons ? NODE_ICONS : NODE_ICONS.slice(0, 11)).map((icon) => (
+            <button
+              key={icon}
+              type="button"
+              onClick={() => onPatch(id, { icon: data.icon === icon ? undefined : icon })}
+              aria-pressed={data.icon === icon}
+              title={data.icon === icon ? "Tirar ícone" : "Usar este ícone"}
+              className={`grid h-9 place-items-center rounded-lg border text-base transition-colors ${
+                data.icon === icon
+                  ? "border-primary bg-primary/10"
+                  : "border-transparent hover:bg-muted"
+              }`}
+            >
+              {icon}
+            </button>
+          ))}
+          {!allIcons && (
+            <button
+              type="button"
+              onClick={() => setAllIcons(true)}
+              className="grid h-9 place-items-center rounded-lg text-xs text-muted-foreground hover:bg-muted"
+              aria-label="Mostrar mais ícones"
+            >
+              mais
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <ImagePlus size={12} /> Imagem
+        </p>
+        {isSafeNodeImage(data.image) ? (
+          <div className="mt-2 flex items-center gap-2">
+            <img
+              src={data.image}
+              alt=""
+              className="h-14 w-20 shrink-0 rounded-lg border border-border object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => onPickImage(id)}
+              className="flex-1 rounded-lg border border-border px-2 py-2 text-xs hover:bg-muted"
+            >
+              Trocar
+            </button>
+            <button
+              type="button"
+              onClick={() => onPatch(id, { image: undefined })}
+              className="flex-1 rounded-lg border border-border px-2 py-2 text-xs hover:bg-muted"
+            >
+              Remover
+            </button>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => onPickImage(id)}
+              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border px-3 py-2.5 text-xs hover:bg-muted"
+            >
+              <ImagePlus size={14} /> Adicionar imagem
+            </button>
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Ou cole uma imagem (Ctrl+V) ou arraste para o tópico.
+            </p>
+          </>
+        )}
       </div>
 
       <div>
