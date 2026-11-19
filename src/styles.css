@@ -229,7 +229,7 @@ select optgroup {
 
 /* Landing hero ("visor", inspired by a dusk-to-night art direction): serif display titles, a dusk
    sky that turns to night as the page scrolls (--night, 0 to 1, set by LandingPage), and the
-   MindVisor art. The hero stays dark on both themes: it is an illustration, not page chrome. */
+   MindPortrait art. The hero stays dark on both themes: it is an illustration, not page chrome. */
 .font-display-serif {
   font-family: "Fraunces", Georgia, "Noto Serif", serif;
   font-optical-sizing: auto;
@@ -282,17 +282,11 @@ select optgroup {
     radial-gradient(1px 1px at 47% 40%, #dfe7ff, transparent);
   opacity: calc(0.35 + var(--night) * 0.65);
 }
-.mind-visor__strip {
-  animation: mind-visor-drift 60s linear infinite;
-}
-@keyframes mind-visor-drift {
-  /* Exactly one tile (TILE in MindVisor.tsx): the second copy lands where the first started. */
-  to {
-    transform: translateX(-600px);
-  }
-}
-.mind-visor__night {
-  opacity: calc(var(--night, 0) * 0.6);
+.mind-portrait__photo {
+  /* The jacket melts into the sky; the photo dims a little as night falls. */
+  -webkit-mask-image: linear-gradient(to bottom, black 78%, transparent 99%);
+  mask-image: linear-gradient(to bottom, black 78%, transparent 99%);
+  filter: brightness(calc(1 - var(--night, 0) * 0.3)) drop-shadow(0 30px 60px rgb(6 9 15 / 0.45));
 }
 .mind-visor__escape {
   transform-box: fill-box;
@@ -312,7 +306,6 @@ select optgroup {
     opacity: 0;
   }
 }
-.perf-lite .mind-visor__strip,
 .perf-lite .mind-visor__escape {
   animation: none;
 }

@@ -5,7 +5,7 @@ import { InstallAppButton } from "@/features/pwa/InstallInvitation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import "@fontsource/fraunces/latin-400.css";
 import "@fontsource/fraunces/latin-600.css";
-import { MindVisor } from "./MindVisor";
+import { MindPortrait } from "./MindPortrait";
 import {
   ArrowRight,
   ChevronRight,
@@ -305,7 +305,7 @@ export function LandingPage() {
                 transition={{ delay: 0.12, duration: 0.9 }}
                 className="order-1 mx-auto w-full max-w-[230px] sm:max-w-[340px] lg:order-2 lg:max-w-[560px]"
               >
-                <MindVisor className="h-auto w-full drop-shadow-[0_30px_60px_rgba(6,9,15,0.55)]" />
+                <MindPortrait />
               </motion.div>
             </div>
           </section>
