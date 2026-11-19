@@ -40,3 +40,5 @@ divulgacao/video/
 divulgacao/canva/
 divulgacao/instagram/*.png
 divulgacao/instagram/posts/*/midia/
+divulgacao/referencias/**/*.jpg
+divulgacao/referencias/**/*.mp4

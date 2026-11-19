@@ -2,7 +2,10 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { MotionConfig, motion } from "framer-motion";
 import { isLiteMode } from "@/lib/performance";
 import { InstallAppButton } from "@/features/pwa/InstallInvitation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import "@fontsource/fraunces/latin-400.css";
+import "@fontsource/fraunces/latin-600.css";
+import { MindVisor } from "./MindVisor";
 import {
   ArrowRight,
   ChevronRight,
@@ -10,9 +13,6 @@ import {
   FolderTree,
   GraduationCap,
   Layers3,
-  LockKeyhole,
-  Mail,
-  MoonStar,
   Network,
   Smartphone,
   Sparkles,
@@ -115,104 +115,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function QuickAccessCard() {
-  const { login, configured, debugMessage } = useAuth();
-  const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const result = await login(email, password);
-    setSubmitting(false);
-
-    if (!result.ok) {
-      setError(result.error || debugMessage || "Não foi possível entrar agora.");
-      return;
-    }
-
-    const nextUser = useAuth.getState().user;
-    navigate({
-      to: nextUser?.role === "superadmin" || nextUser?.accessGranted ? "/dashboard" : "/activate",
-    });
-  };
-
-  return (
-    <div className="landing-panel relative overflow-hidden rounded-[28px] p-5 shadow-[var(--shadow-soft)] sm:p-6">
-      <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-foreground">Entrar</p>
-          <p className="mt-1 text-xs text-muted-foreground">Continue de onde parou.</p>
-        </div>
-        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-primary/10 text-primary">
-          <MoonStar size={18} />
-        </div>
-      </div>
-
-      <form onSubmit={submit} className="space-y-3">
-        <label className="flex items-center gap-2 rounded-2xl border border-border/70 bg-background/70 px-3 py-3 backdrop-blur transition-colors focus-within:border-primary/40">
-          <Mail size={16} className="text-muted-foreground" />
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="voce@empresa.com"
-            className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-        </label>
-
-        <label className="flex items-center gap-2 rounded-2xl border border-border/70 bg-background/70 px-3 py-3 backdrop-blur transition-colors focus-within:border-primary/40">
-          <LockKeyhole size={16} className="text-muted-foreground" />
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Sua senha"
-            className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-        </label>
-
-        {error && (
-          <div className="rounded-2xl border border-destructive/25 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {error}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={!configured || submitting}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[image:var(--gradient-hero)] px-4 py-3 text-sm font-semibold text-primary-foreground transition duration-300 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {submitting ? "Entrando..." : "Entrar"}
-          <ArrowRight size={16} />
-        </button>
-      </form>
-
-      <div className="mt-4 flex items-center justify-between gap-2 text-sm">
-        <Link
-          to="/login"
-          className="text-muted-foreground transition-colors hover:text-foreground pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
-        >
-          Esqueci minha senha
-        </Link>
-        <Link
-          to="/register"
-          className="font-medium text-primary hover:underline pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
-        >
-          Criar conta
-        </Link>
-      </div>
-    </div>
-  );
-}
-
 /** Where a signed-in visitor continues: their maps, or the invite screen if not activated yet. */
 function useAppDestination() {
   const user = useAuth((state) => state.user);
@@ -220,36 +122,33 @@ function useAppDestination() {
   return user.role === "superadmin" || user.accessGranted ? "/dashboard" : "/activate";
 }
 
-function SignedInCard({ destination }: { destination: "/dashboard" | "/activate" }) {
-  const name = useAuth((state) => state.user?.name);
-  return (
-    <div className="rounded-3xl border border-border/70 bg-card/80 p-6 shadow-[var(--shadow-soft)] backdrop-blur">
-      <p className="text-sm text-muted-foreground">
-        Você já está conectado{name ? ` como ${name}` : ""}.
-      </p>
-      <Link
-        to={destination}
-        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[image:var(--gradient-hero)] px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-95"
-      >
-        {destination === "/dashboard" ? "Abrir meus mapas" : "Liberar meu acesso"}
-        <ArrowRight size={16} />
-      </Link>
-    </div>
-  );
-}
-
 export function LandingPage() {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const appDestination = useAppDestination();
-  // The 7 MB looping video is decorative: skip it on phones, low-end devices and data saver.
-  const [showHeroVideo] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.matchMedia("(min-width: 768px)").matches &&
-      !isLiteMode(),
-  );
   const [lite] = useState(isLiteMode);
+  const heroRef = useRef<HTMLElement>(null);
+
+  // Dusk to night: the hero (sky, stars and the visor) darkens as it scrolls away.
+  useEffect(() => {
+    const hero = heroRef.current;
+    if (!hero) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const night = Math.min(1, Math.max(0, window.scrollY / (hero.offsetHeight * 0.85)));
+      hero.style.setProperty("--night", night.toFixed(3));
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
 
   const navItems = useMemo(
     () => [
@@ -343,95 +242,70 @@ export function LandingPage() {
         </header>
 
         <main id="top">
-          <section className="relative isolate overflow-hidden">
-            <div className="absolute inset-0 -z-20">
-              <img
-                src={`${import.meta.env.BASE_URL}hero-network-bg.jpg`}
-                alt=""
-                aria-hidden="true"
-                className={`h-full w-full object-cover transition-opacity duration-700 ${
-                  theme === "dark" ? "opacity-75" : "opacity-55 invert hue-rotate-180 saturate-150"
-                }`}
-              />
-              {showHeroVideo && (
-                <video
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  className={`absolute inset-0 h-full w-full object-cover ${
-                    theme === "dark"
-                      ? "mix-blend-screen opacity-60"
-                      : "opacity-35 invert hue-rotate-180"
-                  }`}
-                >
-                  <source src={`${import.meta.env.BASE_URL}mindora-hero.mp4`} type="video/mp4" />
-                </video>
-              )}
-            </div>
+          <section ref={heroRef} className="hero-dusk relative isolate overflow-hidden">
             <div
-              className={`absolute inset-0 -z-10 ${
-                theme === "dark"
-                  ? "bg-[linear-gradient(180deg,rgba(9,12,19,0.40)_0%,rgba(9,12,19,0.78)_40%,rgba(9,12,19,0.98)_100%)]"
-                  : "bg-[linear-gradient(180deg,rgba(248,249,252,0.35)_0%,rgba(248,249,252,0.6)_45%,rgba(248,249,252,0.97)_100%)]"
-              }`}
+              className="hero-stars pointer-events-none absolute inset-0 -z-10"
+              aria-hidden="true"
             />
-            <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(110,114,255,0.20),transparent_35%),radial-gradient(circle_at_80%_16%,rgba(34,211,238,0.14),transparent_28%)]" />
+            <div
+              className="hero-fade pointer-events-none absolute inset-x-0 bottom-0 z-20 h-28"
+              aria-hidden="true"
+            />
 
-            <div className="mx-auto grid min-h-[calc(100vh-4.75rem)] max-w-7xl gap-12 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[minmax(0,1.15fr)_420px] lg:px-8 lg:py-20">
-              <div className="flex flex-col justify-center">
-                <motion.div
-                  initial={{ opacity: 0, y: 18 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.7 }}
-                  className="max-w-3xl"
-                >
-                  <SectionLabel>Mapas mentais</SectionLabel>
-                  <h1 className="mt-6 max-w-4xl text-5xl font-semibold leading-[0.95] tracking-[-0.05em] text-balance text-foreground sm:text-6xl lg:text-7xl">
-                    Organize ideias em mapas que você revisa e entende.
-                  </h1>
-                  <p className="mt-6 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-                    Monte mapas mentais em minutos, ligue assuntos relacionados e transforme o mapa
-                    em cartões de revisão para estudar. No computador ou no celular.
-                  </p>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.12, duration: 0.7 }}
-                  className="mt-8 flex flex-col gap-3 sm:flex-row"
-                >
+            <div className="relative z-10 mx-auto grid min-h-[calc(100svh-4.75rem)] max-w-7xl items-center gap-6 px-4 pb-16 pt-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:gap-10 lg:px-8 lg:py-16">
+              <motion.div
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7 }}
+                className="order-2 max-w-2xl lg:order-1"
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#C9D6FF]/80">
+                  Mapas mentais · revisão espaçada
+                </p>
+                <h1 className="font-display-serif mt-5 text-5xl font-semibold leading-[1.02] text-balance sm:text-6xl lg:text-7xl">
+                  Ideias que você <span className="dusk-accent">não esquece</span>.
+                </h1>
+                <p className="mt-6 max-w-xl text-base leading-7 text-[#C9D6FF] sm:text-lg">
+                  Monte o mapa mental do conteúdo em minutos e revise com cartões que voltam na hora
+                  certa. No computador ou no celular, grátis para começar.
+                </p>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                   <Link
                     to={appDestination ?? "/register"}
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-[image:var(--gradient-hero)] px-6 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition duration-300 hover:-translate-y-0.5 hover:opacity-95"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-[#FFA27A] px-6 py-3 text-sm font-semibold text-[#141a3a] shadow-[0_18px_40px_-18px_rgba(255,162,122,0.8)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#ffb391] pointer-coarse:min-h-11"
                   >
-                    {appDestination ? "Abrir meus mapas" : "Começar agora"}
+                    {appDestination ? "Abrir meus mapas" : "Começar grátis"}
                     <ArrowRight size={16} />
                   </Link>
                   <button
                     type="button"
                     onClick={() => scrollToId("como-funciona")}
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-border/70 bg-card/50 px-6 py-3 text-sm font-semibold text-foreground backdrop-blur transition-colors hover:bg-card"
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10 pointer-coarse:min-h-11"
                   >
                     Como funciona
                     <ChevronRight size={16} />
                   </button>
-                </motion.div>
-              </div>
+                </div>
+                {!appDestination && (
+                  <p className="mt-5 text-sm text-[#C9D6FF]/80">
+                    Já tem conta?{" "}
+                    <Link
+                      to="/login"
+                      className="font-medium text-white underline-offset-4 hover:underline"
+                    >
+                      Entrar
+                    </Link>
+                  </p>
+                )}
+              </motion.div>
 
               <motion.div
-                initial={{ opacity: 0, x: 36 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.16, duration: 0.8 }}
-                className="relative flex items-center"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.12, duration: 0.9 }}
+                className="order-1 mx-auto w-full max-w-[230px] sm:max-w-[340px] lg:order-2 lg:max-w-[560px]"
               >
-                {appDestination ? (
-                  <SignedInCard destination={appDestination} />
-                ) : (
-                  <QuickAccessCard />
-                )}
+                <MindVisor className="h-auto w-full drop-shadow-[0_30px_60px_rgba(6,9,15,0.55)]" />
               </motion.div>
             </div>
           </section>
@@ -439,8 +313,9 @@ export function LandingPage() {
           <section id="como-funciona" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
             <Reveal className="mx-auto max-w-3xl text-center">
               <SectionLabel>Como funciona</SectionLabel>
-              <h2 className="mt-5 text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">
-                Do primeiro balão ao mapa pronto em três passos.
+              <h2 className="font-display-serif mt-5 text-3xl font-semibold sm:text-5xl">
+                Do primeiro balão ao mapa pronto em{" "}
+                <span className="title-accent">três passos</span>.
               </h2>
             </Reveal>
             <div className="mt-12 grid gap-5 md:grid-cols-3">
@@ -461,8 +336,8 @@ export function LandingPage() {
           <section id="recursos" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
             <Reveal className="mx-auto max-w-3xl text-center">
               <SectionLabel>Recursos</SectionLabel>
-              <h2 className="mt-5 text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">
-                O essencial à vista, o resto a um clique.
+              <h2 className="font-display-serif mt-5 text-3xl font-semibold sm:text-5xl">
+                O essencial à vista, o resto <span className="title-accent">a um clique</span>.
               </h2>
             </Reveal>
             <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -498,8 +373,9 @@ export function LandingPage() {
                 <div className="relative z-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                   <div>
                     <SectionLabel>Pronto para começar</SectionLabel>
-                    <h2 className="mt-5 max-w-3xl text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">
-                      Crie sua conta e monte o primeiro mapa hoje.
+                    <h2 className="font-display-serif mt-5 max-w-3xl text-3xl font-semibold sm:text-5xl">
+                      Crie sua conta e monte o primeiro mapa{" "}
+                      <span className="title-accent">hoje</span>.
                     </h2>
                     <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
                       É grátis para começar, no plano Free. Crie a conta, confirme o e-mail e

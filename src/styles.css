@@ -227,6 +227,96 @@ select optgroup {
   }
 }
 
+/* Landing hero ("visor", inspired by a dusk-to-night art direction): serif display titles, a dusk
+   sky that turns to night as the page scrolls (--night, 0 to 1, set by LandingPage), and the
+   MindVisor art. The hero stays dark on both themes: it is an illustration, not page chrome. */
+.font-display-serif {
+  font-family: "Fraunces", Georgia, "Noto Serif", serif;
+  font-optical-sizing: auto;
+  letter-spacing: -0.02em;
+}
+.dusk-accent {
+  color: #ffa27a;
+}
+/* Accent word in section titles: the same warm tone, darker on the light theme for contrast. */
+.title-accent {
+  color: #c2532d;
+}
+.dark .title-accent {
+  color: #ffa27a;
+}
+.hero-dusk {
+  --night: 0;
+  background:
+    radial-gradient(
+      70% 55% at 72% 78%,
+      rgb(255 162 122 / calc(0.32 * (1 - var(--night)))),
+      transparent 70%
+    ),
+    radial-gradient(60% 50% at 20% 10%, rgb(94 168 255 / 0.22), transparent 70%),
+    linear-gradient(180deg, #0b1230 0%, #16225c 55%, #2a2a6e 100%);
+  color: #f3f5ff;
+}
+.hero-dusk::after {
+  /* Night falls: a deep blue veil that thickens with the scroll. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: #06090f;
+  opacity: calc(var(--night) * 0.55);
+}
+.hero-fade {
+  /* The sky melts into the page below, in either theme, instead of ending on a hard edge. */
+  background: linear-gradient(to bottom, transparent, var(--color-background));
+}
+.hero-stars {
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, #fff, transparent),
+    radial-gradient(1px 1px at 34% 8%, #dfe7ff, transparent),
+    radial-gradient(1.5px 1.5px at 58% 22%, #fff, transparent),
+    radial-gradient(1px 1px at 82% 12%, #dfe7ff, transparent),
+    radial-gradient(1px 1px at 91% 38%, #fff, transparent),
+    radial-gradient(1px 1px at 6% 46%, #dfe7ff, transparent),
+    radial-gradient(1.5px 1.5px at 26% 62%, #fff, transparent),
+    radial-gradient(1px 1px at 47% 40%, #dfe7ff, transparent);
+  opacity: calc(0.35 + var(--night) * 0.65);
+}
+.mind-visor__strip {
+  animation: mind-visor-drift 60s linear infinite;
+}
+@keyframes mind-visor-drift {
+  /* Exactly one tile (TILE in MindVisor.tsx): the second copy lands where the first started. */
+  to {
+    transform: translateX(-600px);
+  }
+}
+.mind-visor__night {
+  opacity: calc(var(--night, 0) * 0.6);
+}
+.mind-visor__escape {
+  transform-box: fill-box;
+  opacity: 0;
+  animation: mind-visor-escape 9s ease-out infinite;
+}
+@keyframes mind-visor-escape {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-130px, -38px) scale(1.1);
+    opacity: 0;
+  }
+}
+.perf-lite .mind-visor__strip,
+.perf-lite .mind-visor__escape {
+  animation: none;
+}
+
 /* Lite mode for low-end devices (see src/lib/performance.ts): keep the design, drop what makes
    the GPU repaint every frame. */
 .perf-lite {
