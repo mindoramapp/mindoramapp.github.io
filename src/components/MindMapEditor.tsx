@@ -80,6 +80,7 @@ import {
 } from "@/features/editor/branches";
 import { BranchInfoContext } from "@/features/editor/branchContext";
 import { MapSearch } from "@/features/editor/components/MapSearch";
+import { plainText } from "@/features/editor/richText";
 import { fileToNodeImage, imageFromTransfer, NodeImageError } from "@/features/editor/nodeImage";
 import { isLiteMode } from "@/lib/performance";
 import { exportMap, type ExportFormat } from "@/lib/export";
@@ -1289,7 +1290,7 @@ function EditorInner({
 
           const linkedMap = createBlankMap(
             { id: map.ownerId, email: map.ownerEmail },
-            `${sourceNode.data.label || "Mapa"} - conectado`,
+            `${plainText(sourceNode.data.label) || "Mapa"} - conectado`,
             map.mode,
             { folderId: map.folderId, parentMapId: map.id },
           );
@@ -1547,7 +1548,7 @@ function EditorInner({
       const source = nodes.find((node) => node.id === id);
       if (!source) return;
 
-      const tokens = new Set(tokenize(source.data.label));
+      const tokens = new Set(tokenize(plainText(source.data.label)));
       if (tokens.size === 0) {
         toast.warning("O nó precisa ter palavras significativas para sugerir conexões.");
         return;
@@ -1556,7 +1557,7 @@ function EditorInner({
       const scored = nodes
         .filter((node) => node.id !== id)
         .map((node) => {
-          const words = tokenize(node.data.label);
+          const words = tokenize(plainText(node.data.label));
           const matches = words.filter((word) => tokens.has(word));
           return { node, score: matches.length };
         })
@@ -1965,6 +1966,21 @@ function EditorInner({
                 Ctrl+V
               </kbd>{" "}
               cola uma lista como ramos, ou uma imagem no tópico
+            </p>
+            <p>
+              Editando um balão:{" "}
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
+                Ctrl+B
+              </kbd>{" "}
+              negrito ·{" "}
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
+                Ctrl+I
+              </kbd>{" "}
+              itálico ·{" "}
+              <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">
+                Shift+Enter
+              </kbd>{" "}
+              nova linha
             </p>
             <p>
               <kbd className="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground">

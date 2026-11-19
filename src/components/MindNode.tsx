@@ -2,7 +2,10 @@
 import { memo, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
 import {
+  Bold,
   CheckSquare,
+  Italic,
+  Strikethrough,
   ChevronDown,
   ChevronRight,
   Square,
@@ -13,6 +16,8 @@ import {
   Type,
 } from "lucide-react";
 import { BranchInfoContext } from "@/features/editor/branchContext";
+import { plainText, toggleMark } from "@/features/editor/richText";
+import { RichLabel } from "@/features/editor/components/RichLabel";
 import type { MindNodeData, NodeKind } from "@/store/maps";
 import { isSafeNodeImage, isSafeNodeUrl } from "@/lib/security";
 import { isNodeIcon } from "@/features/editor/nodeIcons";
@@ -150,6 +155,19 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
     dispatch({ label: value.trim() || "Sem titulo" });
   };
 
+  // Bold / italic / strikethrough on the selection, or on the whole text with nothing selected.
+  const formattable = kind === "text" || kind === "checklist";
+  const applyMark = (style: "bold" | "italic" | "strike") => {
+    const field = inputRef.current;
+    if (!field) return;
+    const next = toggleMark(value, field.selectionStart, field.selectionEnd, style);
+    setValue(next.value);
+    requestAnimationFrame(() => {
+      field.focus();
+      field.setSelectionRange(next.start, next.end);
+    });
+  };
+
   const requestChildCreation = (e: React.MouseEvent | React.PointerEvent, side: HandleSide) => {
     e.stopPropagation();
     window.dispatchEvent(new CustomEvent("mm-node-add-child", { detail: { id, side } }));
@@ -268,6 +286,40 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
               </button>
             ))}
 
+          {editing && formattable && (
+            <div
+              role="toolbar"
+              aria-label="Formatar texto"
+              className="nodrag nopan absolute -top-11 left-1/2 z-20 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-border bg-card p-1 text-card-foreground shadow-[var(--shadow-soft)]"
+            >
+              {(
+                [
+                  ["bold", "Negrito (Ctrl+B)", <Bold key="b" size={14} strokeWidth={2.5} />],
+                  ["italic", "Itálico (Ctrl+I)", <Italic key="i" size={14} />],
+                  ["strike", "Tachado (Ctrl+Shift+X)", <Strikethrough key="s" size={14} />],
+                ] as const
+              ).map(([style, hint, iconNode]) => (
+                <button
+                  key={style}
+                  type="button"
+                  // Keep the text field focused (and its selection) while clicking.
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    applyMark(style);
+                  }}
+                  title={hint}
+                  aria-label={hint}
+                  className="grid h-7 w-7 place-items-center rounded-full hover:bg-muted pointer-coarse:h-10 pointer-coarse:w-10"
+                >
+                  {iconNode}
+                </button>
+              ))}
+              <span className="whitespace-nowrap px-1.5 text-[10px] text-muted-foreground max-sm:hidden">
+                Shift+Enter: nova linha
+              </span>
+            </div>
+          )}
           {image && (
             <img
               src={image}
@@ -309,17 +361,33 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
 
             <div className="flex-1 min-w-0">
               {editing ? (
-                // Wraps exactly like the text shown afterwards; Enter confirms (no line breaks
-                // in labels), the height follows the text.
+                // Wraps exactly like the text shown afterwards; Enter confirms, Shift+Enter breaks
+                // the line, Ctrl+B / Ctrl+I / Ctrl+Shift+X format; the height follows the text.
                 <textarea
                   ref={inputRef}
                   value={value}
                   rows={1}
-                  onChange={(e) => setValue(e.target.value.replace(/\n/g, " "))}
+                  onChange={(e) => setValue(e.target.value)}
                   onBlur={commit}
                   onKeyDown={(e) => {
                     e.stopPropagation();
-                    if (e.key === "Enter") {
+                    const key = e.key.toLowerCase();
+                    if ((e.ctrlKey || e.metaKey) && formattable) {
+                      const style =
+                        key === "b" && !e.shiftKey
+                          ? "bold"
+                          : key === "i" && !e.shiftKey
+                            ? "italic"
+                            : key === "x" && e.shiftKey
+                              ? "strike"
+                              : null;
+                      if (style) {
+                        e.preventDefault();
+                        applyMark(style);
+                        return;
+                      }
+                    }
+                    if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       commit();
                     }
@@ -336,7 +404,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
                       setEditing(false);
                     }
                   }}
-                  className="mm-node-field block w-full resize-none overflow-hidden bg-transparent text-sm outline-none [field-sizing:content] [text-wrap:pretty]"
+                  className="mm-node-field block w-full resize-none overflow-hidden bg-transparent text-sm outline-none [field-sizing:content] [text-wrap:pretty] whitespace-pre-wrap"
                 />
               ) : kind === "code" ? (
                 <code className="text-xs font-mono break-all">{data.label}</code>
@@ -348,15 +416,15 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
                   onClick={(e) => e.stopPropagation()}
                   className="text-sm underline truncate block"
                 >
-                  {data.label}
+                  {plainText(data.label)}
                 </a>
               ) : kind === "link" ? (
                 <span className="text-sm break-words opacity-60">Link inválido</span>
               ) : (
                 <span
-                  className={`text-sm break-words [text-wrap:pretty] ${kind === "checklist" && data.checked ? "line-through opacity-60" : ""}`}
+                  className={`text-sm break-words whitespace-pre-line [text-wrap:pretty] ${kind === "checklist" && data.checked ? "line-through opacity-60" : ""}`}
                 >
-                  {data.label}
+                  <RichLabel text={data.label} />
                 </span>
               )}
             </div>

@@ -38,7 +38,10 @@ Ordem por facilidade de uso ganha dividida pelo esforço.
    símbolo do tipo); imagem por "Adicionar imagem", menu de contexto, Ctrl+V ou arrastando o
    arquivo para o tópico. A imagem é reduzida para até 480 px em WebP e fica dentro do mapa (sem
    migração, funciona offline, entra no desfazer e na exportação).
-4. **Formatação do texto**: negrito, itálico, tachado, quebra de linha.
+4. ✅ **Formatação do texto**: barrinha B / I / S acima do tópico enquanto ele é editado (sem
+   seleção, formata o texto todo), Ctrl+B, Ctrl+I, Ctrl+Shift+X e Shift+Enter para nova linha.
+   Guardado como texto com marcas (`**negrito**`, `*itálico*`, `~~tachado~~`); revisão, busca
+   e exportação usam o texto limpo, e o Markdown exportado mantém a formatação.
 5. **Layout de mapa com dois lados** (ramos à esquerda e à direita da raiz) e **organograma**
    (de cima para baixo), além do de um lado só.
 6. **Fronteira** em volta de um ramo e **rótulo nas conexões**.

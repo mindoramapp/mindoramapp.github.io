@@ -2,6 +2,7 @@
 // child; free connections ("graph" edges) never hide anything.
 import type { Edge, Node } from "reactflow";
 import type { MindNodeData } from "@/store/maps";
+import { plainText } from "./richText";
 
 const isTreeEdge = (edge: Edge) => edge.data?.kind !== "graph";
 
@@ -84,7 +85,7 @@ export function searchNodes(nodes: Node<MindNodeData>[], query: string): string[
   return nodes
     .filter(
       (node) =>
-        normalizeSearch(node.data.label ?? "").includes(needle) ||
+        normalizeSearch(plainText(node.data.label ?? "")).includes(needle) ||
         normalizeSearch(node.data.note ?? "").includes(needle),
     )
     .sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x)

@@ -79,10 +79,14 @@ export function PropertiesPanel({
     <div className="space-y-4">
       <div>
         <label className="text-xs text-muted-foreground">Rótulo</label>
-        <input
+        {/* A textarea keeps line breaks (Shift+Enter in the topic); marks like **negrito** show
+            here as typed. */}
+        <textarea
           value={data.label}
+          rows={data.label.includes("\n") ? 3 : 1}
           onChange={(event) => onPatch(id, { label: event.target.value })}
-          className="mt-1 w-full rounded-xl border border-border bg-input px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+          onKeyDown={(event) => event.stopPropagation()}
+          className="mt-1 w-full resize-none rounded-xl border border-border bg-input px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring [field-sizing:content]"
         />
       </div>
 

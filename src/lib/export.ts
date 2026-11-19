@@ -3,6 +3,7 @@ import { getRectOfNodes, getTransformForBounds, type Edge, type Node } from "rea
 import type { MapMode, MindMap, MindNodeData, ViewportState } from "@/store/maps";
 import { isSafeNodeImage, sanitizeNodeUrl } from "@/lib/security";
 import { isNodeIcon } from "@/features/editor/nodeIcons";
+import { parseRich, plainText } from "@/features/editor/richText";
 import {
   isEdgeShape,
   isNodeBox,
@@ -82,7 +83,16 @@ const escapeMarkdown = (text: string) =>
   text.replace(/[\\`*_{}[\]()#+!|>~-]/g, "\\$&").replace(/</g, "&lt;");
 
 const markdownLine = (data: MindNodeData) => {
-  const text = escapeMarkdown((data.label || "Sem título").replace(/\s+/g, " ").trim());
+  const text =
+    parseRich((data.label || "Sem título").replace(/\s+/g, " ").trim())
+      .map((segment) => {
+        let piece = escapeMarkdown(segment.text);
+        if (segment.strike) piece = `~~${piece}~~`;
+        if (segment.italic) piece = `*${piece}*`;
+        if (segment.bold) piece = `**${piece}**`;
+        return piece;
+      })
+      .join("") || "Sem título";
   const label = isNodeIcon(data.icon) ? `${data.icon} ${text}` : text;
   if (data.kind === "checklist") return `[${data.checked ? "x" : " "}] ${label}`;
   if (data.kind === "code") return `\`${(data.label || "").replace(/[`\n]/g, "'")}\``;
@@ -144,7 +154,8 @@ export const toMarkdown = (map: MindMap, nodes: Node<MindNodeData>[], edges: Edg
     .filter(([a, b]) => a && b);
   if (describedLinks.length > 0) {
     lines.push("", "## Conexões", "");
-    for (const [a, b] of describedLinks) lines.push(`- ${a!.data.label} ↔ ${b!.data.label}`);
+    for (const [a, b] of describedLinks)
+      lines.push(`- ${plainText(a!.data.label)} ↔ ${plainText(b!.data.label)}`);
   }
 
   return lines.join("\n") + "\n";

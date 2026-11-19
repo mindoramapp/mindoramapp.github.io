@@ -4,6 +4,7 @@ import type { Edge } from "reactflow";
 import { Check, RotateCcw, Trash2, X } from "lucide-react";
 import type { MindNodeData } from "@/store/maps";
 import { useThemePanel, type ThemeTab } from "../themeStore";
+import { plainText } from "../richText";
 import {
   EDGE_WIDTHS,
   PRESETS,
@@ -389,7 +390,7 @@ export function ThemePanel({
       {tab === "node" && node && (
         <div className="space-y-4">
           <p className="truncate text-xs text-muted-foreground">
-            Balão: <span className="font-medium text-foreground">{node.data.label}</span>
+            Balão: <span className="font-medium text-foreground">{plainText(node.data.label)}</span>
           </p>
           <BoxChoice
             label="Formato"

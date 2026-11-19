@@ -2,6 +2,7 @@
 // recall its sub-topics. Leaves have nothing to recall, so they only appear as answers.
 import type { Edge, Node } from "reactflow";
 import type { MindNodeData } from "@/store/maps";
+import { plainText } from "@/features/editor/richText";
 
 export interface ReviewCard {
   nodeId: string;
@@ -15,7 +16,10 @@ export interface ReviewCard {
   note?: string;
 }
 
-const labelOf = (node: Node<MindNodeData>) => node.data.label?.trim() || "Sem título";
+const labelOf = (node: Node<MindNodeData>) =>
+  plainText(node.data.label ?? "")
+    .replace(/\s+/g, " ")
+    .trim() || "Sem título";
 
 /** Cards in tree order (general topics before specific ones). Cross-links are not hierarchy. */
 export function buildCards(nodes: Node<MindNodeData>[], edges: Edge[]): ReviewCard[] {
