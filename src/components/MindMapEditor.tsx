@@ -78,7 +78,7 @@ import {
   type BranchInfo,
   type OutlineItem,
 } from "@/features/editor/branches";
-import { BranchInfoContext } from "@/features/editor/branchContext";
+import { BranchInfoContext, KeyHintContext } from "@/features/editor/branchContext";
 import { MapSearch } from "@/features/editor/components/MapSearch";
 import { plainText } from "@/features/editor/richText";
 import { fileToNodeImage, imageFromTransfer, NodeImageError } from "@/features/editor/nodeImage";
@@ -780,10 +780,11 @@ function EditorInner({
 
   const rootNode = nodes.find((node) => node.data.isRoot);
   const presetId: ThemePresetId = rootNode?.data.mapTheme ?? "default";
-  const edgeShape: EdgeShape = rootNode?.data.edgeShape ?? "bracket";
-  const nodeStyle: NodeBox = rootNode?.data.nodeStyle ?? "box";
   const { theme: appTheme } = useTheme();
   const preset = presetById(presetId);
+  // A theme can suggest its own node style ("Suave": text only) until the map picks one.
+  const nodeStyle: NodeBox = rootNode?.data.nodeStyle ?? preset.defaultBox ?? "box";
+  const edgeShape: EdgeShape = rootNode?.data.edgeShape ?? preset.defaultEdgeShape ?? "bracket";
   const canvas = canvasColor(preset, appTheme === "dark");
   // Focus dimming for nodes and lines outside the selection. White on white needs a milder fade
   // than dark on dark, or the rest of the map disappears on the light theme.
@@ -1788,82 +1789,84 @@ function EditorInner({
         setSelectedId(id);
         void attachImage(id, file);
       }}
-      className={`relative h-full w-full ${connectMode ? "cursor-crosshair" : ""} ${connecting ? "mm-connecting" : ""}`}
+      className={`relative h-full w-full ${presetId === "suave" ? "mm-soft" : ""} ${connectMode ? "cursor-crosshair" : ""} ${connecting ? "mm-connecting" : ""}`}
       style={
-        preset.canvas
-          ? ({ background: preset.canvas, "--mm-canvas": preset.canvas } as React.CSSProperties)
+        preset.canvas || (preset.canvasLight && appTheme !== "dark")
+          ? ({ background: canvas, "--mm-canvas": canvas } as React.CSSProperties)
           : undefined
       }
     >
       <BranchInfoContext.Provider value={branchInfo}>
-        <ReactFlow
-          nodes={styledNodes}
-          edges={styledEdges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onNodeClick={onNodeClick}
-          onNodeMouseEnter={(_, node) => setHoverId(node.id)}
-          onNodeMouseLeave={() => setHoverId(null)}
-          onPaneClick={() => {
-            leaveTextField();
-            setSelectedEdgeId(null);
-            setSelectedId(null);
-            setPendingSource(null);
-          }}
-          onMoveEnd={(_, nextViewport) => persistViewport(nextViewport)}
-          onEdgeClick={(_, edge) => {
-            // Clicking a line selects it and opens its appearance (it used to jump straight to a
-            // "remove connection" dialog, easy to trigger by accident).
-            setSelectedId(null);
-            setSelectedEdgeId(edge.id);
-            useThemePanel.getState().show("edge");
-          }}
-          // Our edge auto-pan scales speed with the distance to the edge (ReactFlow's is fixed).
-          autoPanOnNodeDrag={false}
-          onNodeDrag={autoPan.onNodeDrag}
-          onNodeDragStop={autoPan.onNodeDragStop}
-          nodeTypes={nodeTypes}
-          edgeTypes={EDGE_TYPES}
-          defaultViewport={map.viewport}
-          // The saved viewport is usually framed on a desktop and can leave the map off screen on
-          // a phone; compact screens frame the whole map once nodes are measured.
-          fitView={isMobile || isTouch}
-          fitViewOptions={{ padding: 0.25, maxZoom: 1.1 }}
-          proOptions={{ hideAttribution: true }}
-          deleteKeyCode={null}
-          // Large maps only render what is on screen; small ones skip the bookkeeping.
-          onlyRenderVisibleElements={nodes.length > VISIBLE_ONLY_THRESHOLD}
-          nodesConnectable
-          connectOnClick={false}
-          onConnectStart={onConnectStart}
-          // The line drawn while dragging a connection matches the map's line shape.
-          connectionLineType={
-            edgeShape === "bracket" ? ConnectionLineType.SmoothStep : ConnectionLineType.Bezier
-          }
-          connectionLineStyle={{ stroke: "var(--primary)", strokeWidth: 2 }}
-          onConnectEnd={onConnectEnd}
-          // Snap to a handle from farther away than ReactFlow's default 20px.
-          connectionRadius={40}
-        >
-          <Background gap={24} size={1} color={preset.dots ?? "oklch(0.7 0.02 270 / 0.25)"} />
-          <Controls
-            position="bottom-left"
-            className={isMobile ? "!hidden" : "!shadow-none !mb-20 !ml-3"}
-            showInteractive={false}
-          />
-          {showMiniMap && !miniMapMinimized && (
-            <MiniMap
-              position="bottom-right"
-              style={{ bottom: isMobile ? 72 : 16, right: 12 }}
-              className="!rounded-2xl !border !border-border !bg-card/95 !shadow-[var(--shadow-soft)]"
-              maskColor="oklch(0 0 0 / 0.08)"
-              nodeColor={() => "oklch(0.55 0.22 280)"}
-              pannable
-              zoomable
+        <KeyHintContext.Provider value={nodes.length < 8}>
+          <ReactFlow
+            nodes={styledNodes}
+            edges={styledEdges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={onNodeClick}
+            onNodeMouseEnter={(_, node) => setHoverId(node.id)}
+            onNodeMouseLeave={() => setHoverId(null)}
+            onPaneClick={() => {
+              leaveTextField();
+              setSelectedEdgeId(null);
+              setSelectedId(null);
+              setPendingSource(null);
+            }}
+            onMoveEnd={(_, nextViewport) => persistViewport(nextViewport)}
+            onEdgeClick={(_, edge) => {
+              // Clicking a line selects it and opens its appearance (it used to jump straight to a
+              // "remove connection" dialog, easy to trigger by accident).
+              setSelectedId(null);
+              setSelectedEdgeId(edge.id);
+              useThemePanel.getState().show("edge");
+            }}
+            // Our edge auto-pan scales speed with the distance to the edge (ReactFlow's is fixed).
+            autoPanOnNodeDrag={false}
+            onNodeDrag={autoPan.onNodeDrag}
+            onNodeDragStop={autoPan.onNodeDragStop}
+            nodeTypes={nodeTypes}
+            edgeTypes={EDGE_TYPES}
+            defaultViewport={map.viewport}
+            // The saved viewport is usually framed on a desktop and can leave the map off screen on
+            // a phone; compact screens frame the whole map once nodes are measured.
+            fitView={isMobile || isTouch}
+            fitViewOptions={{ padding: 0.25, maxZoom: 1.1 }}
+            proOptions={{ hideAttribution: true }}
+            deleteKeyCode={null}
+            // Large maps only render what is on screen; small ones skip the bookkeeping.
+            onlyRenderVisibleElements={nodes.length > VISIBLE_ONLY_THRESHOLD}
+            nodesConnectable
+            connectOnClick={false}
+            onConnectStart={onConnectStart}
+            // The line drawn while dragging a connection matches the map's line shape.
+            connectionLineType={
+              edgeShape === "bracket" ? ConnectionLineType.SmoothStep : ConnectionLineType.Bezier
+            }
+            connectionLineStyle={{ stroke: "var(--primary)", strokeWidth: 2 }}
+            onConnectEnd={onConnectEnd}
+            // Snap to a handle from farther away than ReactFlow's default 20px.
+            connectionRadius={40}
+          >
+            <Background gap={24} size={1} color={preset.dots ?? "oklch(0.7 0.02 270 / 0.25)"} />
+            <Controls
+              position="bottom-left"
+              className={isMobile ? "!hidden" : "!shadow-none !mb-20 !ml-3"}
+              showInteractive={false}
             />
-          )}
-        </ReactFlow>
+            {showMiniMap && !miniMapMinimized && (
+              <MiniMap
+                position="bottom-right"
+                style={{ bottom: isMobile ? 72 : 16, right: 12 }}
+                className="!rounded-2xl !border !border-border !bg-card/95 !shadow-[var(--shadow-soft)]"
+                maskColor="oklch(0 0 0 / 0.08)"
+                nodeColor={() => "oklch(0.55 0.22 280)"}
+                pannable
+                zoomable
+              />
+            )}
+          </ReactFlow>
+        </KeyHintContext.Provider>
       </BranchInfoContext.Provider>
 
       <input

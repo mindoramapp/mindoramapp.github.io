@@ -53,3 +53,17 @@ cartões.
 3. **Facilidade de uso**: dica `Tab` / `Enter` ao lado do tópico selecionado (nos primeiros
    mapas), atalhos no menu de contexto e mapas novos com **Dois lados** por padrão.
 4. Depois: barra de contexto acima do tópico e vista Esboço (Fase 2 do plano).
+
+## O que foi aplicado (22/11/2026)
+
+- **Interface clara**: fundo `oklch(0.985 0.004 285)`, texto `oklch(0.25 0.03 285)`, secundário
+  lavanda `oklch(0.52 0.045 285)` (mais escuro que o do MindMeister, para manter contraste AA),
+  bordas `oklch(0.9 0.018 285)` e sombra curta `0 1px 2px …, 0 4px 12px -2px …`.
+- **Tema de mapa "Suave"** (`src/features/editor/themes.ts`): canvas branco no claro (segue o app
+  no escuro), sem pontos, tópicos só texto em `#3d474d`, ideia central em 22 px negrito, linhas
+  curvas de 3,5 px com pontas arredondadas e uma cor por ramo; conexões livres mais finas.
+  Os mapas que já existem continuam no "Padrão" até alguém escolher o Suave.
+- **Mapas novos** (`withNewMapStyle` em `src/store/maps.ts`): tema Suave, curvas e ramos dos
+  dois lados.
+- **Dicas**: com menos de 8 tópicos, o tópico selecionado mostra "Tab cria um tópico filho ·
+  Enter cria um tópico irmão" (só com mouse); o menu de contexto mostra os atalhos.

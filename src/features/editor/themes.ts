@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import type { Edge, Node } from "reactflow";
 
-export type ThemePresetId = "default" | "dark" | "pastel" | "neon" | "minimal";
+export type ThemePresetId = "suave" | "default" | "dark" | "pastel" | "neon" | "minimal";
 export type NodeBorder = "solid" | "dashed" | "rounded" | "none";
 /** "box": the usual balloon; "text": just the text on the canvas, no background or border. */
 export type NodeBox = "box" | "text";
@@ -43,9 +43,35 @@ interface Preset {
   branchStyle?: "fill" | "outline";
   edge: { tree?: string; graph?: string; width: EdgeWidth };
   shadow?: string;
+  /** Canvas in the app's light theme when `canvas` is unset (default #f3f6fa). */
+  canvasLight?: string;
+  /** Node style when the map hasn't picked one ("Só texto" for the soft theme). */
+  defaultBox?: NodeBox;
+  /** Text color of text-only topics on a light / dark canvas (instead of black / white). */
+  ink?: { light: string; dark: string };
+  /** Rounded line ends. */
+  roundCaps?: boolean;
+  /** Line shape when the map hasn't picked one (bracket otherwise). */
+  defaultEdgeShape?: EdgeShape;
+  /** Width of free connections when it differs from the tree lines. */
+  graphWidth?: EdgeWidth;
 }
 
 export const PRESETS: Preset[] = [
+  {
+    // Light and airy: white canvas, words instead of boxes, one soft color per branch.
+    id: "suave",
+    name: "Suave",
+    canvasLight: "#ffffff",
+    dots: "transparent",
+    branches: ["#4f7bff", "#a07cf0", "#ef6a9a", "#f29a4a", "#26b39a", "#3fa9f5", "#e0b12f"],
+    edge: { graph: "#8a8aab", width: "thick" },
+    defaultBox: "text",
+    defaultEdgeShape: "curve",
+    graphWidth: "medium",
+    ink: { light: "#3d474d", dark: "#e6e9f0" },
+    roundCaps: true,
+  },
   { id: "default", name: "Padrão", edge: { width: "medium" } },
   {
     id: "dark",
@@ -92,8 +118,10 @@ export const PRESETS: Preset[] = [
   },
 ];
 
+/** Maps without a theme keep the original look ("Padrão"), not the new default for new maps. */
 export const presetById = (id: string | undefined): Preset =>
-  PRESETS.find((preset) => preset.id === id) ?? PRESETS[0];
+  PRESETS.find((preset) => preset.id === (id ?? "default")) ??
+  PRESETS.find((preset) => preset.id === "default")!;
 
 export const SWATCHES = [
   "#ef4444",
@@ -147,7 +175,7 @@ export function contrastRatio(a: string, b: string): number {
 
 /** Canvas color behind the nodes: the preset's, or the app's light/dark background. */
 export const canvasColor = (preset: Preset, appDark: boolean) =>
-  preset.canvas ?? (appDark ? "#0b1020" : "#f3f6fa");
+  preset.canvas ?? (appDark ? "#0b1020" : (preset.canvasLight ?? "#f3f6fa"));
 
 /**
  * Index of the top-level branch each node belongs to (the root's child it descends from), so
@@ -193,8 +221,13 @@ export function nodeVariables(
   // canvas (the user's color is kept when it is readable enough).
   if (plain) {
     const wanted = appearance?.text;
-    const text =
-      wanted && contrastRatio(wanted, plain.canvas) >= 3 ? wanted : readableTextOn(plain.canvas);
+    const fallback = readableTextOn(plain.canvas);
+    const ink = preset.ink
+      ? fallback === "#111827"
+        ? preset.ink.light
+        : preset.ink.dark
+      : fallback;
+    const text = wanted && contrastRatio(wanted, plain.canvas) >= 3 ? wanted : ink;
     return {
       [isRoot ? "--mm-root-bg" : "--mm-node-bg"]: "transparent",
       [isRoot ? "--mm-root-text" : "--mm-node-text"]: text,
@@ -264,8 +297,12 @@ export function edgeStyle(
   const style: CSSProperties = {};
   const color = appearance?.color ?? presetColor;
   if (color) style.stroke = color;
-  style.strokeWidth = EDGE_WIDTHS[appearance?.width ?? preset.edge.width];
+  style.strokeWidth =
+    EDGE_WIDTHS[
+      appearance?.width ?? (kind === "graph" ? preset.graphWidth : undefined) ?? preset.edge.width
+    ];
   if (appearance?.line === "dashed") style.strokeDasharray = "8 6";
+  if (preset.roundCaps) style.strokeLinecap = "round";
   if (preset.id === "neon" && color && !appearance?.color)
     style.filter = `drop-shadow(0 0 4px ${color})`;
   return style;

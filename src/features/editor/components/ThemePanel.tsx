@@ -153,6 +153,12 @@ const PREVIEW: Record<
   ThemePresetId,
   { canvas: string; root: string; nodes: string[]; line: string }
 > = {
+  suave: {
+    canvas: "#ffffff",
+    root: "#3d474d",
+    nodes: ["#dfe6ff", "#fbe0ea"],
+    line: "#a07cf0",
+  },
   default: {
     canvas: "var(--background)",
     root: "var(--gradient-hero)",

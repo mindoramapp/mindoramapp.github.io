@@ -6,13 +6,13 @@ as decisões de arquitetura e a ordem de implementação.
 
 ## Decisões tomadas
 
-| Tema                 | Decisão                                                                                  |
-| -------------------- | ---------------------------------------------------------------------------------------- |
-| Acesso               | **Cadastro aberto (desde 01/11/2026).** Basta confirmar o e-mail; a conta já entra no Free. Códigos do admin continuam válidos. |
-| Armazenamento de nós | **JSONB no mapa**, com `version` para controle de concorrência.                          |
-| Gateway de pagamento | **Pix manual por enquanto:** QR/copia e cola para a chave do dono, confirmação no admin. |
+| Tema                 | Decisão                                                                                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Acesso               | **Cadastro aberto (desde 01/11/2026).** Basta confirmar o e-mail; a conta já entra no Free. Códigos do admin continuam válidos.                  |
+| Armazenamento de nós | **JSONB no mapa**, com `version` para controle de concorrência.                                                                                  |
+| Gateway de pagamento | **Pix manual por enquanto:** QR/copia e cola para a chave do dono, confirmação no admin.                                                         |
 | Planos               | **Free / Estudante (R$ 9,90/mês ou R$ 49,90/semestre) / Pro (R$ 19,90)**, 30 ou 183 dias por pagamento, aviso 10 dias antes. Free revisa 1 mapa. |
-| Backend              | **Supabase** (Postgres + RLS + funções; Edge Functions para pagamentos e IA).            |
+| Backend              | **Supabase** (Postgres + RLS + funções; Edge Functions para pagamentos e IA).                                                                    |
 
 ## Posicionamento e diferenciais
 

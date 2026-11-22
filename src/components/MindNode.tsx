@@ -15,7 +15,7 @@ import {
   StickyNote,
   Type,
 } from "lucide-react";
-import { BranchInfoContext } from "@/features/editor/branchContext";
+import { BranchInfoContext, KeyHintContext } from "@/features/editor/branchContext";
 import { plainText, toggleMark } from "@/features/editor/richText";
 import { RichLabel } from "@/features/editor/components/RichLabel";
 import type { MindNodeData, NodeKind } from "@/store/maps";
@@ -27,6 +27,7 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuShortcut,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 
@@ -112,6 +113,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
   const kind = data.kind || "text";
   const branch = useContext(BranchInfoContext).get(id);
   const collapsed = Boolean(data.collapsed && branch?.children);
+  const showKeyHint = useContext(KeyHintContext);
   const icon = isNodeIcon(data.icon) ? data.icon : null;
   const image = isSafeNodeImage(data.image) ? data.image : null;
 
@@ -286,6 +288,28 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
               </button>
             ))}
 
+          {/* While the map is small, the selected topic says how to grow it (keyboard only). */}
+          {selected && !editing && showKeyHint && (
+            <div
+              className="mm-key-hint pointer-events-none absolute left-1/2 top-full z-10 mt-11 hidden -translate-x-1/2 items-center gap-3 whitespace-nowrap text-[11px] text-muted-foreground pointer-fine:flex"
+              aria-hidden
+            >
+              <span>
+                <kbd className="mr-1 rounded-md border border-border bg-card px-1.5 py-0.5 font-sans font-semibold text-foreground">
+                  Tab
+                </kbd>
+                cria um tópico filho
+              </span>
+              {!data.isRoot && (
+                <span>
+                  <kbd className="mr-1 rounded-md border border-border bg-card px-1.5 py-0.5 font-sans font-semibold text-foreground">
+                    Enter
+                  </kbd>
+                  cria um tópico irmão
+                </span>
+              )}
+            </div>
+          )}
           {editing && formattable && (
             <div
               role="toolbar"
@@ -482,17 +506,28 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
         </div>
       </ContextMenuTrigger>
 
-      <ContextMenuContent className="w-52">
-        <ContextMenuItem onClick={() => requestAction("edit")}>Renomear (F2)</ContextMenuItem>
+      <ContextMenuContent className="w-60">
+        <ContextMenuItem onClick={() => requestAction("add-child")}>
+          Criar filho <ContextMenuShortcut>Tab</ContextMenuShortcut>
+        </ContextMenuItem>
+        {!data.isRoot && (
+          <ContextMenuItem onClick={() => requestAction("add-sibling")}>
+            Criar irmão <ContextMenuShortcut>Enter</ContextMenuShortcut>
+          </ContextMenuItem>
+        )}
+        <ContextMenuItem onClick={() => requestAction("edit")}>
+          Renomear <ContextMenuShortcut>F2</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuSeparator />
         <ContextMenuItem onClick={() => requestAction("notes")}>Anotações</ContextMenuItem>
         <ContextMenuItem onClick={() => requestAction("pick-image")}>
           {image ? "Trocar imagem" : "Adicionar imagem"}
+          <ContextMenuShortcut>Ctrl+V</ContextMenuShortcut>
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => requestAction("add-child")}>Criar filho</ContextMenuItem>
-        <ContextMenuItem onClick={() => requestAction("add-sibling")}>Criar irmão</ContextMenuItem>
         {branch && branch.children > 0 && (
           <ContextMenuItem onClick={() => requestAction("toggle-collapse")}>
-            {collapsed ? "Abrir ramo (+)" : "Recolher ramo (−)"}
+            {collapsed ? "Abrir ramo" : "Recolher ramo"}
+            <ContextMenuShortcut>{collapsed ? "+" : "−"}</ContextMenuShortcut>
           </ContextMenuItem>
         )}
         <ContextMenuItem onClick={() => requestAction("connect")}>Iniciar conexão</ContextMenuItem>
@@ -510,7 +545,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
               className="text-destructive focus:text-destructive"
               onClick={() => requestAction("delete")}
             >
-              Excluir nó
+              Excluir nó <ContextMenuShortcut>Del</ContextMenuShortcut>
             </ContextMenuItem>
           </>
         )}

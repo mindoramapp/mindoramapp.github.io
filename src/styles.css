@@ -36,30 +36,30 @@
 
 :root {
   --radius: 0.75rem;
-  --background: oklch(0.972 0.006 250);
-  --foreground: oklch(0.22 0.018 255);
+  --background: oklch(0.985 0.004 285);
+  --foreground: oklch(0.25 0.03 285);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.018 255);
+  --card-foreground: oklch(0.25 0.03 285);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.018 255);
+  --popover-foreground: oklch(0.25 0.03 285);
   --primary: oklch(0.58 0.17 258);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.965 0.008 250);
+  --secondary: oklch(0.985 0.008 285);
   --secondary-foreground: oklch(0.24 0.018 255);
-  --muted: oklch(0.96 0.008 250);
-  --muted-foreground: oklch(0.46 0.03 255);
+  --muted: oklch(0.955 0.014 285);
+  --muted-foreground: oklch(0.52 0.045 285);
   --accent: oklch(0.94 0.02 200);
   --accent-foreground: oklch(0.24 0.03 245);
   --destructive: oklch(0.6 0.24 25);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.875 0.012 252);
-  --input: oklch(0.96 0.008 252);
+  --border: oklch(0.9 0.018 285);
+  --input: oklch(0.975 0.008 285);
   --ring: oklch(0.58 0.17 258);
   --tree: oklch(0.58 0.17 258);
-  --node-border: oklch(0.76 0.025 255);
+  --node-border: oklch(0.86 0.02 280);
   --graph: oklch(0.71 0.16 195);
   --gradient-hero: linear-gradient(135deg, oklch(0.58 0.17 258), oklch(0.68 0.15 205));
-  --shadow-soft: 0 16px 44px -26px oklch(0.3 0.05 250 / 0.34);
+  --shadow-soft: 0 1px 2px oklch(0 0 0 / 0.05), 0 4px 12px -2px oklch(0.3 0.04 285 / 0.1);
 }
 
 .dark {
@@ -375,6 +375,20 @@ select optgroup {
 .react-flow__node.mm-plain.mm-root .mm-node-field {
   font-size: 1.0625rem;
   font-weight: 700;
+}
+
+/* Soft theme ("Suave"): words a little larger, the central idea clearly the title, and the
+   lines meeting the words without a box around them. */
+.mm-soft .react-flow__node.mm-plain span.text-sm,
+.mm-soft .react-flow__node.mm-plain .mm-node-field {
+  font-size: 0.975rem;
+  line-height: 1.35;
+}
+.mm-soft .react-flow__node.mm-plain.mm-root span.text-sm,
+.mm-soft .react-flow__node.mm-plain.mm-root .mm-node-field {
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 /* Checkout on phones: a sheet that slides up from the bottom edge instead of a centered box. */

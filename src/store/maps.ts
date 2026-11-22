@@ -1,5 +1,5 @@
 // Mind map repository with Supabase persistence and local migration fallback
-import type { MapLayout } from "@/lib/layout";
+import { applyMapLayout, type MapLayout } from "@/lib/layout";
 import type { Edge, Node } from "reactflow";
 import type { EdgeShape, NodeAppearance, NodeBox, ThemePresetId } from "@/features/editor/themes";
 import { supabase } from "@/lib/supabase";
@@ -669,7 +669,7 @@ export const createBlankMap = (
 
 export type TemplateId = "blank" | "brainstorm" | "study" | "project";
 
-export const createMapFromTemplate = (
+const buildTemplateMap = (
   owner: MapOwner,
   templateId: TemplateId,
   options?: { folderId?: string | null },
@@ -970,6 +970,34 @@ export const createMapFromTemplate = (
   // blank
   return createBlankMap(owner, "Novo mapa", "brainstorm", options);
 };
+
+/**
+ * New maps start with the soft look (theme "Suave", curved lines, text-only topics) and branches
+ * on both sides of the central idea. Maps made before keep whatever they had.
+ */
+export function withNewMapStyle(map: MindMap): MindMap {
+  const nodes = map.nodes.map((node) =>
+    node.data.isRoot
+      ? {
+          ...node,
+          data: {
+            ...node.data,
+            mapTheme: node.data.mapTheme ?? "suave",
+            edgeShape: node.data.edgeShape ?? "curve",
+            layout: node.data.layout ?? "both",
+          },
+        }
+      : node,
+  );
+  const layout = nodes.find((node) => node.data.isRoot)?.data.layout ?? "right";
+  return { ...map, nodes, edges: applyMapLayout(nodes, map.edges, layout) };
+}
+
+export const createMapFromTemplate = (
+  owner: MapOwner,
+  templateId: TemplateId,
+  options?: { folderId?: string | null },
+): MindMap => withNewMapStyle(buildTemplateMap(owner, templateId, options));
 
 export const createFolder = (
   owner: MapOwner,

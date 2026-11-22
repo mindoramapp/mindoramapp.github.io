@@ -24,6 +24,7 @@ Branch: `melhoria/usabilidade`. Nada vai para a `main` sem aprovação, porque c
 ## Diagnóstico
 
 ### Editor (o ponto mais confuso)
+
 - **Ações espalhadas em 4 lugares:** cabeçalho (Árvore/Grafo, Conectar, Organizar, Exportar,
   Revisar, Painéis, Centralizar), barra flutuante (desfazer, refazer, Aparência), controles de
   zoom no canto e menu de clique direito. O cabeçalho ainda repete a navegação global (Planos,
@@ -39,6 +40,7 @@ Branch: `melhoria/usabilidade`. Nada vai para a `main` sem aprovação, porque c
   aparece como selo no cabeçalho e no cartão, como se fosse algo maior.
 
 ### Painel de mapas
+
 - **Dois caminhos para criar:** os modelos aparecem só para quem não tem mapas; depois, o
   "Novo mapa" abre outro diálogo (título + modo), sem modelos.
 - **Cartão poluído:** seletor de pasta, lixeira, selo do modo e "Mapa raiz/Submapa" em todo
@@ -48,6 +50,7 @@ Branch: `melhoria/usabilidade`. Nada vai para a `main` sem aprovação, porque c
 - Busca "por título ou modo"; favoritos cortados em 5 sem aviso.
 
 ### Acesso e textos
+
 - **Não existe "Esqueci minha senha"**: quem esquece fica sem saída.
 - Telas sem acento ("Pagina nao encontrada", "Nao foi possivel confirmar"); a tela de retorno
   do e-mail diz "Conta confirmada" mesmo quando deu erro.
@@ -71,7 +74,7 @@ Branch: `melhoria/usabilidade`. Nada vai para a `main` sem aprovação, porque c
    discreto (ou só aparece no modo Conectar).
 5. **Painel de mapas:**
    - "Novo mapa" abre um diálogo único com os modelos (Em branco, Brainstorm, Estudo, Projeto)
-     + título, e a pasta atual já escolhida;
+     - título, e a pasta atual já escolhida;
    - cartão limpo: título, nós, data e estrela; "⋯" com Abrir, Renomear, Mover para pasta,
      Exportar e Excluir;
    - dica visível do arrastar-e-soltar e busca só por título;
@@ -82,4 +85,5 @@ Branch: `melhoria/usabilidade`. Nada vai para a `main` sem aprovação, porque c
    celular) e atualização do README.
 
 ## Fora do escopo
+
 Banco de dados, preços, Pix, painel admin e a landing page (salvo pedido).

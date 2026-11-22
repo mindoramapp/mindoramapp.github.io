@@ -6,13 +6,13 @@ O Mindora não usa gateway. O cliente paga por Pix (QR Code ou Copia e Cola), en
 
 Em **Superadmin → Assinaturas**, no quadro do Pix:
 
-| Campo | Valor atual | Observação |
-|---|---|---|
-| Chave Pix | chave aleatória `b26ee480-…` | Use a chave aleatória ou um e-mail. A chave aparece em texto aberto para quem for pagar: não use CPF nem telefone. |
-| Nome do titular | Gabriel Nunes | Como aparece no banco. Vai no Pix sem acentos e em maiúsculas. |
-| Banco | Mercado Pago | Só aparece na tela de pagamento. |
-| WhatsApp | 5571999428340 | DDI + DDD + número, só dígitos. Vazio esconde o botão do WhatsApp. |
-| Cidade | (vazia) | Opcional. Vazia, o Pix usa "BRASIL", o que os bancos aceitam. |
+| Campo           | Valor atual                  | Observação                                                                                                         |
+| --------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Chave Pix       | chave aleatória `b26ee480-…` | Use a chave aleatória ou um e-mail. A chave aparece em texto aberto para quem for pagar: não use CPF nem telefone. |
+| Nome do titular | Gabriel Nunes                | Como aparece no banco. Vai no Pix sem acentos e em maiúsculas.                                                     |
+| Banco           | Mercado Pago                 | Só aparece na tela de pagamento.                                                                                   |
+| WhatsApp        | 5571999428340                | DDI + DDD + número, só dígitos. Vazio esconde o botão do WhatsApp.                                                 |
+| Cidade          | (vazia)                      | Opcional. Vazia, o Pix usa "BRASIL", o que os bancos aceitam.                                                      |
 
 **Antes de divulgar:** faça um Pix de teste de verdade (por exemplo, assine o plano mais barato), escaneando o QR com o app do banco. Confira se o nome e o valor aparecem certos e se o dinheiro cai na conta.
 
