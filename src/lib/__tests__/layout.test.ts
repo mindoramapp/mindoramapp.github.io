@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Edge, Node } from "reactflow";
-import { layoutTree } from "@/lib/layout";
+import { applyMapLayout, layoutTree } from "@/lib/layout";
 
 const node = (id: string, x = 0, y = 0): Node => ({ id, position: { x, y }, data: { label: id } });
 const edge = (source: string, target: string, side: string): Edge => ({
@@ -133,5 +133,56 @@ describe("layoutTree", () => {
   it("survives cycles in malformed data", () => {
     const cyclic = [...edges, edge("n5", "calculo", "right")];
     expect(() => layoutTree(nodes, cyclic)).not.toThrow();
+  });
+});
+
+describe("applyMapLayout", () => {
+  const n = (id: string, y = 0, x = 200) => ({ id, type: "mind", position: { x, y }, data: {} });
+  const t = (source: string, target: string, treeSide = "right") => ({
+    id: `${source}-${target}`,
+    source,
+    target,
+    data: { kind: "tree", treeSide },
+  });
+  const nodes = [
+    n("root", 0, 0),
+    n("a", 0),
+    n("b", 100),
+    n("c", 200),
+    n("d", 300),
+    n("a1", 0, 400),
+  ];
+  const edges = [t("root", "a"), t("root", "b"), t("root", "c"), t("root", "d"), t("a", "a1")];
+  const sides = (result: { id: string; data?: { treeSide?: string } }[]) =>
+    Object.fromEntries(result.map((edge) => [edge.id, edge.data?.treeSide]));
+
+  it("splits the central idea's branches in two halves, children follow their branch", () => {
+    const result = applyMapLayout(
+      nodes,
+      [...edges, { id: "g", source: "b", target: "d", data: { kind: "graph" } }],
+      "both",
+    );
+    expect(sides(result)).toEqual({
+      "root-a": "right",
+      "root-b": "right",
+      "root-c": "left",
+      "root-d": "left",
+      "a-a1": "right",
+      g: undefined,
+    });
+    expect(result.find((edge) => edge.id === "root-c")).toMatchObject({
+      sourceHandle: "source-left",
+      targetHandle: "target-right",
+    });
+  });
+
+  it("points everything down for the org chart and right for one side", () => {
+    expect(new Set(Object.values(sides(applyMapLayout(nodes, edges, "down"))))).toEqual(
+      new Set(["bottom"]),
+    );
+    const left = edges.map((edge) => ({ ...edge, data: { kind: "tree", treeSide: "left" } }));
+    expect(new Set(Object.values(sides(applyMapLayout(nodes, left, "right"))))).toEqual(
+      new Set(["right"]),
+    );
   });
 });

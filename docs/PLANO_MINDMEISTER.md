@@ -42,8 +42,10 @@ Ordem por facilidade de uso ganha dividida pelo esforço.
    seleção, formata o texto todo), Ctrl+B, Ctrl+I, Ctrl+Shift+X e Shift+Enter para nova linha.
    Guardado como texto com marcas (`**negrito**`, `*itálico*`, `~~tachado~~`); revisão, busca
    e exportação usam o texto limpo, e o Markdown exportado mantém a formatação.
-5. **Layout de mapa com dois lados** (ramos à esquerda e à direita da raiz) e **organograma**
-   (de cima para baixo), além do de um lado só.
+5. ✅ **Formato do mapa** (Aparência → Tema do mapa): Um lado, Dois lados (os ramos da ideia
+   central divididos em duas metades de tamanho parecido, no sentido do relógio) e Organograma
+   (para baixo). Guardado na ideia central (`layout`); Tab/Enter/colar criam o tópico no lado
+   certo (na ideia central, no lado mais leve).
 6. **Fronteira** em volta de um ramo e **rótulo nas conexões**.
 7. **Tópicos soltos** (sem pai) para rascunhar ideias.
 

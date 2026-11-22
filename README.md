@@ -26,7 +26,7 @@ Zustand · Tailwind CSS 4 · Supabase (auth + banco).
   Ctrl+F) busca no mapa; a seta em cada tópico recolhe o ramo (teclas − e +); colar uma lista
   com recuo (Ctrl+V) cria os ramos de uma vez. O painel Propriedades dá ícone e imagem ao
   tópico (a imagem também entra colando ou arrastando o arquivo para o tópico). Editando um
-  tópico, a barrinha B / I / S (ou Ctrl+B, Ctrl+I) formata o texto e Shift+Enter quebra a linha. Próximos passos em `docs/PLANO_MINDMEISTER.md`.
+  tópico, a barrinha B / I / S (ou Ctrl+B, Ctrl+I) formata o texto e Shift+Enter quebra a linha. Em Aparência, "Formato do mapa" escolhe Um lado, Dois lados ou Organograma. Próximos passos em `docs/PLANO_MINDMEISTER.md`.
 - **Conta:** planos, tema, instalar app, painel admin e sair ficam no menu da conta (avatar).
 - **Meus mapas:** "Novo mapa" abre um único diálogo com nome opcional, modelo (Em branco,
   Brainstorm, Estudo, Projeto) e "Importar arquivo". Cada cartão tem a estrela e o menu "⋯"

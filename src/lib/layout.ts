@@ -232,3 +232,107 @@ export function layoutTree<N extends Node>(
     }),
   };
 }
+
+/** Map format: branches to the right, on both sides of the central idea, or downwards. */
+export type MapLayout = "right" | "both" | "down";
+
+export const MAP_LAYOUTS: readonly MapLayout[] = ["right", "both", "down"];
+
+export const isMapLayout = (value: unknown): value is MapLayout =>
+  MAP_LAYOUTS.includes(value as MapLayout);
+
+export const orientationOf = (layout: MapLayout): LayoutOrientation =>
+  layout === "down" ? "vertical" : "horizontal";
+
+/**
+ * Points every tree line the way the chosen format needs: all to the right, all down, or (both
+ * sides) the central idea's branches split in two halves of about the same size, the first half
+ * on the right, each branch keeping its side all the way down.
+ */
+export function applyMapLayout<N extends Node>(
+  nodes: N[],
+  edges: Edge[],
+  layout: MapLayout,
+): Edge[] {
+  const treeEdges = edges.filter((edge) => edge.data?.kind !== "graph");
+  const childrenOf = new Map<string, Edge[]>();
+  const hasParent = new Set<string>();
+  for (const edge of treeEdges) {
+    if (hasParent.has(edge.target)) continue;
+    hasParent.add(edge.target);
+    const list = childrenOf.get(edge.source);
+    if (list) list.push(edge);
+    else childrenOf.set(edge.source, [edge]);
+  }
+  const position = new Map(nodes.map((node) => [node.id, node.position]));
+  const weight = new Map<string, number>();
+  const weigh = (id: string, seen: Set<string>): number => {
+    if (seen.has(id)) return 0;
+    seen.add(id);
+    const total =
+      1 + (childrenOf.get(id) ?? []).reduce((sum, edge) => sum + weigh(edge.target, seen), 0);
+    weight.set(id, total);
+    return total;
+  };
+
+  const sideOf = new Map<string, LayoutSide>();
+  const assign = (id: string, side: LayoutSide, seen: Set<string>) => {
+    for (const edge of childrenOf.get(id) ?? []) {
+      if (seen.has(edge.target)) continue;
+      seen.add(edge.target);
+      sideOf.set(edge.id, side);
+      assign(edge.target, side, seen);
+    }
+  };
+
+  const roots = nodes.filter((node) => !hasParent.has(node.id));
+  for (const root of roots) {
+    const seen = new Set<string>([root.id]);
+    if (layout !== "both") {
+      assign(root.id, layout === "down" ? "bottom" : "right", seen);
+      continue;
+    }
+    weigh(root.id, new Set());
+    // Reading order: what is on the right now (top to bottom) first, then the left side from
+    // the bottom up, as a clock would go round the central idea.
+    const rootX = root.position.x;
+    const ordered = [...(childrenOf.get(root.id) ?? [])].sort((a, b) => {
+      const pa = position.get(a.target) ?? { x: 0, y: 0 };
+      const pb = position.get(b.target) ?? { x: 0, y: 0 };
+      const ra = pa.x >= rootX ? 0 : 1;
+      const rb = pb.x >= rootX ? 0 : 1;
+      if (ra !== rb) return ra - rb;
+      return ra === 0 ? pa.y - pb.y : pb.y - pa.y;
+    });
+    const total = ordered.reduce((sum, edge) => sum + (weight.get(edge.target) ?? 1), 0);
+    let rightSoFar = 0;
+    let onLeft = false;
+    ordered.forEach((edge, index) => {
+      const w = weight.get(edge.target) ?? 1;
+      // The first branch always goes right; the next ones too while that brings the halves
+      // closer. From the first one on the left, the rest follow it (order stays continuous).
+      if (
+        !onLeft &&
+        index > 0 &&
+        Math.abs(total - 2 * (rightSoFar + w)) > Math.abs(total - 2 * rightSoFar)
+      )
+        onLeft = true;
+      const side: LayoutSide = onLeft ? "left" : "right";
+      if (side === "right") rightSoFar += w;
+      seen.add(edge.target);
+      sideOf.set(edge.id, side);
+      assign(edge.target, side, seen);
+    });
+  }
+
+  return edges.map((edge) => {
+    const side = sideOf.get(edge.id);
+    if (!side) return edge;
+    if (edge.data?.treeSide === side) {
+      const handles = handlesForSide(side);
+      if (edge.sourceHandle === handles.sourceHandle && edge.targetHandle === handles.targetHandle)
+        return edge;
+    }
+    return { ...edge, ...handlesForSide(side), data: { ...edge.data, treeSide: side } };
+  });
+}

@@ -396,7 +396,7 @@ function MindNodeBase({ id, data, selected }: NodeProps<MindNodeData>) {
                       e.preventDefault();
                       commit();
                       window.dispatchEvent(
-                        new CustomEvent("mm-node-add-child", { detail: { id, side: "right" } }),
+                        new CustomEvent("mm-node-add-child", { detail: { id } }),
                       );
                     }
                     if (e.key === "Escape") {

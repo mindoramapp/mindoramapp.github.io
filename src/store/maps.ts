@@ -1,4 +1,5 @@
 // Mind map repository with Supabase persistence and local migration fallback
+import type { MapLayout } from "@/lib/layout";
 import type { Edge, Node } from "reactflow";
 import type { EdgeShape, NodeAppearance, NodeBox, ThemePresetId } from "@/features/editor/themes";
 import { supabase } from "@/lib/supabase";
@@ -34,6 +35,8 @@ export interface MindNodeData {
   edgeShape?: EdgeShape;
   /** Default node style of the map (root only); boxed when unset. */
   nodeStyle?: NodeBox;
+  /** Map format (root only): branches to the right when unset, on both sides, or downwards. */
+  layout?: MapLayout;
 }
 
 export interface MapOwner {

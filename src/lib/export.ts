@@ -3,6 +3,7 @@ import { getRectOfNodes, getTransformForBounds, type Edge, type Node } from "rea
 import type { MapMode, MindMap, MindNodeData, ViewportState } from "@/store/maps";
 import { isSafeNodeImage, sanitizeNodeUrl } from "@/lib/security";
 import { isNodeIcon } from "@/features/editor/nodeIcons";
+import { isMapLayout } from "@/lib/layout";
 import { parseRich, plainText } from "@/features/editor/richText";
 import {
   isEdgeShape,
@@ -247,6 +248,7 @@ const importNodeData = (data: Record<string, unknown>): MindNodeData => {
   if (clean.isRoot && isPresetId(data.mapTheme)) clean.mapTheme = data.mapTheme;
   if (clean.isRoot && isEdgeShape(data.edgeShape)) clean.edgeShape = data.edgeShape;
   if (clean.isRoot && isNodeBox(data.nodeStyle)) clean.nodeStyle = data.nodeStyle;
+  if (clean.isRoot && isMapLayout(data.layout)) clean.layout = data.layout;
   if (data.collapsed === true) clean.collapsed = true;
   if (isNodeIcon(data.icon)) clean.icon = data.icon;
   if (isSafeNodeImage(data.image)) clean.image = data.image;

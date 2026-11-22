@@ -68,7 +68,7 @@ import {
   type NodeBox,
   type ThemePresetId,
 } from "@/features/editor/themes";
-import { layoutTree } from "@/lib/layout";
+import { applyMapLayout, layoutTree, orientationOf, type MapLayout } from "@/lib/layout";
 import {
   collapsedAncestors,
   collapseState,
@@ -105,6 +105,30 @@ const EDGE_TYPES = { wavy: WavyEdge, bracket: BracketEdge };
  * Properties panel kept focus and swallowed keyboard shortcuts (F2, Tab, Del…). Clicking the map
  * means "done typing".
  */
+/**
+ * Where a new child goes when no side was picked (Tab, Enter, "Filho", paste): down in an org
+ * chart; with branches on both sides, the side of its branch, or for the central idea the
+ * lighter side; otherwise to the right.
+ */
+function defaultChildSide(
+  parentId: string,
+  nodes: Node<MindNodeData>[],
+  edges: Edge[],
+  layout: MapLayout,
+): "left" | "right" | "bottom" {
+  if (layout === "down") return "bottom";
+  if (layout !== "both") return "right";
+  const parent = nodes.find((node) => node.id === parentId);
+  const tree = edges.filter((edge) => edge.data?.kind !== "graph");
+  if (parent?.data.isRoot) {
+    const count = (side: string) =>
+      tree.filter((edge) => edge.source === parentId && edge.data?.treeSide === side).length;
+    return count("left") < count("right") ? "left" : "right";
+  }
+  const incoming = tree.find((edge) => edge.target === parentId);
+  return incoming?.data?.treeSide === "left" ? "left" : "right";
+}
+
 /** Lays out only what is on screen: a folded branch takes no room until it opens again. */
 function layoutVisible(
   nodes: Node<MindNodeData>[],
@@ -285,7 +309,6 @@ function getTreeHandleIds(spawnSide: "left" | "right" | "top" | "bottom") {
 function EditorInner({
   map,
   mode,
-  orientation,
   connectMode,
   setConnectMode,
   organizeSignal,
@@ -303,6 +326,9 @@ function EditorInner({
     state.entitlements ? limitOf(state.entitlements, "max_nodes_per_map") : null,
   );
   const [nodes, setNodes, onNodesChange] = useNodesState<MindNodeData>(map.nodes);
+  // The map's format (one side, both sides, org chart) lives on the central idea, like its theme.
+  const mapLayout: MapLayout = nodes.find((node) => node.data.isRoot)?.data.layout ?? "right";
+  const orientation = orientationOf(mapLayout);
   const [edges, setEdges, onEdgesChange] = useEdgesState(map.edges);
   // Start on the central idea, whatever its id (imported maps don't always call it "root").
   const [selectedId, setSelectedId] = useState<string | null>(
@@ -872,6 +898,23 @@ function EditorInner({
     [setNodes],
   );
 
+  const setMapLayout = useCallback(
+    (layout: MapLayout) => {
+      const nextNodes = nodesRef.current.map((node) => {
+        if (!node.data.isRoot) return node;
+        const data: MindNodeData = { ...node.data, layout };
+        if (layout === "right") delete data.layout;
+        return { ...node, data };
+      });
+      const nextEdges = applyMapLayout(nextNodes, edgesRef.current, layout);
+      const laidOut = layoutVisible(nextNodes, nextEdges, orientationOf(layout));
+      setNodes(laidOut.nodes);
+      setEdges(laidOut.edges);
+      window.setTimeout(() => fitView({ padding: 0.2, duration: 350 }), 60);
+    },
+    [setNodes, setEdges, fitView],
+  );
+
   const setEdgeShape = useCallback(
     (shape: EdgeShape) =>
       setNodes((current) =>
@@ -1034,7 +1077,8 @@ function EditorInner({
           parentId)
         : parentId;
       const base = nodes.find((node) => node.id === targetParent) || parent;
-      const resolvedSpawnSide = spawnSide || (orientation === "vertical" ? "bottom" : "right");
+      const resolvedSpawnSide =
+        spawnSide || defaultChildSide(targetParent, nodes, edges, mapLayout);
       // A new child goes after the last sibling on the same side of the parent: below it for
       // left/right children, beside it for top/bottom ones.
       const sideways = resolvedSpawnSide === "left" || resolvedSpawnSide === "right";
@@ -1111,7 +1155,7 @@ function EditorInner({
       // A fresh node opens ready for typing; nodes created with a label (e.g. a linked map) don't.
       if (!nodeData?.label) requestNodeEdit(id);
     },
-    [nodes, edges, orientation, map.mode, setNodes, setEdges, maxNodes],
+    [nodes, edges, orientation, mapLayout, map.mode, setNodes, setEdges, maxNodes],
   );
 
   const onNodeClick: NodeMouseHandler = useCallback(
@@ -1436,7 +1480,7 @@ function EditorInner({
         return;
       }
 
-      const side = orientation === "vertical" ? "bottom" : "right";
+      const side = defaultChildSide(parent.id, current, edgesRef.current, mapLayout);
       const handles = getTreeHandleIds(side);
       const kind = map.mode === "project" ? "checklist" : "text";
       const newNodes: Node<MindNodeData>[] = [];
@@ -1515,7 +1559,7 @@ function EditorInner({
     };
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
-  }, [selectedId, orientation, map.mode, maxNodes, attachImage, setNodes, setEdges]);
+  }, [selectedId, orientation, mapLayout, map.mode, maxNodes, attachImage, setNodes, setEdges]);
 
   const patchNode = useCallback(
     (id: string, patch: Partial<MindNodeData>) => {
@@ -2074,6 +2118,8 @@ function EditorInner({
           onPreset={setMapTheme}
           edgeShape={edgeShape}
           onEdgeShape={setEdgeShape}
+          layout={mapLayout}
+          onLayout={setMapLayout}
           nodeStyle={nodeStyle}
           onNodeStyle={setNodeStyle}
           node={selectedNode ?? null}

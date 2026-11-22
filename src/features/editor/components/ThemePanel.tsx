@@ -5,6 +5,54 @@ import { Check, RotateCcw, Trash2, X } from "lucide-react";
 import type { MindNodeData } from "@/store/maps";
 import { useThemePanel, type ThemeTab } from "../themeStore";
 import { plainText } from "../richText";
+import type { MapLayout } from "@/lib/layout";
+
+// Tiny drawings of each format: central idea (filled) and its branches.
+const LAYOUTS: { id: MapLayout; label: string; hint: string; preview: React.ReactNode }[] = [
+  {
+    id: "right",
+    label: "Um lado",
+    hint: "Ramos para a direita",
+    preview: (
+      <>
+        <path d="M14 12h6M20 5v14M20 5h4M20 12h4M20 19h4" />
+        <rect x="4" y="9" width="10" height="6" rx="2" fill="currentColor" />
+        <rect x="24" y="3" width="10" height="4" rx="1.5" />
+        <rect x="24" y="10" width="10" height="4" rx="1.5" />
+        <rect x="24" y="17" width="10" height="4" rx="1.5" />
+      </>
+    ),
+  },
+  {
+    id: "both",
+    label: "Dois lados",
+    hint: "Ramos dos dois lados da ideia central",
+    preview: (
+      <>
+        <path d="M25 12h3M28 6v12M28 6h1M28 18h1M15 12h-3M12 6v12M12 6h-1M12 18h-1" />
+        <rect x="15" y="9" width="10" height="6" rx="2" fill="currentColor" />
+        <rect x="29" y="4" width="9" height="4" rx="1.5" />
+        <rect x="29" y="16" width="9" height="4" rx="1.5" />
+        <rect x="2" y="4" width="9" height="4" rx="1.5" />
+        <rect x="2" y="16" width="9" height="4" rx="1.5" />
+      </>
+    ),
+  },
+  {
+    id: "down",
+    label: "Organograma",
+    hint: "Ramos para baixo, como um organograma",
+    preview: (
+      <>
+        <path d="M20 8v4M8 12h24M8 12v4M20 12v4M32 12v4" />
+        <rect x="14" y="2" width="12" height="6" rx="2" fill="currentColor" />
+        <rect x="3" y="16" width="10" height="5" rx="1.5" />
+        <rect x="15" y="16" width="10" height="5" rx="1.5" />
+        <rect x="27" y="16" width="10" height="5" rx="1.5" />
+      </>
+    ),
+  },
+];
 import {
   EDGE_WIDTHS,
   PRESETS,
@@ -24,6 +72,8 @@ interface Props {
   onPreset: (id: ThemePresetId) => void;
   edgeShape: EdgeShape;
   onEdgeShape: (shape: EdgeShape) => void;
+  layout: MapLayout;
+  onLayout: (layout: MapLayout) => void;
   nodeStyle: NodeBox;
   onNodeStyle: (style: NodeBox) => void;
   node: { id: string; data: MindNodeData } | null;
@@ -217,6 +267,8 @@ export function ThemePanel({
   onPreset,
   edgeShape,
   onEdgeShape,
+  layout,
+  onLayout,
   nodeStyle,
   onNodeStyle,
   node,
@@ -293,6 +345,34 @@ export function ThemePanel({
 
       {tab === "map" && (
         <div className="grid grid-cols-2 gap-2">
+          <div className="col-span-2 mb-1">
+            <p className="mb-1.5 text-xs font-medium">Formato do mapa</p>
+            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Formato do mapa">
+              {LAYOUTS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={layout === option.id}
+                  onClick={() => onLayout(option.id)}
+                  title={option.hint}
+                  className={`flex min-h-11 flex-col items-center gap-1 rounded-xl border px-1 py-2 text-[11px] font-medium ${layout === option.id ? "border-primary bg-primary/5 ring-2 ring-primary/40" : "border-border hover:bg-muted"}`}
+                >
+                  <svg
+                    viewBox="0 0 40 24"
+                    className="h-6 w-10"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    aria-hidden
+                  >
+                    {option.preview}
+                  </svg>
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
           {PRESETS.map((preset) => {
             const preview = PREVIEW[preset.id];
             const active = preset.id === presetId;
