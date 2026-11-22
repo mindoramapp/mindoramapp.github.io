@@ -13,6 +13,7 @@ import vitrineComputador from "@/assets/landing/vitrine-computador.webp";
 import vitrineCelular from "@/assets/landing/vitrine-celular.webp";
 // Mood images generated with Gemini from the prompts in divulgacao/referencias/PROMPTS_GEMINI.md.
 import revisaoEstudante from "@/assets/landing/revisao-estudante.webp";
+import ceuClaro from "@/assets/landing/ceu-claro.webp";
 import ceuNoturno from "@/assets/landing/ceu-noturno.webp";
 import {
   ArrowRight,
@@ -468,8 +469,19 @@ export function LandingPage() {
           </section>
         </main>
 
-        {/* Night falls at the end of the page: the call to action and the footer under the moon. */}
-        <footer className="relative isolate overflow-hidden text-[#F3F5FF]">
+        {/* The page ends under the sky: a soft morning on the light theme, the night on the dark one.
+            The morning image starts in the page's own white, so it needs no fade on top. */}
+        <footer className="relative isolate overflow-hidden text-foreground dark:text-[#F3F5FF]">
+          <img
+            src={ceuClaro}
+            alt=""
+            aria-hidden="true"
+            width={1024}
+            height={439}
+            loading="lazy"
+            decoding="async"
+            className="pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover object-[60%_bottom] dark:hidden"
+          />
           <img
             src={ceuNoturno}
             alt=""
@@ -478,18 +490,18 @@ export function LandingPage() {
             height={439}
             loading="lazy"
             decoding="async"
-            className="pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover object-[60%_bottom]"
+            className="pointer-events-none absolute inset-0 -z-20 hidden h-full w-full object-cover object-[60%_bottom] dark:block"
           />
-          <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,var(--color-background)_0%,rgba(6,9,15,0.15)_30%,transparent_60%,rgba(6,9,15,0.55)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,var(--color-background)_0%,transparent_12%)] dark:bg-[linear-gradient(to_bottom,var(--color-background)_0%,rgba(6,9,15,0.15)_30%,transparent_60%,rgba(6,9,15,0.55)_100%)]" />
           <div className="mx-auto max-w-7xl px-4 pb-8 pt-40 sm:px-6 sm:pt-48 lg:px-8">
             <Reveal className="max-w-2xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#C9D6FF]/80">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground dark:text-[#C9D6FF]/80">
                 Pronto para começar
               </p>
               <h2 className="font-display-serif mt-4 text-3xl font-semibold sm:text-5xl">
-                Crie sua conta e monte o primeiro mapa <span className="dusk-accent">hoje</span>.
+                Crie sua conta e monte o primeiro mapa <span className="title-accent">hoje</span>.
               </h2>
-              <p className="mt-4 text-base leading-7 text-[#C9D6FF]">
+              <p className="mt-4 text-base leading-7 text-muted-foreground dark:text-[#C9D6FF]">
                 É grátis para começar, no plano Free. Crie a conta, confirme o e-mail e pronto: você
                 já monta o primeiro mapa.
               </p>
@@ -504,7 +516,7 @@ export function LandingPage() {
                 {!appDestination && (
                   <Link
                     to="/login"
-                    className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10 pointer-coarse:min-h-11"
+                    className="inline-flex items-center justify-center rounded-full border border-border bg-white/70 px-6 py-3 text-sm font-semibold text-foreground backdrop-blur-sm transition-colors hover:bg-white dark:border-white/25 dark:bg-white/5 dark:text-white dark:backdrop-blur-none dark:hover:bg-white/10 pointer-coarse:min-h-11"
                   >
                     Já tenho conta
                   </Link>
@@ -512,14 +524,14 @@ export function LandingPage() {
               </div>
             </Reveal>
 
-            <div className="mt-24 flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between sm:mt-32">
+            <div className="mt-24 flex flex-col gap-4 border-t pt-6 sm:flex-row sm:items-center sm:justify-between sm:mt-32 border-foreground/10 dark:border-white/10">
               <div className="flex items-center gap-3">
                 <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[image:var(--gradient-hero)] text-primary-foreground">
                   <Network size={18} />
                 </span>
                 <div>
                   <div className="text-sm font-semibold">Mindora</div>
-                  <div className="text-xs text-[#C9D6FF]/80">
+                  <div className="text-xs text-muted-foreground dark:text-[#C9D6FF]/80">
                     Mapas mentais para estudar e planejar
                   </div>
                 </div>

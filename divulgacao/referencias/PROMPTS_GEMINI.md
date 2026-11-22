@@ -51,7 +51,33 @@ Atmosfera calma, silenciosa, de fim de dia de estudo. Sem pessoas, sem texto, se
 logotipos, sem marca-d'água.
 ```
 
+## 3. `dia.png` (rodapé do tema claro, 22/11/2026)
+
+No tema claro, o rodapé noturno destoa: a página é branca e lavanda e de repente vira noite, com um
+degradê que parece borrão. A ideia é usar esta imagem clara no tema claro e manter a `noite.png`
+só no tema escuro. Salve em `divulgacao/referencias/gemini/dia.png`, 21:9, no mínimo 2520 × 1080.
+
+```
+Ilustração suave e luminosa em panorama ultralargo 21:9, estilo editorial minimalista, quase
+pastel. Céu de manhã bem cedo, muito claro: o topo da imagem é branco-lavanda liso e uniforme
+(#F9F9FC), exatamente da mesma cor em toda a borda de cima, sem nuvens nem detalhes ali, para
+emendar sem costura com uma página branca. Descendo, o céu ganha um tom lavanda bem leve (#EFEFFA)
+e, junto ao horizonte, um brilho de nascer do sol em pêssego claro (#FFD9C7) e rosa suave.
+Na parte de baixo, uma linha de horizonte baixa com silhuetas de morros ao longe em lavanda
+acinzentado (#B8B8DB), com névoa leve entre eles.
+No terço direito, flutuando acima dos morros, uma constelação delicada de pontos conectados por
+linhas finas e arredondadas, como um mapa mental desenhado no céu: um ponto central um pouco maior
+e ramos saindo dele, cada ramo numa cor suave diferente (azul #4F7BFF, lilás #A07CF0, rosa #EF6A9A,
+laranja #F29A4A, verde-água #26B39A), com transparência, como tinta aquarelada.
+A metade de cima e todo o lado esquerdo ficam quase lisos e claros, com bastante espaço vazio para
+receber um título escuro, um parágrafo e dois botões por cima.
+Atmosfera calma, otimista, de começo de dia de estudo. Sem pessoas, sem sol visível em disco, sem
+estrelas, sem texto, sem letras, sem números, sem logotipos, sem marca-d'água.
+```
+
+Gere 2 ou 3 versões e escolha a que tiver a borda de cima mais lisa e branca.
+
 ---
 
-Depois de salvar as duas, é só me avisar ("salvei as imagens do Gemini"). Eu otimizo para a web
+Depois de salvar, é só me avisar ("salvei as imagens do Gemini"). Eu otimizo para a web
 (WebP, versões para celular), coloco na página e mostro antes de publicar.
